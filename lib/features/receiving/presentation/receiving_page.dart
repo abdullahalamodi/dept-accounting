@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 
 class ReceivingPage extends StatelessWidget {
   const ReceivingPage({super.key, required this.dependencies});
@@ -18,19 +18,19 @@ class ReceivingPage extends StatelessWidget {
         currency = d.store.shop!.currencyLabel;
     return SectionStack(
       children: [
-        DukanPageHeader(
+        DeptAccountingPageHeader(
           title: 'الاستلام قبل الفاتورة',
           description:
               'استلم البضاعة بتكلفة تقديرية، ثم سوّها عند وصول فاتورة المورد.',
           actions: [
-            DukanButton(
+            DeptAccountingButton(
               label: 'استلام سريع',
               onPressed: () => context.go('/receiving/new/${d.store.id()}'),
             ),
           ],
         ),
         if (drafts.isNotEmpty)
-          DukanPanel(
+          DeptAccountingPanel(
             title: 'مسودات الاستلام',
             child: Wrap(
               spacing: 12,
@@ -47,7 +47,7 @@ class ReceivingPage extends StatelessWidget {
             ),
           ),
         if (finalDrafts.isNotEmpty)
-          DukanPanel(
+          DeptAccountingPanel(
             title: 'مسودات فواتير المورد',
             child: Wrap(
               spacing: 12,
@@ -64,9 +64,9 @@ class ReceivingPage extends StatelessWidget {
               ],
             ),
           ),
-        DukanPanel(
+        DeptAccountingPanel(
           title: 'استلامات تنتظر فاتورة المورد',
-          child: DukanDataTable(
+          child: DeptAccountingDataTable(
             columns: const [
               DataColumn(label: Text('الاستلام')),
               DataColumn(label: Text('المورد')),
@@ -82,7 +82,7 @@ class ReceivingPage extends StatelessWidget {
                     DataCell(Text(d.parties.get(doc.partyId!).name)),
                     DataCell(Text(doc.date)),
                     DataCell(
-                      DukanAmount(
+                      DeptAccountingAmount(
                         Numbers.format(doc.total),
                         currency: currency,
                       ),
@@ -107,10 +107,10 @@ class ReceivingPage extends StatelessWidget {
                 'تظهر هنا البضائع المستلمة التي لم تصل فاتورتها النهائية.',
           ),
         ),
-        const DukanNotice(
+        const DeptAccountingNotice(
           title: 'فوتر الاستلام من هذه الشاشة',
           message: 'الاعتماد النهائي يسوي التكلفة وحساب المورد دون تكرار الكمية. يبقى كل مستند سابق وتكلفته الأصلية محفوظين.',
-          tone: DukanTone.info,
+          tone: DeptAccountingTone.info,
         ),
       ],
     );

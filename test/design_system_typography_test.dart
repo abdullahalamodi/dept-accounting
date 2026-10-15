@@ -1,10 +1,10 @@
-import 'package:dukan_app/design_system/dukan_design_system.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   test('Every text role uses the Arabic family and shared ink, with quiet section headings', () {
-    final theme = DukanTheme.light();
+    final theme = DeptAccountingTheme.light();
     final roles = {
       'displayLarge': theme.textTheme.displayLarge!,
       'displayMedium': theme.textTheme.displayMedium!,
@@ -24,7 +24,7 @@ void main() {
     };
     for (final role in roles.entries) {
       expect(role.value.fontFamily, 'IBMPlexSansArabic', reason: role.key);
-      expect(role.value.color, DukanColors.ink, reason: role.key);
+      expect(role.value.color, DeptAccountingColors.ink, reason: role.key);
     }
     expect(theme.textTheme.titleMedium!.fontWeight, FontWeight.w400);
     expect(theme.textTheme.titleMedium!.fontSize, 16);

@@ -1,9 +1,9 @@
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/design_system/dukan_design_system.dart';
-import 'package:dukan_app/features/auth/data/auth_models.dart';
-import 'package:dukan_app/features/catalog/data/catalog_reference.dart';
-import 'package:dukan_app/main.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
+import 'package:dept_accounting/features/auth/data/auth_models.dart';
+import 'package:dept_accounting/features/catalog/data/catalog_reference.dart';
+import 'package:dept_accounting/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -27,9 +27,11 @@ void main() {
         username: 'owner',
         role: 'owner',
       );
-      await tester.pumpWidget(DukanApp(dependencies: d));
+      await tester.pumpWidget(DeptAccountingApp(dependencies: d));
       await tester.pumpAndSettle();
-      final router = GoRouter.of(tester.element(find.byType(DukanWorkspace)));
+      final router = GoRouter.of(
+        tester.element(find.byType(DeptAccountingWorkspace)),
+      );
       router.go('/catalog/new');
       await tester.pumpAndSettle();
       await tester.enterText(
@@ -44,7 +46,7 @@ void main() {
         find.widgetWithText(TextFormField, 'اسم التصنيف'),
         'إضاءة',
       );
-      await tester.tap(find.widgetWithText(DukanButton, 'حفظ'));
+      await tester.tap(find.widgetWithText(DeptAccountingButton, 'حفظ'));
       await tester.pumpAndSettle();
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.text('إضاءة'), findsOneWidget);
@@ -66,7 +68,7 @@ void main() {
         find.widgetWithText(TextFormField, 'اسم الوحدة'),
         'حزمة',
       );
-      await tester.tap(find.widgetWithText(DukanButton, 'حفظ'));
+      await tester.tap(find.widgetWithText(DeptAccountingButton, 'حفظ'));
       await tester.pumpAndSettle();
       final factor = find.widgetWithText(TextFormField, 'عدد الوحدات الأساسية');
       await tester.ensureVisible(factor);
@@ -75,16 +77,18 @@ void main() {
       expect(find.text('1 حزمة = 12 حبة'), findsOneWidget);
       expect(additional, findsOneWidget);
       await tester.ensureVisible(
-        find.widgetWithText(DukanButton, 'حفظ المنتج'),
+        find.widgetWithText(DeptAccountingButton, 'حفظ المنتج'),
       );
-      await tester.tap(find.widgetWithText(DukanButton, 'حفظ المنتج'));
+      await tester.tap(find.widgetWithText(DeptAccountingButton, 'حفظ المنتج'));
       await tester.pumpAndSettle();
       final product = d.catalog.all().single;
       expect(product.categoryId, isNotEmpty);
       expect(product.alternateUnitId, isNotEmpty);
       expect(product.factor, 12000);
 
-      await tester.tap(find.widgetWithText(DukanFilterChip, 'التصنيفات'));
+      await tester.tap(
+        find.widgetWithText(DeptAccountingFilterChip, 'التصنيفات'),
+      );
       await tester.pumpAndSettle();
       await tester.enterText(
         find.widgetWithText(TextFormField, 'بحث بالاسم'),
@@ -98,7 +102,7 @@ void main() {
         find.widgetWithText(TextFormField, 'اسم التصنيف'),
         'إنارة داخلية خاصة',
       );
-      await tester.tap(find.widgetWithText(DukanButton, 'حفظ'));
+      await tester.tap(find.widgetWithText(DeptAccountingButton, 'حفظ'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.widgetWithText(TextFormField, 'بحث بالاسم'),
@@ -116,7 +120,9 @@ void main() {
         ),
         findsNothing,
       );
-      await tester.tap(find.widgetWithText(DukanFilterChip, 'إظهار الموقوفة'));
+      await tester.tap(
+        find.widgetWithText(DeptAccountingFilterChip, 'إظهار الموقوفة'),
+      );
       await tester.pumpAndSettle();
       expect(find.text('موقوفة'), findsOneWidget);
       await tester.tap(find.text('تفعيل'));

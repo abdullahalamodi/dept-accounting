@@ -1,11 +1,11 @@
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/app_store.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/core/numbers.dart';
-import 'package:dukan_app/design_system/dukan_design_system.dart';
-import 'package:dukan_app/features/auth/data/auth_models.dart';
-import 'package:dukan_app/features/auth/data/passwords.dart';
-import 'package:dukan_app/main.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/app_store.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/core/numbers.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
+import 'package:dept_accounting/features/auth/data/auth_models.dart';
+import 'package:dept_accounting/features/auth/data/passwords.dart';
+import 'package:dept_accounting/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -99,7 +99,7 @@ void main() {
           [user.id, user.username, user.toJson(), 'unused'],
         );
         d.store.user = user;
-        await tester.pumpWidget(DukanApp(dependencies: d));
+        await tester.pumpWidget(DeptAccountingApp(dependencies: d));
         await tester.pumpAndSettle();
         expect(find.text('قفل الجلسة'), findsNothing);
         if (role == 'seller') {
@@ -123,7 +123,9 @@ void main() {
             isFalse,
           );
         }
-        final router = GoRouter.of(tester.element(find.byType(DukanWorkspace)));
+        final router = GoRouter.of(
+          tester.element(find.byType(DeptAccountingWorkspace)),
+        );
         expect(router.routeInformationProvider.value.uri.path, '/profile');
         await tester.enterText(
           find.widgetWithText(TextFormField, 'اسم المستخدم'),
@@ -183,7 +185,10 @@ void main() {
           router.go('/profile');
           await tester.pumpAndSettle();
         }
-        final logout = find.widgetWithText(DukanButton, 'تسجيل الخروج');
+        final logout = find.widgetWithText(
+          DeptAccountingButton,
+          'تسجيل الخروج',
+        );
         await tester.ensureVisible(logout);
         await tester.tap(logout);
         await tester.pumpAndSettle();
@@ -222,7 +227,7 @@ void main() {
         hash,
       ]);
       d.store.user = user;
-      await tester.pumpWidget(DukanApp(dependencies: d));
+      await tester.pumpWidget(DeptAccountingApp(dependencies: d));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('الملف الشخصي'));
       await tester.pumpAndSettle();
@@ -230,13 +235,16 @@ void main() {
         find.widgetWithText(TextFormField, 'اسم المستخدم'),
         'unsaved',
       );
-      final open = find.widgetWithText(DukanButton, 'تغيير كلمة المرور');
+      final open = find.widgetWithText(
+        DeptAccountingButton,
+        'تغيير كلمة المرور',
+      );
       await tester.ensureVisible(open);
       await tester.tap(open);
       await tester.pumpAndSettle();
       Future<void> submitPassword() async {
-        final button = tester.widget<DukanButton>(
-          find.widgetWithText(DukanButton, 'تحديث كلمة المرور'),
+        final button = tester.widget<DeptAccountingButton>(
+          find.widgetWithText(DeptAccountingButton, 'تحديث كلمة المرور'),
         );
         await tester.runAsync(button.onPressed! as Future<void> Function());
         await tester.pumpAndSettle();

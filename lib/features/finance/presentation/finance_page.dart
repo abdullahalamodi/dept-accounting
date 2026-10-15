@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../../invoices/presentation/invoice_view_model.dart';
 import '../../invoices/data/document.dart';
 import 'finance_view_model.dart';
@@ -40,11 +40,11 @@ class _FinancePageState extends State<FinancePage> {
       final docs = d.finance.documents(), accounts = d.finance.accounts();
       return SectionStack(
         children: [
-          DukanPageHeader(
+          DeptAccountingPageHeader(
             title: 'الصندوق والمالية',
             description: 'قبض وصرف وتحويلات، بعملة محلك الواحدة',
             actions: [
-              DukanButton(
+              DeptAccountingButton(
                 label: 'عملية مالية جديدة',
                 onPressed: () => context.go('/finance/new'),
               ),
@@ -52,10 +52,10 @@ class _FinancePageState extends State<FinancePage> {
           ),
           ErrorNotice(vm.error),
           FieldGrid(
-            runSpacing: DukanSpace.xl,
+            runSpacing: DeptAccountingSpace.xl,
             children: [
               for (final a in accounts)
-                DukanMetricCard(
+                DeptAccountingMetricCard(
                   label: a.name,
                   value: '${Numbers.format(a.balance)} $currency',
                   caption: 'الرصيد المتاح',
@@ -63,19 +63,19 @@ class _FinancePageState extends State<FinancePage> {
             ],
           ),
           if (manage)
-            DukanPanel(
+            DeptAccountingPanel(
               title: 'إعداد الحسابات وأرصدة البداية',
               child: SectionStack.form(
                 children: [
                   FieldGrid(
                     children: [
-                      DukanField(
+                      DeptAccountingField(
                         label: 'اسم حساب نقدي أو بنكي جديد',
                         controller: name,
                       ),
-                      DukanButton(
+                      DeptAccountingButton(
                         label: 'إضافة الحساب',
-                        variant: DukanButtonVariant.secondary,
+                        variant: DeptAccountingButtonVariant.secondary,
                         onPressed: () {
                           if (vm.addAccount(name.text)) name.clear();
                         },
@@ -93,14 +93,14 @@ class _FinancePageState extends State<FinancePage> {
                             .toList(),
                         onChanged: (v) => setState(() => openingAccount = v),
                       ),
-                      DukanField(
+                      DeptAccountingField(
                         label: 'الرصيد الافتتاحي',
                         controller: opening,
                         numeric: true,
                       ),
-                      DukanButton(
+                      DeptAccountingButton(
                         label: 'اعتماد رصيد البداية',
-                        variant: DukanButtonVariant.secondary,
+                        variant: DeptAccountingButtonVariant.secondary,
                         onPressed: () {
                           if (vm.opening(
                             openingAccount ?? accounts.first.code,
@@ -117,10 +117,10 @@ class _FinancePageState extends State<FinancePage> {
               ),
             ),
           if (manage) ReconciliationPanel(d: d),
-          DukanPanel(
+          DeptAccountingPanel(
             title: 'الحركات المالية',
             padding: EdgeInsets.zero,
-            child: DukanDataTable(
+            child: DeptAccountingDataTable(
               columns: const [
                 DataColumn(label: Text('المرجع')),
                 DataColumn(label: Text('النوع')),
@@ -142,7 +142,7 @@ class _FinancePageState extends State<FinancePage> {
                       DataCell(Text(doc.label)),
                       DataCell(Text(doc.date)),
                       DataCell(
-                        DukanAmount(
+                        DeptAccountingAmount(
                           Numbers.format(doc.total),
                           currency: currency,
                         ),
@@ -208,11 +208,11 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
         title: 'عملية مالية جديدة',
         onBack: () => context.go('/finance'),
         actions: [
-          DukanButton(
+          DeptAccountingButton(
             label: 'اعتماد العملية',
             loading: vm.busy,
             onPressed: () async {
-              if (!await showDukanConfirmation(
+              if (!await showDeptAccountingConfirmation(
                 context,
                 title: 'اعتماد العملية المالية؟',
                 message: 'تحقق من الحسابات والمبالغ والتخصيص المعروض.',
@@ -230,10 +230,10 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
         child: SectionStack(
           children: [
             ErrorNotice(vm.error),
-            DukanEditorLayout(
+            DeptAccountingEditorLayout(
               form: SectionStack(
                 children: [
-                  DukanPanel(
+                  DeptAccountingPanel(
                     title: 'بيانات العملية',
                     child: FieldGrid(
                       children: [
@@ -269,7 +269,7 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                             },
                           ),
                         if (vm.kind == 'expense')
-                          DukanField(
+                          DeptAccountingField(
                             label: 'تصنيف المصروف',
                             onChanged: (v) {
                               vm.category = v;
@@ -291,7 +291,7 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                               vm.changed();
                             },
                           ),
-                        DukanField(
+                        DeptAccountingField(
                           label: 'البيان / الملاحظات',
                           onChanged: (v) {
                             vm.notes = v;
@@ -301,11 +301,11 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                       ],
                     ),
                   ),
-                  DukanPanel(
+                  DeptAccountingPanel(
                     title: 'الحسابات والمبالغ',
-                    action: DukanButton(
+                    action: DeptAccountingButton(
                       label: 'إضافة حساب للدفع',
-                      variant: DukanButtonVariant.secondary,
+                      variant: DeptAccountingButtonVariant.secondary,
                       onPressed: () {
                         vm.payments.add(
                           PaymentInput(account: accounts.first.code),
@@ -337,7 +337,7 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                                   vm.changed();
                                 },
                               ),
-                              DukanField(
+                              DeptAccountingField(
                                 label: 'المبلغ ($currency)',
                                 initialValue: p.amount,
                                 numeric: true,
@@ -360,7 +360,7 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                     ),
                   ),
                   if (vm.voucher)
-                    DukanPanel(
+                    DeptAccountingPanel(
                       title: 'تخصيص الدفعة',
                       description:
                           'التخصيص يوزع الدفعة نفسها ولا ينشئ حركة نقدية أخرى.',
@@ -386,7 +386,7 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                                   '${invoice.number} · المتبقي ${Numbers.format(d.invoices.due(invoice.id))} $currency',
                                 ),
                                 if (vm.allocationMode == 'manual')
-                                  DukanField(
+                                  DeptAccountingField(
                                     key: ValueKey(invoice.id),
                                     label: 'تخصيص للفاتورة',
                                     initialValue: vm.manual[invoice.id] ?? '0',
@@ -407,25 +407,25 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                     ),
                 ],
               ),
-              summary: DukanPanel(
+              summary: DeptAccountingPanel(
                 title: 'ملخص العملية',
                 child: SectionStack(
                   children: [
-                    DukanSummaryLine(
+                    DeptAccountingSummaryLine(
                       label: 'الإجمالي',
                       value: Numbers.format(vm.total),
                       currency: currency,
                       total: true,
                     ),
                     if (vm.voucher) ...[
-                      DukanSummaryLine(
+                      DeptAccountingSummaryLine(
                         label: 'المخصص للفواتير',
                         value: Numbers.format(
                           preview.values.fold<int>(0, (a, b) => a + b),
                         ),
                         currency: currency,
                       ),
-                      DukanSummaryLine(
+                      DeptAccountingSummaryLine(
                         label: 'غير مخصص / دفعة مقدمة',
                         value: Numbers.format(
                           vm.total -
@@ -436,7 +436,7 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                     ],
                     const Text(
                       'سيُرفض الصرف إذا تجاوز الرصيد المتاح للحساب.',
-                      style: TextStyle(color: DukanColors.muted),
+                      style: TextStyle(color: DeptAccountingColors.muted),
                     ),
                   ],
                 ),

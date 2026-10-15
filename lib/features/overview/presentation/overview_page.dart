@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/overview_repository.dart';
 import 'overview_view_model.dart';
 
@@ -31,7 +31,7 @@ class _OverviewPageState extends State<OverviewPage> {
       final manage = d.store.user!.canManage;
       return SectionStack(
         children: [
-          DukanPageHeader(
+          DeptAccountingPageHeader(
             title: 'نظرة على محلك',
             description:
                 'مرحبًا ${d.store.user!.displayName}، إليك آخر حركة في ${d.store.shop!.name}.',
@@ -41,7 +41,7 @@ class _OverviewPageState extends State<OverviewPage> {
                 child: Text(
                   MaterialLocalizations.of(context)
                       .formatFullDate(DateTime.now()),
-                  style: const TextStyle(color: DukanColors.muted),
+                  style: const TextStyle(color: DeptAccountingColors.muted),
                 ),
               ),
             ],
@@ -78,7 +78,7 @@ class _OverviewPageState extends State<OverviewPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(flex: firstFlex, child: first),
-                  const SizedBox(width: DukanSpace.xl),
+                  const SizedBox(width: DeptAccountingSpace.xl),
                   Expanded(flex: secondFlex, child: second),
                 ],
               );
@@ -120,7 +120,7 @@ class _ActivityPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final sales = vm.activity.fold<int>(0, (sum, day) => sum + day.sales);
-    return DukanPanel(
+    return DeptAccountingPanel(
       title: 'حركة المبيعات',
       minHeight: wide ? 440 : 0,
       showHeaderDivider: false,
@@ -135,8 +135,8 @@ class _ActivityPanel extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            border: Border.all(color: DukanColors.border),
-            borderRadius: BorderRadius.circular(DukanLayout.radius),
+            border: Border.all(color: DeptAccountingColors.border),
+            borderRadius: BorderRadius.circular(DeptAccountingLayout.radius),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -161,14 +161,20 @@ class _ActivityPanel extends StatelessWidget {
                 spacing: 20,
                 runSpacing: 8,
                 children: [
-                  const _Legend('المبيعات', DukanColors.primary),
+                  const _Legend('المبيعات', DeptAccountingColors.primary),
                   if (manage)
-                    const _Legend('مجمل الربح', DukanColors.chartSecondary),
+                    const _Legend(
+                      'مجمل الربح',
+                      DeptAccountingColors.chartSecondary,
+                    ),
                 ],
               ),
               Text(
                 '${Numbers.format(sales)} $currency',
-                style: const TextStyle(color: DukanColors.muted, fontSize: 12),
+                style: const TextStyle(
+                  color: DeptAccountingColors.muted,
+                  fontSize: 12,
+                ),
               ),
             ],
           ),
@@ -176,12 +182,12 @@ class _ActivityPanel extends StatelessWidget {
           Stack(
             alignment: Alignment.center,
             children: [
-              DukanLineChart(
+              DeptAccountingLineChart(
                 primaryLabel: 'المبيعات',
                 secondaryLabel: manage ? 'مجمل الربح' : null,
                 points: [
                   for (final day in vm.activity)
-                    DukanChartPoint(
+                    DeptAccountingChartPoint(
                       label: vm.days == 7
                           ? weekdays[day.date.weekday - 1]
                           : '${day.date.day}/${day.date.month}',
@@ -205,11 +211,11 @@ class _ActivityPanel extends StatelessWidget {
                 IgnorePointer(
                   child: Container(
                     padding: const EdgeInsets.all(12),
-                    color: DukanColors.surface,
+                    color: DeptAccountingColors.surface,
                     child: const Text(
                       'لا توجد حركة مبيعات خلال هذه الفترة',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: DukanColors.muted),
+                      style: TextStyle(color: DeptAccountingColors.muted),
                     ),
                   ),
                 ),
@@ -236,7 +242,7 @@ class _Legend extends StatelessWidget {
       const SizedBox(width: 8),
       Text(
         label,
-        style: const TextStyle(color: DukanColors.muted, fontSize: 12),
+        style: const TextStyle(color: DeptAccountingColors.muted, fontSize: 12),
       ),
     ],
   );
@@ -247,7 +253,7 @@ class _QuickActions extends StatelessWidget {
   final AppDependencies d;
   final bool wide;
   @override
-  Widget build(BuildContext context) => DukanPanel(
+  Widget build(BuildContext context) => DeptAccountingPanel(
     title: 'خطوة سريعة',
     minHeight: wide ? 440 : 0,
     showHeaderDivider: false,
@@ -299,7 +305,7 @@ class _QuickActions extends StatelessWidget {
                 for (final action in actions)
                   SizedBox(
                     width: width,
-                    child: DukanActionCard(
+                    child: DeptAccountingActionCard(
                       title: action.title,
                       description: action.description,
                       icon: action.icon,
@@ -325,7 +331,7 @@ class _RecentInvoices extends StatelessWidget {
   final List<OverviewInvoice> invoices;
   final bool wide;
   @override
-  Widget build(BuildContext context) => DukanPanel(
+  Widget build(BuildContext context) => DeptAccountingPanel(
     title: 'آخر فواتير البيع',
     minHeight: wide ? 486 : 0,
     showHeaderDivider: false,
@@ -336,7 +342,7 @@ class _RecentInvoices extends StatelessWidget {
     ),
     child: ConstrainedBox(
       constraints: BoxConstraints(minHeight: wide ? 360 : 0),
-      child: DukanDataTable(
+      child: DeptAccountingDataTable(
         minWidth: 680,
         columnSpacing: 12,
         horizontalMargin: 20,
@@ -379,7 +385,7 @@ class _RecentInvoices extends StatelessWidget {
                   ),
                 ),
                 DataCell(
-                  DukanStatusTag(
+                  DeptAccountingStatusTag(
                     row.cancelled
                         ? 'ملغاة'
                         : row.due == 0
@@ -388,12 +394,12 @@ class _RecentInvoices extends StatelessWidget {
                         ? 'دفع جزئي'
                         : 'آجلة',
                     tone: row.cancelled
-                        ? DukanTone.neutral
+                        ? DeptAccountingTone.neutral
                         : row.due == 0
-                        ? DukanTone.success
+                        ? DeptAccountingTone.success
                         : row.paid > 0
-                        ? DukanTone.warning
-                        : DukanTone.danger,
+                        ? DeptAccountingTone.warning
+                        : DeptAccountingTone.danger,
                   ),
                 ),
                 DataCell(
@@ -422,14 +428,16 @@ class _LowStock extends StatelessWidget {
   final List<OverviewStock> items;
   final bool wide;
   @override
-  Widget build(BuildContext context) => DukanPanel(
+  Widget build(BuildContext context) => DeptAccountingPanel(
     title: 'تحتاج إلى إعادة تزويد',
     minHeight: wide ? 486 : 0,
     showHeaderDivider: false,
     padding: EdgeInsets.zero,
-    action: DukanStatusTag(
+    action: DeptAccountingStatusTag(
       '${items.length} منتجات',
-      tone: items.isEmpty ? DukanTone.success : DukanTone.warning,
+      tone: items.isEmpty
+          ? DeptAccountingTone.success
+          : DeptAccountingTone.warning,
     ),
     child: ConstrainedBox(
       constraints: BoxConstraints(minHeight: wide ? 412 : 0),
@@ -441,8 +449,8 @@ class _LowStock extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (items.isEmpty)
-                const DukanStateView(
-                  state: DukanViewState.empty,
+                const DeptAccountingStateView(
+                  state: DeptAccountingViewState.empty,
                   title: 'مخزونك بخير',
                   message: 'لا توجد منتجات وصلت إلى حد التنبيه.',
                 )
@@ -451,7 +459,9 @@ class _LowStock extends StatelessWidget {
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: InkWell(
-                      borderRadius: BorderRadius.circular(DukanLayout.radius),
+                      borderRadius: BorderRadius.circular(
+                        DeptAccountingLayout.radius,
+                      ),
                       onTap: () => context.go('/catalog/${item.id}'),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -472,20 +482,20 @@ class _LowStock extends StatelessWidget {
                                     'حد التنبيه: ${Numbers.format(item.minimum, decimals: 3)} ${item.unit}',
                                     style: const TextStyle(
                                       fontSize: 12,
-                                      color: DukanColors.muted,
+                                      color: DeptAccountingColors.muted,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
                             const SizedBox(width: 12),
-                            DukanStatusTag(
+                            DeptAccountingStatusTag(
                               item.quantity <= 0
                                   ? 'نفد المخزون'
                                   : '${Numbers.format(item.quantity, decimals: 3)} متبقية',
                               tone: item.quantity <= 0
-                                  ? DukanTone.danger
-                                  : DukanTone.warning,
+                                  ? DeptAccountingTone.danger
+                                  : DeptAccountingTone.warning,
                             ),
                           ],
                         ),

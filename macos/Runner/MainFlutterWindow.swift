@@ -21,7 +21,7 @@ class MainFlutterWindow: NSWindow {
     self.setFrame(windowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)
-    let channel = FlutterMethodChannel(name: "dukan/folder_access", binaryMessenger: flutterViewController.engine.binaryMessenger)
+    let channel = FlutterMethodChannel(name: "dept_accounting/folder_access", binaryMessenger: flutterViewController.engine.binaryMessenger)
     channel.setMethodCallHandler { [weak self] call, result in
       guard let self = self, let arguments = call.arguments as? [String: String] else {
         result(FlutterError(code: "arguments", message: "Invalid folder arguments", details: nil)); return

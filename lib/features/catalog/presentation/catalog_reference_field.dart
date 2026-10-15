@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/catalog_reference.dart';
 import '../data/catalog_references_repository.dart';
 import 'catalog_reference_editor.dart';
@@ -34,7 +34,7 @@ class CatalogReferenceField extends StatelessWidget {
           .all(kind)
           .where((r) => r.id == controller.text)
           .firstOrNull;
-      return DukanField(
+      return DeptAccountingField(
         key: ValueKey('$label-${entry?.id}-${entry?.name}-${entry?.active}'),
         label: label,
         initialValue: entry?.name ?? '',
@@ -103,7 +103,7 @@ class _ReferencePickerState extends State<_ReferencePicker> {
         child: SingleChildScrollView(
           child: SectionStack.form(
             children: [
-              DukanField(
+              DeptAccountingField(
                 label: 'بحث بالاسم',
                 autofocus: true,
                 onChanged: (v) => setState(() {
@@ -114,9 +114,9 @@ class _ReferencePickerState extends State<_ReferencePicker> {
               if (widget.repository.store.user!.canManage)
                 Align(
                   alignment: AlignmentDirectional.centerStart,
-                  child: DukanButton(
+                  child: DeptAccountingButton(
                     label: widget.kind.addLabel,
-                    variant: DukanButtonVariant.secondary,
+                    variant: DeptAccountingButtonVariant.secondary,
                     onPressed: () async {
                       final entry = await showCatalogReferenceEditor(
                         context,
@@ -129,7 +129,7 @@ class _ReferencePickerState extends State<_ReferencePicker> {
                     },
                   ),
                 ),
-              DukanDataTable(
+              DeptAccountingDataTable(
                 minWidth: 280,
                 columns: [
                   DataColumn(label: Text(widget.kind.label)),
@@ -162,14 +162,14 @@ class _ReferencePickerState extends State<_ReferencePicker> {
       ),
       actions: [
         if (widget.optional)
-          DukanButton(
+          DeptAccountingButton(
             label: 'بدون ${widget.kind.label}',
-            variant: DukanButtonVariant.secondary,
+            variant: DeptAccountingButtonVariant.secondary,
             onPressed: () => Navigator.pop(context, ''),
           ),
-        DukanButton(
+        DeptAccountingButton(
           label: 'إغلاق',
-          variant: DukanButtonVariant.quiet,
+          variant: DeptAccountingButtonVariant.quiet,
           onPressed: () => Navigator.pop(context),
         ),
       ],

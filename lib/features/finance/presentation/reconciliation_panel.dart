@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'account_actions_view_model.dart';
 
 class ReconciliationPanel extends StatefulWidget {
@@ -34,7 +34,7 @@ class _ReconciliationPanelState extends State<ReconciliationPanel> {
           selected = accounts.firstWhere(
             (a) => a.code == (account ?? accounts.first.code),
           );
-      return DukanPanel(
+      return DeptAccountingPanel(
         title: 'مطابقة الصندوق ومراجعة الافتتاح',
         child: SectionStack.form(
           children: [
@@ -49,12 +49,12 @@ class _ReconciliationPanelState extends State<ReconciliationPanel> {
                       .toList(),
                   onChanged: (v) => setState(() => account = v),
                 ),
-                DukanField(
+                DeptAccountingField(
                   label: 'الرصيد الفعلي',
                   controller: counted,
                   numeric: true,
                 ),
-                DukanField(
+                DeptAccountingField(
                   label: 'سبب الفرق / ملاحظة المراجعة',
                   controller: reason,
                 ),
@@ -63,11 +63,11 @@ class _ReconciliationPanelState extends State<ReconciliationPanel> {
             Text(
               'الرصيد الدفتري: ${Numbers.format(selected.balance)} ${d.store.shop!.currencyLabel}',
             ),
-            DukanButton(
+            DeptAccountingButton(
               label: 'مطابقة وإغلاق الصندوق',
-              variant: DukanButtonVariant.secondary,
+              variant: DeptAccountingButtonVariant.secondary,
               onPressed: () async {
-                if (!await showDukanConfirmation(
+                if (!await showDeptAccountingConfirmation(
                   context,
                   title: 'اعتماد مطابقة الحساب؟',
                   message: 'سيُسجل فرق الرصيد الفعلي كمصروف أو زيادة موثقة. يبقى الحساب متاحًا للعمل بعد المطابقة.',
@@ -83,11 +83,11 @@ class _ReconciliationPanelState extends State<ReconciliationPanel> {
               Text(
                 'رصيد التسوية الافتتاحية: ${Numbers.format(d.engine.balance('3900'))} ${d.store.shop!.currencyLabel}',
               ),
-              DukanButton(
+              DeptAccountingButton(
                 label: 'اعتماد مراجعة الأرصدة وإقفال الافتتاح',
-                variant: DukanButtonVariant.secondary,
+                variant: DeptAccountingButtonVariant.secondary,
                 onPressed: () async {
-                  if (!await showDukanConfirmation(
+                  if (!await showDeptAccountingConfirmation(
                     context,
                     title: 'إقفال الأرصدة الافتتاحية؟',
                     message: 'بعد مراجعة الأرصدة، ستُنقل التسوية الافتتاحية إلى رأس المال. الإضافات اللاحقة ستكون بتسويات موثقة.',
@@ -99,9 +99,9 @@ class _ReconciliationPanelState extends State<ReconciliationPanel> {
                 },
               ),
             ] else
-              const DukanStatusTag(
+              const DeptAccountingStatusTag(
                 'تمت مراجعة وإقفال الافتتاح',
-                tone: DukanTone.success,
+                tone: DeptAccountingTone.success,
               ),
           ],
         ),

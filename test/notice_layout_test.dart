@@ -1,4 +1,4 @@
-import 'package:dukan_app/design_system/dukan_design_system.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,20 +17,23 @@ void main() {
 
     for (final size in [const Size(320, 640), const Size(568, 320)]) {
       tester.view.physicalSize = size;
-      for (final tone in [DukanTone.warning, DukanTone.info]) {
+      for (final tone in [
+        DeptAccountingTone.warning,
+        DeptAccountingTone.info,
+      ]) {
         await tester.pumpWidget(
           MaterialApp(
-            theme: DukanTheme.light(),
+            theme: DeptAccountingTheme.light(),
             locale: const Locale('ar'),
             supportedLocales: const [Locale('ar')],
             localizationsDelegates: GlobalMaterialLocalizations.delegates,
-            home: DukanWorkspace(
+            home: DeptAccountingWorkspace(
               destinations: const [(label: 'الرئيسية', icon: Icons.home)],
               selectedIndex: 0,
               onSelected: (_) {},
               notice: Padding(
                 padding: const EdgeInsets.all(12),
-                child: DukanNotice(
+                child: DeptAccountingNotice(
                   key: ValueKey('$size-$tone'),
                   title: 'احفظ نسخة من بياناتك خارج الجهاز',
                   message: List.filled(
@@ -40,18 +43,21 @@ void main() {
                   tone: tone,
                 ),
               ),
-              child: DukanButton(label: 'متابعة العمل', onPressed: () {}),
+              child: DeptAccountingButton(
+                label: 'متابعة العمل',
+                onPressed: () {},
+              ),
             ),
           ),
         );
         await tester.pumpAndSettle();
 
         expect(
-          tester.getSize(find.byType(DukanNotice)).height,
+          tester.getSize(find.byType(DeptAccountingNotice)).height,
           lessThanOrEqualTo(size.height * .25),
         );
         final scrollable = find.descendant(
-          of: find.byType(DukanNotice),
+          of: find.byType(DeptAccountingNotice),
           matching: find.byType(Scrollable),
         );
         final position = tester.state<ScrollableState>(scrollable).position;
@@ -76,19 +82,19 @@ void main() {
       tester.view.physicalSize = Size(width, 800);
       await tester.pumpWidget(
         MaterialApp(
-          theme: DukanTheme.light(),
+          theme: DeptAccountingTheme.light(),
           home: Scaffold(
-            body: DukanPageBody(
+            body: DeptAccountingPageBody(
               child: Column(
                 children: [
-                  const DukanNotice(title: 'معلومة قصيرة'),
-                  DukanNotice(
+                  const DeptAccountingNotice(title: 'معلومة قصيرة'),
+                  DeptAccountingNotice(
                     title: 'تنبيه',
                     message: List.filled(
                       20,
                       'احفظ نسخة خارج الجهاز',
                     ).join('\n'),
-                    tone: DukanTone.warning,
+                    tone: DeptAccountingTone.warning,
                   ),
                 ],
               ),
@@ -98,14 +104,14 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(
-        tester.getSize(find.byType(DukanNotice).first).height,
+        tester.getSize(find.byType(DeptAccountingNotice).first).height,
         lessThan(100),
       );
       expect(
-        tester.getSize(find.byType(DukanNotice).last).height,
-        width < DukanLayout.compact
-            ? lessThanOrEqualTo(DukanLayout.compactNoticeMaxHeight)
-            : greaterThan(DukanLayout.compactNoticeMaxHeight),
+        tester.getSize(find.byType(DeptAccountingNotice).last).height,
+        width < DeptAccountingLayout.compact
+            ? lessThanOrEqualTo(DeptAccountingLayout.compactNoticeMaxHeight)
+            : greaterThan(DeptAccountingLayout.compactNoticeMaxHeight),
       );
       expect(tester.takeException(), isNull);
     }

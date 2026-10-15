@@ -32,7 +32,9 @@ Future<void> backupBeforeUpgrade(Database database, String path) async {
       'مفتاح النسخ مفقود؛ احفظ البيانات الحالية قبل التحديث.',
     );
   }
-  final temporary = await Directory.systemTemp.createTemp('dukan-upgrade-');
+  final temporary = await Directory.systemTemp.createTemp(
+    'dept_accounting-upgrade-',
+  );
   try {
     final snapshot = File(p.join(temporary.path, 'before-upgrade.sqlite')),
         target = sqlite3.open(p.join(temporary.path, 'before-upgrade.sqlite'));
@@ -65,7 +67,7 @@ Future<void> backupBeforeUpgrade(Database database, String path) async {
     final file = File(
       p.join(
         directory.path,
-        'dukan-upgrade-${DateTime.now().toUtc().millisecondsSinceEpoch}.dukan',
+        'dept_accounting-upgrade-${DateTime.now().toUtc().millisecondsSinceEpoch}.dept_accounting',
       ),
     );
     final partial = File('${file.path}.partial');

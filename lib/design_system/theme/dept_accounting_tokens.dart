@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-abstract final class DukanColors {
+abstract final class DeptAccountingColors {
   static const primary = Color(0xFF17654D);
   static const primaryHover = Color(0xFF104C3A);
   static const ink = Color(0xFF233D35);
@@ -20,7 +20,7 @@ abstract final class DukanColors {
   static const infoSoft = Color(0xFFEAF2FA);
 }
 
-abstract final class DukanSpace {
+abstract final class DeptAccountingSpace {
   static const xs = 4.0;
   static const sm = 8.0;
   static const md = 12.0;
@@ -31,7 +31,7 @@ abstract final class DukanSpace {
   static const formGap = 14.0;
 }
 
-abstract final class DukanLayout {
+abstract final class DeptAccountingLayout {
   static const compact = 600.0;
   static const expanded = 1100.0;
   static const sidebar = 244.0;
@@ -48,7 +48,7 @@ abstract final class DukanLayout {
   static const panelRadius = 12.0;
 }
 
-abstract final class DukanTypography {
+abstract final class DeptAccountingTypography {
   static const family = 'IBMPlexSansArabic';
   static const regular = FontWeight.w400;
   static const emphasis = FontWeight.w500;
@@ -60,21 +60,21 @@ abstract final class DukanTypography {
     fontSize: controlFontSize,
     fontWeight: regular,
     height: controlLineHeight / controlFontSize,
-    color: DukanColors.ink,
+    color: DeptAccountingColors.ink,
   );
   static const compactControl = TextStyle(
     fontFamily: family,
     fontSize: 13,
     fontWeight: regular,
     height: 1.5,
-    color: DukanColors.ink,
+    color: DeptAccountingColors.ink,
   );
   static const label = TextStyle(
     fontFamily: family,
     fontSize: 13,
     fontWeight: regular,
     height: 1.5,
-    color: DukanColors.muted,
+    color: DeptAccountingColors.muted,
   );
   static const action = control;
   static const caption = TextStyle(
@@ -82,14 +82,14 @@ abstract final class DukanTypography {
     fontSize: 12,
     fontWeight: regular,
     height: 1.7,
-    color: DukanColors.ink,
+    color: DeptAccountingColors.ink,
   );
   static const tableBody = TextStyle(
     fontFamily: family,
     fontSize: 13,
     fontWeight: regular,
     height: 1.6,
-    color: DukanColors.ink,
+    color: DeptAccountingColors.ink,
     fontFeatures: [FontFeature.tabularFigures()],
   );
   static const tableHeading = TextStyle(
@@ -97,14 +97,14 @@ abstract final class DukanTypography {
     fontSize: 12,
     fontWeight: emphasis,
     height: 1.5,
-    color: DukanColors.muted,
+    color: DeptAccountingColors.muted,
   );
   static const sectionTitle = TextStyle(
     fontFamily: family,
     fontSize: 16,
     fontWeight: regular,
     height: 1.6,
-    color: DukanColors.ink,
+    color: DeptAccountingColors.ink,
   );
   static final textTheme = TextTheme(
     displayLarge: sectionTitle.copyWith(fontSize: 40, fontWeight: emphasis),
@@ -120,7 +120,7 @@ abstract final class DukanTypography {
     bodyMedium: control,
     bodySmall: caption,
     labelLarge: control.copyWith(height: 1.5),
-    labelMedium: label.copyWith(color: DukanColors.ink),
+    labelMedium: label.copyWith(color: DeptAccountingColors.ink),
     labelSmall: caption.copyWith(height: 1.5),
   );
 
@@ -128,36 +128,37 @@ abstract final class DukanTypography {
     final textHeight =
         MediaQuery.textScalerOf(context).scale(controlFontSize) *
         control.height!;
-    return textHeight + controlVerticalPadding * 2 > DukanLayout.controlHeight
+    return textHeight + controlVerticalPadding * 2 >
+            DeptAccountingLayout.controlHeight
         ? textHeight + controlVerticalPadding * 2
-        : DukanLayout.controlHeight;
+        : DeptAccountingLayout.controlHeight;
   }
 }
 
-enum DukanTone { success, warning, danger, info, neutral }
+enum DeptAccountingTone { success, warning, danger, info, neutral }
 
-extension DukanToneColors on DukanTone {
+extension DeptAccountingToneColors on DeptAccountingTone {
   Color get foreground => switch (this) {
-    DukanTone.success => DukanColors.primary,
-    DukanTone.warning => DukanColors.warning,
-    DukanTone.danger => DukanColors.danger,
-    DukanTone.info => DukanColors.info,
-    DukanTone.neutral => DukanColors.muted,
+    DeptAccountingTone.success => DeptAccountingColors.primary,
+    DeptAccountingTone.warning => DeptAccountingColors.warning,
+    DeptAccountingTone.danger => DeptAccountingColors.danger,
+    DeptAccountingTone.info => DeptAccountingColors.info,
+    DeptAccountingTone.neutral => DeptAccountingColors.muted,
   };
 
   Color get background => switch (this) {
-    DukanTone.success => DukanColors.primarySoft,
-    DukanTone.warning => DukanColors.warningSoft,
-    DukanTone.danger => DukanColors.dangerSoft,
-    DukanTone.info => DukanColors.infoSoft,
-    DukanTone.neutral => DukanColors.background,
+    DeptAccountingTone.success => DeptAccountingColors.primarySoft,
+    DeptAccountingTone.warning => DeptAccountingColors.warningSoft,
+    DeptAccountingTone.danger => DeptAccountingColors.dangerSoft,
+    DeptAccountingTone.info => DeptAccountingColors.infoSoft,
+    DeptAccountingTone.neutral => DeptAccountingColors.background,
   };
 
   IconData get icon => switch (this) {
-    DukanTone.success => Icons.check_circle_outline,
-    DukanTone.warning => Icons.warning_amber_rounded,
-    DukanTone.danger => Icons.error_outline,
-    DukanTone.info => Icons.info_outline,
-    DukanTone.neutral => Icons.circle_outlined,
+    DeptAccountingTone.success => Icons.check_circle_outline,
+    DeptAccountingTone.warning => Icons.warning_amber_rounded,
+    DeptAccountingTone.danger => Icons.error_outline,
+    DeptAccountingTone.info => Icons.info_outline,
+    DeptAccountingTone.neutral => Icons.circle_outlined,
   };
 }

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'account_actions_view_model.dart';
 
 class CreditPanel extends StatefulWidget {
@@ -55,7 +55,7 @@ class _CreditPanelState extends State<CreditPanel> {
               widget.customer,
               selected.available,
             );
-      return DukanPanel(
+      return DeptAccountingPanel(
         title: 'الأرصدة غير المخصصة',
         description: 'تخصيص دفعة موجودة يغيّر ربطها بالفواتير فقط؛ لا يتحرك الصندوق مرة ثانية.',
         child: SectionStack.form(
@@ -99,7 +99,7 @@ class _CreditPanelState extends State<CreditPanel> {
                           ? Text(
                               'سيخصص ${Numbers.format(preview[invoice.id] ?? 0)} $currency',
                             )
-                          : DukanField(
+                          : DeptAccountingField(
                               key: ValueKey(invoice.id),
                               label: 'التخصيص',
                               initialValue: manual[invoice.id] ?? '0',
@@ -108,7 +108,7 @@ class _CreditPanelState extends State<CreditPanel> {
                             ),
                     ],
                   ),
-                DukanButton(
+                DeptAccountingButton(
                   label: 'اعتماد تخصيص الرصيد',
                   onPressed: () {
                     if (vm.allocate(
@@ -127,7 +127,7 @@ class _CreditPanelState extends State<CreditPanel> {
               const Text('رد الرصيد لصالح الطرف'),
               FieldGrid(
                 children: [
-                  DukanField(
+                  DeptAccountingField(
                     label: 'مبلغ الرد',
                     controller: amount,
                     numeric: true,
@@ -144,14 +144,14 @@ class _CreditPanelState extends State<CreditPanel> {
                     onChanged: (v) =>
                         setState(() => account = v == '' ? null : v),
                   ),
-                  DukanField(label: 'سبب الرد', controller: reason),
+                  DeptAccountingField(label: 'سبب الرد', controller: reason),
                 ],
               ),
-              DukanButton(
+              DeptAccountingButton(
                 label: widget.customer
                     ? 'رد رصيد العميل'
                     : 'استرداد رصيد المورد',
-                variant: DukanButtonVariant.secondary,
+                variant: DeptAccountingButtonVariant.secondary,
                 onPressed: () {
                   if (vm.refund(
                     widget.partyId,

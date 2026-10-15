@@ -1,4 +1,4 @@
-import 'package:dukan_app/design_system/dukan_design_system.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,12 +14,12 @@ void main() {
     var pageSize = 5;
     await tester.pumpWidget(
       MaterialApp(
-        theme: DukanTheme.light(),
+        theme: DeptAccountingTheme.light(),
         home: Scaffold(
           body: Directionality(
             textDirection: TextDirection.rtl,
             child: StatefulBuilder(
-              builder: (context, setState) => DukanDataTable(
+              builder: (context, setState) => DeptAccountingDataTable(
                 columns: const [DataColumn(label: Text('المنتج'))],
                 rows: const [
                   DataRow(cells: [DataCell(Text('حليب'))]),
@@ -98,13 +98,13 @@ void main() {
       var opened = false;
       await tester.pumpWidget(
         MaterialApp(
-          theme: DukanTheme.light(),
+          theme: DeptAccountingTheme.light(),
           home: Scaffold(
             body: MediaQuery(
               data: const MediaQueryData(textScaler: TextScaler.linear(1.5)),
               child: Directionality(
                 textDirection: TextDirection.rtl,
-                child: DukanDataTable(
+                child: DeptAccountingDataTable(
                   columns: const [DataColumn(label: Text('الإجراء'))],
                   rows: [
                     DataRow(

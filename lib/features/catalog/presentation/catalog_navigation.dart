@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 
 class CatalogNavigation extends StatelessWidget {
   const CatalogNavigation({
@@ -14,8 +14,8 @@ class CatalogNavigation extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Wrap(
-    spacing: DukanSpace.sm,
-    runSpacing: DukanSpace.sm,
+    spacing: DeptAccountingSpace.sm,
+    runSpacing: DeptAccountingSpace.sm,
     children: [
       for (final item in [
         (path: '/catalog', label: 'المنتجات'),
@@ -24,7 +24,7 @@ class CatalogNavigation extends StatelessWidget {
           (path: '/catalog/units', label: 'الوحدات'),
         ],
       ])
-        DukanFilterChip(
+        DeptAccountingFilterChip(
           label: Text(item.label),
           selected: selected == item.path,
           onSelected: (_) => context.go(item.path),

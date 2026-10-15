@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/design_system/dukan_design_system.dart';
-import 'package:dukan_app/features/auth/data/auth_models.dart';
-import 'package:dukan_app/main.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
+import 'package:dept_accounting/features/auth/data/auth_models.dart';
+import 'package:dept_accounting/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -17,7 +17,7 @@ void main() {
   testWidgets('Capture profile and settings with illustrative in-memory data', (
     tester,
   ) async {
-    const output = String.fromEnvironment('DUKAN_CAPTURE_DIR');
+    const output = String.fromEnvironment('DEPT_ACCOUNTING_CAPTURE_DIR');
     expect(output, isNotEmpty);
     await loadAppFonts();
     final d = AppDependencies(LocalDatabase.memory());
@@ -51,11 +51,13 @@ void main() {
     await tester.pumpWidget(
       RepaintBoundary(
         key: key,
-        child: DukanApp(dependencies: d),
+        child: DeptAccountingApp(dependencies: d),
       ),
     );
     await tester.pumpAndSettle();
-    final router = GoRouter.of(tester.element(find.byType(DukanWorkspace)));
+    final router = GoRouter.of(
+      tester.element(find.byType(DeptAccountingWorkspace)),
+    );
 
     Future<void> capture(String name) async {
       expect(tester.takeException(), isNull, reason: name);
@@ -77,7 +79,9 @@ void main() {
     router.go('/settings');
     await tester.pumpAndSettle();
     await capture('settings-shop');
-    await tester.tap(find.widgetWithText(DukanFilterChip, 'النسخ الاحتياطية'));
+    await tester.tap(
+      find.widgetWithText(DeptAccountingFilterChip, 'النسخ الاحتياطية'),
+    );
     await tester.pumpAndSettle();
     await capture('settings-backups');
     tester.view.physicalSize = const Size(390, 1200);

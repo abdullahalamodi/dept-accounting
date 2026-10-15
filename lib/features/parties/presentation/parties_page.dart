@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/party.dart';
 import 'party_view_model.dart';
 import '../../finance/presentation/credit_panel.dart';
@@ -36,25 +36,25 @@ class _PartiesPageState extends State<PartiesPage> {
           currency = d.store.shop!.currencyLabel;
       return SectionStack(
         children: [
-          DukanPageHeader(
+          DeptAccountingPageHeader(
             title: 'العملاء والموردون',
             description: 'بيانات موحدة لكل طرف، وحساب مستقل لكل دور',
             actions: [
-              DukanButton(
+              DeptAccountingButton(
                 label: 'إضافة طرف',
                 onPressed: () => context.go('/parties/new'),
               ),
             ],
           ),
-          DukanPanel(
-            child: DukanField(
+          DeptAccountingPanel(
+            child: DeptAccountingField(
               label: 'بحث بالاسم أو الهاتف',
               onChanged: vm.filter,
             ),
           ),
-          DukanPanel(
+          DeptAccountingPanel(
             padding: EdgeInsets.zero,
-            child: DukanDataTable(
+            child: DeptAccountingDataTable(
               columns: [
                 const DataColumn(label: Text('الاسم')),
                 const DataColumn(label: Text('الهاتف')),
@@ -79,7 +79,7 @@ class _PartiesPageState extends State<PartiesPage> {
                       ),
                       DataCell(
                         p.customer
-                            ? DukanAmount(
+                            ? DeptAccountingAmount(
                                 Numbers.format(d.parties.balance(p.id, true)),
                                 currency: currency,
                               )
@@ -88,7 +88,7 @@ class _PartiesPageState extends State<PartiesPage> {
                       if (manage)
                         DataCell(
                           p.supplier
-                              ? DukanAmount(
+                              ? DeptAccountingAmount(
                                   Numbers.format(
                                     d.parties.balance(p.id, false),
                                   ),
@@ -195,7 +195,7 @@ class _PartyPageState extends State<PartyPage> {
         title: party?.name ?? 'طرف جديد',
         onBack: () => context.go('/parties'),
         actions: [
-          DukanButton(
+          DeptAccountingButton(
             label: 'حفظ البيانات',
             onPressed: () {
               if (vm.save(
@@ -218,27 +218,30 @@ class _PartyPageState extends State<PartyPage> {
         child: SectionStack(
           children: [
             ErrorNotice(vm.error),
-            DukanPanel(
+            DeptAccountingPanel(
               title: 'بيانات الطرف',
               child: SectionStack.form(
                 children: [
                   FieldGrid(
                     children: [
-                      DukanField(label: 'اسم الطرف', controller: name),
-                      DukanField(label: 'الهاتف', controller: phone),
-                      DukanField(label: 'العنوان', controller: address),
+                      DeptAccountingField(label: 'اسم الطرف', controller: name),
+                      DeptAccountingField(label: 'الهاتف', controller: phone),
+                      DeptAccountingField(
+                        label: 'العنوان',
+                        controller: address,
+                      ),
                     ],
                   ),
                   Wrap(
                     children: [
-                      DukanFilterChip(
+                      DeptAccountingFilterChip(
                         label: const Text('عميل'),
                         selected: customer,
                         onSelected: (v) => setState(() => customer = v),
                       ),
                       if (manage) ...[
                         const SizedBox(width: 12),
-                        DukanFilterChip(
+                        DeptAccountingFilterChip(
                           label: const Text('مورد'),
                           selected: supplier,
                           onSelected: (v) => setState(() => supplier = v),
@@ -250,7 +253,7 @@ class _PartyPageState extends State<PartyPage> {
               ),
             ),
             if (party != null && (party!.customer || manage)) ...[
-              DukanPanel(
+              DeptAccountingPanel(
                 title: 'كشف الحساب',
                 description:
                     'الرصيد الموجب مستحق؛ الرصيد السالب دفعة مقدمة لصالح الطرف',
@@ -270,7 +273,7 @@ class _PartyPageState extends State<PartyPage> {
                         page = 1;
                       }),
                     ),
-                    DukanSummaryLine(
+                    DeptAccountingSummaryLine(
                       label: 'الرصيد الحالي',
                       value: Numbers.format(
                         d.parties.balance(id, customerStatement),
@@ -278,7 +281,7 @@ class _PartyPageState extends State<PartyPage> {
                       currency: currency,
                       total: true,
                     ),
-                    DukanDataTable(
+                    DeptAccountingDataTable(
                       columns: const [
                         DataColumn(label: Text('التاريخ')),
                         DataColumn(label: Text('المرجع')),
@@ -302,13 +305,13 @@ class _PartyPageState extends State<PartyPage> {
                               ),
                               DataCell(Text(statements[i]['number'] as String)),
                               DataCell(
-                                DukanAmount(
+                                DeptAccountingAmount(
                                   Numbers.format(statements[i]['debit'] as int),
                                   currency: currency,
                                 ),
                               ),
                               DataCell(
-                                DukanAmount(
+                                DeptAccountingAmount(
                                   Numbers.format(
                                     statements[i]['credit'] as int,
                                   ),
@@ -316,7 +319,7 @@ class _PartyPageState extends State<PartyPage> {
                                 ),
                               ),
                               DataCell(
-                                DukanAmount(
+                                DeptAccountingAmount(
                                   Numbers.format(balances[i]),
                                   currency: currency,
                                 ),
@@ -339,27 +342,27 @@ class _PartyPageState extends State<PartyPage> {
                 customer: customerStatement,
               ),
               if (manage)
-                DukanPanel(
+                DeptAccountingPanel(
                   title: 'تسوية رصيد سابق لبدء البرنامج',
                   description: 'فرق مستقل موثق دون إنشاء فاتورة وهمية. السالب يخفض المستحق أو يزيد الرصيد لصالح الطرف.',
                   child: SectionStack.form(
                     children: [
                       FieldGrid(
                         children: [
-                          DukanField(
+                          DeptAccountingField(
                             label: 'فرق الرصيد (موجب أو سالب)',
                             controller: adjustment,
                             numeric: true,
                           ),
-                          DukanField(
+                          DeptAccountingField(
                             label: 'سبب التسوية',
                             controller: adjustmentReason,
                           ),
                         ],
                       ),
-                      DukanButton(
+                      DeptAccountingButton(
                         label: 'اعتماد التسوية',
-                        variant: DukanButtonVariant.secondary,
+                        variant: DeptAccountingButtonVariant.secondary,
                         onPressed: () {
                           if (vm.adjust(
                             id,
@@ -375,20 +378,20 @@ class _PartyPageState extends State<PartyPage> {
                   ),
                 ),
               if (manage)
-                DukanPanel(
+                DeptAccountingPanel(
                   title: 'رصيد افتتاحي لهذا الحساب',
                   description:
                       'مرة واحدة قبل أول حركة. السالب يعني رصيدًا لصالح الطرف.',
                   child: SectionStack.form(
                     children: [
-                      DukanField(
+                      DeptAccountingField(
                         label: 'الرصيد الافتتاحي',
                         controller: opening,
                         numeric: true,
                       ),
-                      DukanButton(
+                      DeptAccountingButton(
                         label: 'اعتماد الافتتاح',
-                        variant: DukanButtonVariant.secondary,
+                        variant: DeptAccountingButtonVariant.secondary,
                         onPressed: () {
                           if (vm.opening(id, customerStatement, opening.text)) {
                             showMessage(context, 'تم اعتماد الرصيد الافتتاحي');

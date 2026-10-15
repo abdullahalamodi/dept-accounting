@@ -1,5 +1,5 @@
 ﻿#ifndef MyAppVersion
-  #define MyAppVersion GetEnv("DUKAN_VERSION")
+  #define MyAppVersion GetEnv("DEPT_ACCOUNTING_VERSION")
 #endif
 #if MyAppVersion == ""
   #define MyAppVersion "0.1.0"
@@ -9,9 +9,9 @@ AppId={{C58B2756-3B3C-4DC9-9913-C58C952D6304}
 AppName=دبت للحسابات
 AppVersion={#MyAppVersion}
 AppPublisher=دبت للحسابات
-DefaultDirName={localappdata}\Programs\Dukan
+DefaultDirName={localappdata}\Programs\DeptAccounting
 DefaultGroupName=دبت للحسابات
-UninstallDisplayIcon={app}\dukan_app.exe
+UninstallDisplayIcon={app}\dept_accounting.exe
 OutputDir=..\build\distribution
 OutputBaseFilename=دبت للحسابات-{#MyAppVersion}-windows-setup
 Compression=lzma2
@@ -25,11 +25,11 @@ WizardStyle=modern
 [Files]
 Source: "..\build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 [Icons]
-Name: "{group}\دبت للحسابات"; Filename: "{app}\dukan_app.exe"
-Name: "{autodesktop}\دبت للحسابات"; Filename: "{app}\dukan_app.exe"; Tasks: desktopicon
+Name: "{group}\دبت للحسابات"; Filename: "{app}\dept_accounting.exe"
+Name: "{autodesktop}\دبت للحسابات"; Filename: "{app}\dept_accounting.exe"; Tasks: desktopicon
 [Tasks]
 Name: "desktopicon"; Description: "Create a desktop shortcut"; Flags: unchecked
 [Run]
-Filename: "{app}\dukan_app.exe"; Description: "فتح دبت للحسابات"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\dept_accounting.exe"; Description: "فتح دبت للحسابات"; Flags: nowait postinstall skipifsilent
 ; Application support data and backups are intentionally outside {app}.
 ; Do not add an UninstallDelete rule for shop data.

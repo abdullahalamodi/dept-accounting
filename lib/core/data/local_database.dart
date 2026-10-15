@@ -6,6 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../numbers.dart';
 import 'catalog_migration.dart';
+import 'database_rename.dart';
 
 const currentSchemaVersion = 2;
 
@@ -19,12 +20,26 @@ class LocalDatabase {
     Future<void> Function(Database, String)? beforeMigration,
   }) async {
     final support = await getApplicationSupportDirectory();
-    // Windows derives this path from ProductName; keep the existing data folder.
+    // Windows derives support from the display name; use a stable technical name.
     final directory = Platform.isWindows
-        ? Directory(p.join(p.dirname(support.path), 'dukan_app'))
+        ? Directory(p.join(p.dirname(support.path), 'dept_accounting'))
         : support;
     await directory.create(recursive: true);
-    final path = p.join(directory.path, 'dukan.sqlite');
+    final path = p.join(directory.path, 'dept_accounting.sqlite');
+    // Legacy names are used only to copy existing data during the rename.
+    await copyLegacyDatabase(File(path), [
+      File(p.join(directory.path, 'dukan.sqlite')),
+      if (Platform.isWindows)
+        File(p.join(p.dirname(support.path), 'dukan_app', 'dukan.sqlite')),
+      if (Platform.isMacOS)
+        File(
+          p.join(
+            p.dirname(support.path),
+            'com.example.dukanApp',
+            'dukan.sqlite',
+          ),
+        ),
+    ]);
     final handle = sqlite3.open(path);
     try {
       await beforeMigration?.call(handle, path);

@@ -38,6 +38,6 @@ Current direction: implement the approved v1 scope feature by feature. The user'
 - All 19 local checks passed: nine focused application checks plus ten existing design-system checks. They include the operating cycle, rollback/idempotency/aggregate stock guard, backups and fresh recovery, cost reconciliation, service refunds, advances, exports, and phone/desktop navigation.
 - Approved example result: cash 20,500, remaining stock value 7,000, supplier debt 6,000, profit 1,500.
 - macOS debug launch/hot restart and macOS release build succeeded; Android debug APK build succeeded. Dart tooling reported no startup runtime errors. These are local build results, not device acceptance.
-- Native computer-use access to dukan_app was not authorized; no native visual inspection was completed.
+- Native computer-use access to dept_accounting was not authorized; no native visual inspection was completed.
 - Windows execution, target-device operation, physical printers, accountant review and field acceptance remain separate from local implementation.
 - No claim of release readiness. This task inserted no shop records into the running app; automated checks used isolated temporary/in-memory databases.

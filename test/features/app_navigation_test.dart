@@ -1,10 +1,10 @@
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/design_system/dukan_design_system.dart';
-import 'package:dukan_app/features/auth/data/auth_models.dart';
-import 'package:dukan_app/features/catalog/data/product.dart';
-import 'package:dukan_app/features/parties/data/party.dart';
-import 'package:dukan_app/main.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
+import 'package:dept_accounting/features/auth/data/auth_models.dart';
+import 'package:dept_accounting/features/catalog/data/product.dart';
+import 'package:dept_accounting/features/parties/data/party.dart';
+import 'package:dept_accounting/main.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -28,9 +28,11 @@ void main() {
         username: 'owner',
         role: 'owner',
       );
-      await tester.pumpWidget(DukanApp(dependencies: d));
+      await tester.pumpWidget(DeptAccountingApp(dependencies: d));
       await tester.pumpAndSettle();
-      final router = GoRouter.of(tester.element(find.byType(DukanWorkspace)));
+      final router = GoRouter.of(
+        tester.element(find.byType(DeptAccountingWorkspace)),
+      );
       router.go('/catalog/new');
       await tester.pumpAndSettle();
       expect(find.text('لديك كمية موجودة من هذا المنتج؟'), findsOneWidget);
@@ -48,8 +50,11 @@ void main() {
       expect(find.text('أضف سعر الشراء أولًا'), findsOneWidget);
       expect(
         tester
-            .widget<DukanButton>(
-              find.widgetWithText(DukanButton, 'اعتماد المخزون الافتتاحي'),
+            .widget<DeptAccountingButton>(
+              find.widgetWithText(
+                DeptAccountingButton,
+                'اعتماد المخزون الافتتاحي',
+              ),
             )
             .onPressed,
         isNull,
@@ -71,7 +76,7 @@ void main() {
       expect(find.text('20.5'), findsOneWidget);
       await tester.tap(find.text('اعتماد المخزون الافتتاحي'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(DukanButton, 'اعتماد'));
+      await tester.tap(find.widgetWithText(DeptAccountingButton, 'اعتماد'));
       await tester.pumpAndSettle();
       expect(router.routeInformationProvider.value.uri.path, '/catalog');
       expect(d.engine.stock(id).quantity, 2000);
@@ -109,9 +114,11 @@ void main() {
       role: 'owner',
     );
     d.catalog.save(const Product(id: 'p', name: 'مصباح'));
-    await tester.pumpWidget(DukanApp(dependencies: d));
+    await tester.pumpWidget(DeptAccountingApp(dependencies: d));
     await tester.pumpAndSettle();
-    final router = GoRouter.of(tester.element(find.byType(DukanWorkspace)));
+    final router = GoRouter.of(
+      tester.element(find.byType(DeptAccountingWorkspace)),
+    );
     router.go('/catalog/p');
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -149,8 +156,10 @@ void main() {
     expect(find.text('1 كرتون = 12 حبة'), findsOneWidget);
     await tester.tap(advanced);
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.widgetWithText(DukanButton, 'حفظ المنتج'));
-    await tester.tap(find.widgetWithText(DukanButton, 'حفظ المنتج'));
+    await tester.ensureVisible(
+      find.widgetWithText(DeptAccountingButton, 'حفظ المنتج'),
+    );
+    await tester.tap(find.widgetWithText(DeptAccountingButton, 'حفظ المنتج'));
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/catalog');
     expect(find.text('مصباح محدث'), findsOneWidget);
@@ -181,13 +190,13 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('200'), findsOneWidget);
     final opening = find.widgetWithText(
-      DukanButton,
+      DeptAccountingButton,
       'اعتماد المخزون الافتتاحي',
     );
     await tester.ensureVisible(opening);
     await tester.tap(opening);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(DukanButton, 'اعتماد'));
+    await tester.tap(find.widgetWithText(DeptAccountingButton, 'اعتماد'));
     await tester.pumpAndSettle();
     expect(router.routeInformationProvider.value.uri.path, '/catalog');
     expect(find.text('20 حبة'), findsOneWidget);
@@ -235,9 +244,11 @@ void main() {
         d.parties.save(
           const Party(id: 'party', name: 'العميل والمورد', supplier: true),
         );
-        await tester.pumpWidget(DukanApp(dependencies: d));
+        await tester.pumpWidget(DeptAccountingApp(dependencies: d));
         await tester.pumpAndSettle();
-        final router = GoRouter.of(tester.element(find.byType(DukanWorkspace)));
+        final router = GoRouter.of(
+          tester.element(find.byType(DeptAccountingWorkspace)),
+        );
         for (final path in [
           '/catalog',
           '/catalog/p',
@@ -268,7 +279,7 @@ void main() {
           'سجل العمليات',
           'المحل',
         ]) {
-          final tab = find.widgetWithText(DukanFilterChip, section);
+          final tab = find.widgetWithText(DeptAccountingFilterChip, section);
           await tester.ensureVisible(tab);
           await tester.tap(tab);
           await tester.pumpAndSettle();

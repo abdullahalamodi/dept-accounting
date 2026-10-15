@@ -9,7 +9,7 @@ import 'app/dependencies.dart';
 import 'app/upgrade_backup.dart';
 import 'core/app_identity.dart';
 import 'core/data/local_database.dart';
-import 'design_system/dukan_design_system.dart';
+import 'design_system/dept_accounting_design_system.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,19 +19,19 @@ Future<void> main() async {
     );
     final dependencies = AppDependencies(database);
     dependencies.store.setSetting('app_version', applicationVersion);
-    runApp(DukanApp(dependencies: dependencies));
+    runApp(DeptAccountingApp(dependencies: dependencies));
   } catch (_) {
     runApp(
       MaterialApp(
         title: appName,
-        theme: DukanTheme.light(),
+        theme: DeptAccountingTheme.light(),
         locale: const Locale('ar'),
         supportedLocales: const [Locale('ar')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
         home: const Scaffold(
           body: Center(
-            child: DukanStateView(
-              state: DukanViewState.error,
+            child: DeptAccountingStateView(
+              state: DeptAccountingViewState.error,
               title: 'تعذر فتح بيانات المحل',
               message: 'تحقق من مساحة القرص وأذونات البيانات ثم أعد التشغيل. احتفظ بملفات البيانات الحالية.',
             ),
@@ -42,14 +42,15 @@ Future<void> main() async {
   }
 }
 
-class DukanApp extends StatefulWidget {
-  const DukanApp({super.key, required this.dependencies});
+class DeptAccountingApp extends StatefulWidget {
+  const DeptAccountingApp({super.key, required this.dependencies});
   final AppDependencies dependencies;
   @override
-  State<DukanApp> createState() => _DukanAppState();
+  State<DeptAccountingApp> createState() => _DeptAccountingAppState();
 }
 
-class _DukanAppState extends State<DukanApp> with WidgetsBindingObserver {
+class _DeptAccountingAppState extends State<DeptAccountingApp>
+    with WidgetsBindingObserver {
   late final GoRouter router = createRouter(widget.dependencies);
   @override
   void initState() {
@@ -80,7 +81,7 @@ class _DukanAppState extends State<DukanApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) => MaterialApp.router(
     title: appName,
     debugShowCheckedModeBanner: false,
-    theme: DukanTheme.light(),
+    theme: DeptAccountingTheme.light(),
     locale: const Locale('ar'),
     supportedLocales: const [Locale('ar'), Locale('en')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,

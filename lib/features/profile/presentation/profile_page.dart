@@ -3,7 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/dependencies.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'profile_view_model.dart';
 
 class ProfilePage extends StatefulWidget {
@@ -44,24 +44,24 @@ class _ProfilePageState extends State<ProfilePage> {
       if (user == null) return const SizedBox.shrink();
       return SectionStack(
         children: [
-          const DukanPageHeader(
+          const DeptAccountingPageHeader(
             title: 'الملف الشخصي',
             description: 'بيانات حسابك، كلمة المرور، وإدارة جلستك',
           ),
-          DukanPanel(
+          DeptAccountingPanel(
             child: Row(
               children: [
                 CircleAvatar(
                   radius: 28,
-                  backgroundColor: DukanColors.primarySoft,
-                  foregroundColor: DukanColors.primary,
+                  backgroundColor: DeptAccountingColors.primarySoft,
+                  foregroundColor: DeptAccountingColors.primary,
                   child: Text(
                     user.displayName.characters.first,
                     style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(color: DukanColors.primary),
+                        ?.copyWith(color: DeptAccountingColors.primary),
                   ),
                 ),
-                const SizedBox(width: DukanSpace.lg),
+                const SizedBox(width: DeptAccountingSpace.lg),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,11 +72,15 @@ class _ProfilePageState extends State<ProfilePage> {
                       ),
                       Text(
                         '${user.username} · ${user.roleLabel}',
-                        style: const TextStyle(color: DukanColors.muted),
+                        style: const TextStyle(
+                          color: DeptAccountingColors.muted,
+                        ),
                       ),
                       Text(
                         vm.store.shop!.name,
-                        style: const TextStyle(color: DukanColors.muted),
+                        style: const TextStyle(
+                          color: DeptAccountingColors.muted,
+                        ),
                       ),
                     ],
                   ),
@@ -84,14 +88,14 @@ class _ProfilePageState extends State<ProfilePage> {
               ],
             ),
           ),
-          DukanPanel(
+          DeptAccountingPanel(
             title: 'اسم المستخدم وكلمة المرور',
             child: Form(
               key: usernameForm,
               child: SectionStack.form(
                 children: [
                   if (vm.error != null) ErrorNotice(vm.error),
-                  DukanField(
+                  DeptAccountingField(
                     label: 'اسم المستخدم',
                     controller: username,
                     helper: 'استخدم الاسم الجديد عند تسجيل الدخول لاحقًا.',
@@ -100,10 +104,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         : null,
                   ),
                   Wrap(
-                    spacing: DukanSpace.md,
-                    runSpacing: DukanSpace.md,
+                    spacing: DeptAccountingSpace.md,
+                    runSpacing: DeptAccountingSpace.md,
                     children: [
-                      DukanButton(
+                      DeptAccountingButton(
                         label: 'حفظ اسم المستخدم',
                         onPressed: vm.busy
                             ? null
@@ -114,9 +118,9 @@ class _ProfilePageState extends State<ProfilePage> {
                                 }
                               },
                       ),
-                      DukanButton(
+                      DeptAccountingButton(
                         label: 'تغيير كلمة المرور',
-                        variant: DukanButtonVariant.secondary,
+                        variant: DeptAccountingButtonVariant.secondary,
                         onPressed: vm.busy ? null : _changePassword,
                       ),
                     ],
@@ -125,30 +129,30 @@ class _ProfilePageState extends State<ProfilePage> {
               ),
             ),
           ),
-          DukanPanel(
+          DeptAccountingPanel(
             title: 'الجلسة الحالية',
             child: SectionStack.form(
               children: [
                 const Text(
                   'عند تسجيل الخروج ستبقى بيانات المحل محفوظة على هذا الجهاز.',
-                  style: TextStyle(color: DukanColors.muted),
+                  style: TextStyle(color: DeptAccountingColors.muted),
                 ),
                 Wrap(
-                  spacing: DukanSpace.md,
-                  runSpacing: DukanSpace.md,
+                  spacing: DeptAccountingSpace.md,
+                  runSpacing: DeptAccountingSpace.md,
                   children: [
                     if (user.isOwner)
-                      DukanButton(
+                      DeptAccountingButton(
                         label: 'إعدادات المحل',
-                        variant: DukanButtonVariant.secondary,
+                        variant: DeptAccountingButtonVariant.secondary,
                         onPressed: vm.busy
                             ? null
                             : () => context.go('/settings'),
                       ),
-                    DukanButton(
+                    DeptAccountingButton(
                       label: 'تسجيل الخروج',
                       icon: Icons.logout,
-                      variant: DukanButtonVariant.danger,
+                      variant: DeptAccountingButtonVariant.danger,
                       onPressed: vm.busy ? null : vm.logout,
                     ),
                   ],
@@ -213,17 +217,17 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                 children: [
                   const Text(
                     'لتغيير كلمة المرور، أدخل كلمتك الحالية أولًا.',
-                    style: TextStyle(color: DukanColors.muted),
+                    style: TextStyle(color: DeptAccountingColors.muted),
                   ),
                   if (vm.error != null) ErrorNotice(vm.error),
-                  DukanPasswordField(
+                  DeptAccountingPasswordField(
                     label: 'كلمة المرور الحالية',
                     controller: currentPassword,
                     validator: (value) => value == null || value.isEmpty
                         ? 'أدخل كلمة المرور الحالية.'
                         : null,
                   ),
-                  DukanPasswordField(
+                  DeptAccountingPasswordField(
                     label: 'كلمة المرور الجديدة',
                     controller: newPassword,
                     helper: '8 أحرف على الأقل',
@@ -231,7 +235,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
                         ? 'استخدم 8 أحرف على الأقل.'
                         : null,
                   ),
-                  DukanPasswordField(
+                  DeptAccountingPasswordField(
                     label: 'تأكيد كلمة المرور الجديدة',
                     controller: confirmation,
                     validator: (value) =>
@@ -250,7 +254,7 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
             onPressed: vm.busy ? null : () => Navigator.pop(context),
             child: const Text('إلغاء'),
           ),
-          DukanButton(
+          DeptAccountingButton(
             label: 'تحديث كلمة المرور',
             loading: vm.busy,
             onPressed: submit,

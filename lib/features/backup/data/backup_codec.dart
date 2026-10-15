@@ -5,6 +5,9 @@ import 'package:cryptography/cryptography.dart';
 import '../../../core/numbers.dart';
 
 abstract final class BackupCodec {
+  // Accept backups created before the application rename.
+  static const supportedExtensions = ['dept_accounting', 'dukan'];
+
   static Future<List<int>> encrypt(List<int> bytes, String key) async {
     final box = await AesGcm.with256bits().encrypt(
       bytes,
@@ -12,7 +15,7 @@ abstract final class BackupCodec {
     );
     return utf8.encode(
       jsonEncode({
-        'format': 'dukan-backup',
+        'format': 'dept_accounting-backup',
         'version': 1,
         'nonce': base64Encode(box.nonce),
         'mac': base64Encode(box.mac.bytes),
@@ -24,7 +27,9 @@ abstract final class BackupCodec {
   static Future<List<int>> decrypt(List<int> bytes, String key) async {
     try {
       final map = jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
-      if (map['format'] != 'dukan-backup' || map['version'] != 1) {
+      if ((map['format'] != 'dept_accounting-backup' &&
+              map['format'] != 'dukan-backup') ||
+          map['version'] != 1) {
         throw const FormatException();
       }
       return await AesGcm.with256bits().decrypt(

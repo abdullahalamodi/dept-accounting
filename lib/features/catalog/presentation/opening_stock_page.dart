@@ -5,7 +5,7 @@ import '../../../app/dependencies.dart';
 import '../../../core/app_identity.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'opening_stock_view_model.dart';
 
 class OpeningStockPage extends StatefulWidget {
@@ -46,8 +46,8 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
           .where((p) => p.id == widget.productId)
           .firstOrNull;
       if (product == null) {
-        return DukanStateView(
-          state: DukanViewState.error,
+        return DeptAccountingStateView(
+          state: DeptAccountingViewState.error,
           title: 'المنتج غير موجود',
           message: 'ارجع إلى قائمة المنتجات.',
           actionLabel: 'قائمة المنتجات',
@@ -61,8 +61,8 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
         title: 'المخزون الافتتاحي · ${product.name}',
         onBack: () => context.go('/catalog/${product.id}'),
         child: unavailable != null
-            ? DukanStateView(
-                state: DukanViewState.empty,
+            ? DeptAccountingStateView(
+                state: DeptAccountingViewState.empty,
                 title: 'المخزون الافتتاحي غير متاح',
                 message: unavailable,
                 actionLabel: product.service
@@ -77,29 +77,30 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
             : SectionStack(
                 children: [
                   ErrorNotice(vm.error),
-                  const DukanNotice(
+                  const DeptAccountingNotice(
                     title: 'سجّل الكمية الموجودة لديك عند بدء استخدام $appName',
                     message: 'هذه الكمية مملوكة لك مسبقًا. للمشتريات الجديدة، سجّل فاتورة شراء. يتاح الافتتاح مرة واحدة قبل أول حركة للمنتج.',
                   ),
                   if (product.purchasePrice <= 0)
-                    DukanPanel(
+                    DeptAccountingPanel(
                       title: 'أضف سعر الشراء أولًا',
                       description: 'تُحسب قيمة المخزون الافتتاحي من سعر الشراء المسجّل في بيانات المنتج.',
                       child: Align(
                         alignment: AlignmentDirectional.centerStart,
-                        child: DukanButton(
+                        child: DeptAccountingButton(
                           label: 'تعديل بيانات المنتج',
-                          variant: DukanButtonVariant.secondary,
+                          variant: DeptAccountingButtonVariant.secondary,
                           onPressed: () => context.go('/catalog/${product.id}'),
                         ),
                       ),
                     ),
-                  DukanPanel(
+                  DeptAccountingPanel(
                     title: 'الكمية والقيمة الافتتاحية',
-                    description: 'سعر الوحدة يُقرأ تلقائيًا من سعر شراء المنتج.',
+                    description:
+                        'سعر الوحدة يُقرأ تلقائيًا من سعر شراء المنتج.',
                     child: SectionStack.form(
                       children: [
-                        DukanField(
+                        DeptAccountingField(
                           label: 'الكمية الافتتاحية',
                           helper: product.fractional
                               ? 'بالوحدة الأساسية: ${product.unit} · حتى 3 منازل عشرية'
@@ -109,12 +110,12 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
                           enabled: product.purchasePrice > 0,
                           onChanged: vm.setQuantity,
                         ),
-                        DukanSummaryLine(
+                        DeptAccountingSummaryLine(
                           label: 'سعر الشراء لكل ${product.unit}',
                           value: Numbers.format(product.purchasePrice),
                           currency: currency,
                         ),
-                        DukanSummaryLine(
+                        DeptAccountingSummaryLine(
                           label: 'قيمة المخزون الافتتاحي',
                           value: total == null ? '—' : Numbers.format(total),
                           currency: currency,
@@ -122,12 +123,12 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
                         ),
                         Align(
                           alignment: AlignmentDirectional.centerStart,
-                          child: DukanButton(
+                          child: DeptAccountingButton(
                             label: 'اعتماد المخزون الافتتاحي',
                             onPressed: total == null || total <= 0
                                 ? null
                                 : () async {
-                                    if (await showDukanConfirmation(
+                                    if (await showDeptAccountingConfirmation(
                                           context,
                                           title: 'اعتماد المخزون الافتتاحي؟',
                                           message:

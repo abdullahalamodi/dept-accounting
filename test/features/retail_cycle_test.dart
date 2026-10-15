@@ -1,11 +1,11 @@
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/core/numbers.dart';
-import 'package:dukan_app/features/auth/data/auth_models.dart';
-import 'package:dukan_app/features/auth/data/passwords.dart';
-import 'package:dukan_app/features/catalog/data/product.dart';
-import 'package:dukan_app/features/invoices/data/document.dart';
-import 'package:dukan_app/features/parties/data/party.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/core/numbers.dart';
+import 'package:dept_accounting/features/auth/data/auth_models.dart';
+import 'package:dept_accounting/features/auth/data/passwords.dart';
+import 'package:dept_accounting/features/catalog/data/product.dart';
+import 'package:dept_accounting/features/invoices/data/document.dart';
+import 'package:dept_accounting/features/parties/data/party.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {

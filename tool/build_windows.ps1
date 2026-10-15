@@ -9,12 +9,12 @@ flutter build windows --release
 if ($LASTEXITCODE -ne 0) { throw 'Windows build failed.' }
 $pubspec = Get-Content 'pubspec.yaml' -Raw
 $match = [regex]::Match($pubspec, '(?m)^version:\s*([^+\s]+)')
-$env:DUKAN_VERSION = $match.Groups[1].Value
+$env:DEPT_ACCOUNTING_VERSION = $match.Groups[1].Value
 New-Item -ItemType Directory -Force -Path 'build/distribution' | Out-Null
-Compress-Archive -Path 'build/windows/x64/runner/Release/*' -DestinationPath "build/distribution/دبت للحسابات-$env:DUKAN_VERSION-windows.zip" -Force
+Compress-Archive -Path 'build/windows/x64/runner/Release/*' -DestinationPath "build/distribution/دبت للحسابات-$env:DEPT_ACCOUNTING_VERSION-windows.zip" -Force
 if ($Installer) {
     $iscc = Get-Command 'ISCC.exe' -ErrorAction SilentlyContinue
     if (-not $iscc) { throw 'Install Inno Setup 6 and add ISCC.exe to PATH, then rerun with -Installer.' }
-    & $iscc.Source 'installer/dukan.iss'
+    & $iscc.Source 'installer/dept_accounting.iss'
     if ($LASTEXITCODE -ne 0) { throw 'Installer build failed.' }
 }

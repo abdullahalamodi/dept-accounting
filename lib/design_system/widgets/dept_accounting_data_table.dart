@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../theme/dukan_tokens.dart';
-import 'dukan_controls.dart';
+import '../theme/dept_accounting_tokens.dart';
+import 'dept_accounting_controls.dart';
 
-class DukanDataTable extends StatefulWidget {
-  const DukanDataTable({
+class DeptAccountingDataTable extends StatefulWidget {
+  const DeptAccountingDataTable({
     super.key,
     required this.columns,
     required this.rows,
@@ -37,10 +37,11 @@ class DukanDataTable extends StatefulWidget {
   final double? horizontalMargin;
 
   @override
-  State<DukanDataTable> createState() => _DukanDataTableState();
+  State<DeptAccountingDataTable> createState() =>
+      _DeptAccountingDataTableState();
 }
 
-class _DukanDataTableState extends State<DukanDataTable> {
+class _DeptAccountingDataTableState extends State<DeptAccountingDataTable> {
   final _horizontal = ScrollController();
 
   @override
@@ -59,8 +60,8 @@ class _DukanDataTableState extends State<DukanDataTable> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (widget.rows.isEmpty)
-          DukanStateView(
-            state: DukanViewState.empty,
+          DeptAccountingStateView(
+            state: DeptAccountingViewState.empty,
             title: widget.emptyTitle,
             message: widget.emptyMessage,
           )
@@ -85,7 +86,7 @@ class _DukanDataTableState extends State<DukanDataTable> {
                     data: TextButtonThemeData(
                       style:
                           TextButton.styleFrom(
-                            textStyle: DukanTypography.tableBody,
+                            textStyle: DeptAccountingTypography.tableBody,
                             minimumSize: const Size(48, 36),
                             padding: const EdgeInsets.symmetric(horizontal: 8),
                             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -94,14 +95,16 @@ class _DukanDataTableState extends State<DukanDataTable> {
                           ).copyWith(
                             foregroundColor: WidgetStateProperty.resolveWith(
                               (states) => states.contains(WidgetState.disabled)
-                                  ? DukanColors.muted
+                                  ? DeptAccountingColors.muted
                                   : states.contains(WidgetState.hovered)
-                                  ? DukanColors.primaryHover
-                                  : DukanColors.primary,
+                                  ? DeptAccountingColors.primaryHover
+                                  : DeptAccountingColors.primary,
                             ),
                             side: WidgetStateProperty.resolveWith(
                               (states) => states.contains(WidgetState.focused)
-                                  ? const BorderSide(color: DukanColors.primary)
+                                  ? const BorderSide(
+                                      color: DeptAccountingColors.primary,
+                                    )
                                   : BorderSide.none,
                             ),
                           ),
@@ -126,8 +129,8 @@ class _DukanDataTableState extends State<DukanDataTable> {
               builder: (context, constraints) {
                 final range = Text(
                   'عرض $start–$end من ${widget.totalRows}',
-                  style: DukanTypography.tableBody.copyWith(
-                    color: DukanColors.muted,
+                  style: DeptAccountingTypography.tableBody.copyWith(
+                    color: DeptAccountingColors.muted,
                   ),
                 );
                 final pageSize = widget.onPageSizeChanged == null
@@ -201,10 +204,10 @@ class _PageSizeSelectorState extends State<_PageSizeSelector> {
   Widget build(BuildContext context) {
     final textHeight =
         MediaQuery.textScalerOf(context)
-            .scale(DukanTypography.tableBody.fontSize!) *
-        DukanTypography.tableBody.height!;
+            .scale(DeptAccountingTypography.tableBody.fontSize!) *
+        DeptAccountingTypography.tableBody.height!;
     final height = (textHeight + 12).clamp(
-      DukanLayout.paginationControlHeight,
+      DeptAccountingLayout.paginationControlHeight,
       double.infinity,
     );
     return Row(
@@ -212,7 +215,9 @@ class _PageSizeSelectorState extends State<_PageSizeSelector> {
       children: [
         Text(
           'صفوف الصفحة',
-          style: DukanTypography.caption.copyWith(color: DukanColors.muted),
+          style: DeptAccountingTypography.caption.copyWith(
+            color: DeptAccountingColors.muted,
+          ),
         ),
         const SizedBox(width: 10),
         Theme(
@@ -231,10 +236,12 @@ class _PageSizeSelectorState extends State<_PageSizeSelector> {
               decoration: BoxDecoration(
                 border: Border.all(
                   color: _focusNode.hasFocus
-                      ? DukanColors.primary
-                      : DukanColors.border,
+                      ? DeptAccountingColors.primary
+                      : DeptAccountingColors.border,
                 ),
-                borderRadius: BorderRadius.circular(DukanLayout.radius),
+                borderRadius: BorderRadius.circular(
+                  DeptAccountingLayout.radius,
+                ),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<int>(
@@ -243,12 +250,14 @@ class _PageSizeSelectorState extends State<_PageSizeSelector> {
                   focusColor: Colors.transparent,
                   isDense: true,
                   padding: EdgeInsets.zero,
-                  borderRadius: BorderRadius.circular(DukanLayout.radius),
-                  style: DukanTypography.tableBody,
+                  borderRadius: BorderRadius.circular(
+                    DeptAccountingLayout.radius,
+                  ),
+                  style: DeptAccountingTypography.tableBody,
                   icon: const Icon(
                     Icons.keyboard_arrow_down,
                     size: 18,
-                    color: DukanColors.muted,
+                    color: DeptAccountingColors.muted,
                   ),
                   items: ({5, 10, 20, widget.value}.toList()..sort())
                       .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
@@ -296,7 +305,7 @@ class _PageNavigation extends StatelessWidget {
           if (i > 0 && pages[i] - pages[i - 1] > 1)
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-              child: Text('…', style: DukanTypography.tableBody),
+              child: Text('…', style: DeptAccountingTypography.tableBody),
             ),
           _PageButton(
             label: '${pages[i]}',
@@ -331,30 +340,34 @@ class _PageButton extends StatelessWidget {
       onPressed: onPressed,
       style:
           TextButton.styleFrom(
-            textStyle: DukanTypography.tableBody,
-            foregroundColor: selected ? DukanColors.primary : DukanColors.ink,
-            disabledForegroundColor: DukanColors.muted.withValues(alpha: 0.45),
+            textStyle: DeptAccountingTypography.tableBody,
+            foregroundColor: selected
+                ? DeptAccountingColors.primary
+                : DeptAccountingColors.ink,
+            disabledForegroundColor: DeptAccountingColors.muted.withValues(
+              alpha: 0.45,
+            ),
             backgroundColor: selected
-                ? DukanColors.primarySoft
-                : DukanColors.surface,
+                ? DeptAccountingColors.primarySoft
+                : DeptAccountingColors.surface,
             minimumSize: const Size(
-              DukanLayout.paginationControlHeight,
-              DukanLayout.paginationControlHeight,
+              DeptAccountingLayout.paginationControlHeight,
+              DeptAccountingLayout.paginationControlHeight,
             ),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
             splashFactory: NoSplash.splashFactory,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(DukanLayout.radius),
+              borderRadius: BorderRadius.circular(DeptAccountingLayout.radius),
             ),
           ).copyWith(
             side: WidgetStateProperty.resolveWith(
               (states) => BorderSide(
                 color: states.contains(WidgetState.focused)
-                    ? DukanColors.primary
+                    ? DeptAccountingColors.primary
                     : selected
-                    ? DukanColors.chartSecondary
-                    : DukanColors.border,
+                    ? DeptAccountingColors.chartSecondary
+                    : DeptAccountingColors.border,
                 width: states.contains(WidgetState.focused) ? 2 : 1,
               ),
             ),

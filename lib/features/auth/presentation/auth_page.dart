@@ -4,7 +4,8 @@ import 'package:file_picker/file_picker.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/app_identity.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
+import '../../backup/data/backup_codec.dart';
 import '../data/auth_models.dart';
 import 'auth_view_model.dart';
 
@@ -80,7 +81,7 @@ class _AuthPageState extends State<AuthPage> {
   Future<bool> restore() => vm.run(() async {
     final file = await FilePicker.pickFile(
       type: FileType.custom,
-      allowedExtensions: ['dukan'],
+      allowedExtensions: BackupCodec.supportedExtensions,
     );
     if (file == null) return;
     final bytes = await file.readAsBytes();
@@ -89,7 +90,7 @@ class _AuthPageState extends State<AuthPage> {
       restoreKey.text,
     );
     if (!mounted) return;
-    if (await showDukanConfirmation(
+    if (await showDeptAccountingConfirmation(
       context,
       title: 'استعادة ${info.shop.name}؟',
       message:
@@ -105,7 +106,7 @@ class _AuthPageState extends State<AuthPage> {
     body: SafeArea(
       child: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(DukanSpace.xl),
+          padding: const EdgeInsets.all(DeptAccountingSpace.xl),
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: widget.setup ? 760 : 440),
             child: ListenableBuilder(
@@ -119,7 +120,7 @@ class _AuthPageState extends State<AuthPage> {
                       fontFamily: 'NotoKufiArabic',
                       fontSize: 34,
                       fontWeight: FontWeight.w600,
-                      color: DukanColors.primary,
+                      color: DeptAccountingColors.primary,
                     ),
                   ),
                   if (widget.setup) _setupForm(context) else _loginForm(),
@@ -145,24 +146,24 @@ class _AuthPageState extends State<AuthPage> {
               'مرحبًا، لنجهّز محلك',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: DukanSpace.xs),
+            const SizedBox(height: DeptAccountingSpace.xs),
             const Text(
               'أكمل بياناتك، اختر بيانات الدخول، ثم احفظ مفاتيح الاسترداد.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: DukanColors.muted),
+              style: TextStyle(color: DeptAccountingColors.muted),
             ),
           ],
         ),
-        DukanPanel(
+        DeptAccountingPanel(
           title: '١. معلومات المستخدم',
           child: FieldGrid(
             children: [
-              DukanField(
+              DeptAccountingField(
                 label: 'اسم المالك',
                 controller: name,
                 validator: (value) => _required(value, 'أدخل اسم المالك.'),
               ),
-              DukanField(
+              DeptAccountingField(
                 label: 'اسم المحل',
                 controller: shop,
                 validator: (value) => _required(value, 'أدخل اسم المحل.'),
@@ -178,16 +179,16 @@ class _AuthPageState extends State<AuthPage> {
               ),
               const Text(
                 'اختر العملة التي ستستخدمها في محلك. تُثبت بعد أول عملية مالية.',
-                style: TextStyle(color: DukanColors.muted),
+                style: TextStyle(color: DeptAccountingColors.muted),
               ),
             ],
           ),
         ),
-        DukanPanel(
+        DeptAccountingPanel(
           title: '٢. بيانات الدخول',
           child: SectionStack.form(
             children: [
-              DukanField(
+              DeptAccountingField(
                 label: 'اسم المستخدم',
                 controller: username,
                 helper: 'ستستخدمه مع كلمة المرور للدخول إلى $appName.',
@@ -195,7 +196,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
               FieldGrid(
                 children: [
-                  DukanPasswordField(
+                  DeptAccountingPasswordField(
                     label: 'كلمة المرور',
                     controller: password,
                     helper: '8 أحرف على الأقل',
@@ -203,7 +204,7 @@ class _AuthPageState extends State<AuthPage> {
                         ? 'استخدم كلمة مرور من 8 أحرف على الأقل.'
                         : null,
                   ),
-                  DukanPasswordField(
+                  DeptAccountingPasswordField(
                     label: 'تأكيد كلمة المرور',
                     controller: confirm,
                     validator: (value) =>
@@ -217,7 +218,7 @@ class _AuthPageState extends State<AuthPage> {
             ],
           ),
         ),
-        DukanPanel(
+        DeptAccountingPanel(
           title: '٣. مفاتيح الاسترداد',
           child: SectionStack(
             children: [
@@ -233,44 +234,44 @@ class _AuthPageState extends State<AuthPage> {
                   ),
                   Text(
                     'لإعادة تعيين كلمة مرور المالك إذا نسيتها.',
-                    style: TextStyle(color: DukanColors.muted),
+                    style: TextStyle(color: DeptAccountingColors.muted),
                   ),
-                  SizedBox(height: DukanSpace.md),
+                  SizedBox(height: DeptAccountingSpace.md),
                   Text(
                     'مفتاح استعادة النسخ الاحتياطية',
                     style: Theme.of(context).textTheme.labelLarge,
                   ),
                   Text(
                     'لاستعادة بيانات محلك من نسخة احتياطية مشفرة.',
-                    style: TextStyle(color: DukanColors.muted),
+                    style: TextStyle(color: DeptAccountingColors.muted),
                   ),
                 ],
               ),
-              DukanButton(
+              DeptAccountingButton(
                 label: vm.recoveryFileDownloaded
                     ? 'تنزيل ملف المفاتيح مرة أخرى'
                     : 'تنزيل ملف مفاتيح الاسترداد',
                 icon: Icons.download_outlined,
-                variant: DukanButtonVariant.secondary,
+                variant: DeptAccountingButtonVariant.secondary,
                 loading: vm.downloadingRecoveryKeys,
                 onPressed: vm.busy ? null : vm.downloadRecoveryKeys,
               ),
               if (vm.recoveryDownloadError != null)
-                DukanNotice(
+                DeptAccountingNotice(
                   title: 'لم يُحفظ الملف',
                   message: vm.recoveryDownloadError,
-                  tone: DukanTone.danger,
+                  tone: DeptAccountingTone.danger,
                 ),
               if (vm.recoveryFileDownloaded)
-                const DukanNotice(
+                const DeptAccountingNotice(
                   title: 'تم حفظ ملف المفاتيح',
                   message: 'احتفظ بنسخة آمنة خارج جهاز المحل قبل بدء العمل.',
-                  tone: DukanTone.success,
+                  tone: DeptAccountingTone.success,
                 ),
-              const DukanNotice(
+              const DeptAccountingNotice(
                 title: 'احفظ الملف في مكان آمن خارج هذا الجهاز',
                 message: 'لا تشاركه مع الآخرين. ملف المفاتيح لا يحتوي بيانات المحل؛ لاستعادة بياناتك ستحتاج إلى ملف نسخة احتياطية أيضًا. بعد إنشاء المحل، افتح «الإعدادات والنسخ» لإعداد النسخ إلى USB أو قرص خارجي. فقدان مفتاح النسخ يمنع استعادة النسخ المشفرة.',
-                tone: DukanTone.warning,
+                tone: DeptAccountingTone.warning,
               ),
               CheckboxListTile(
                 contentPadding: EdgeInsets.zero,
@@ -293,7 +294,7 @@ class _AuthPageState extends State<AuthPage> {
           ),
         ),
         if (vm.error != null) ErrorNotice(vm.error),
-        DukanButton(
+        DeptAccountingButton(
           label: 'إنشاء المحل وبدء العمل',
           loading: vm.busy,
           onPressed: vm.canSetup ? submit : null,
@@ -301,24 +302,24 @@ class _AuthPageState extends State<AuthPage> {
         const Text(
           'بياناتك محفوظة على هذا الجهاز · يعمل دون إنترنت',
           textAlign: TextAlign.center,
-          style: TextStyle(color: DukanColors.muted),
+          style: TextStyle(color: DeptAccountingColors.muted),
         ),
-        DukanPanel(
+        DeptAccountingPanel(
           padding: EdgeInsets.zero,
           child: ExpansionTile(
             title: const Text('لديك نسخة احتياطية من محل سابق؟'),
             subtitle: const Text('استعد بيانات محلك بدل إنشاء محل جديد'),
-            childrenPadding: const EdgeInsets.all(DukanSpace.xl),
+            childrenPadding: const EdgeInsets.all(DeptAccountingSpace.xl),
             children: [
               SectionStack.form(
                 children: [
-                  DukanField(
+                  DeptAccountingField(
                     label: 'مفتاح استعادة النسخة',
                     controller: restoreKey,
                   ),
-                  DukanButton(
+                  DeptAccountingButton(
                     label: 'اختيار نسخة احتياطية واستعادتها',
-                    variant: DukanButtonVariant.secondary,
+                    variant: DeptAccountingButtonVariant.secondary,
                     loading: vm.busy,
                     onPressed: vm.downloadingRecoveryKeys ? null : restore,
                   ),
@@ -331,23 +332,26 @@ class _AuthPageState extends State<AuthPage> {
     ),
   );
 
-  Widget _loginForm() => DukanPanel(
+  Widget _loginForm() => DeptAccountingPanel(
     title: recovery ? 'استرداد دخول المالك' : 'أهلًا بعودتك',
     description: 'بياناتك محفوظة على هذا الجهاز · يعمل دون إنترنت',
     child: SectionStack.form(
       children: [
         if (vm.error != null) ErrorNotice(vm.error),
         if (!recovery)
-          DukanField(label: 'اسم المستخدم', controller: username)
+          DeptAccountingField(label: 'اسم المستخدم', controller: username)
         else
-          DukanField(label: 'رمز استرداد دخول المالك', controller: code),
-        DukanPasswordField(
+          DeptAccountingField(
+            label: 'رمز استرداد دخول المالك',
+            controller: code,
+          ),
+        DeptAccountingPasswordField(
           label: recovery ? 'كلمة المرور الجديدة' : 'كلمة المرور',
           controller: password,
           helper: recovery ? '8 أحرف على الأقل' : null,
           onSubmitted: (_) => submit(),
         ),
-        DukanButton(
+        DeptAccountingButton(
           label: recovery ? 'تعيين كلمة المرور' : 'دخول',
           loading: vm.busy,
           onPressed: submit,

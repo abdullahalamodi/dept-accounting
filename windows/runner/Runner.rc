@@ -92,9 +92,9 @@ BEGIN
             VALUE "CompanyName", "com.example" "\0"
             VALUE "FileDescription", "دبت للحسابات" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "dukan_app" "\0"
+            VALUE "InternalName", "dept_accounting" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.example. All rights reserved." "\0"
-            VALUE "OriginalFilename", "dukan_app.exe" "\0"
+            VALUE "OriginalFilename", "dept_accounting.exe" "\0"
             VALUE "ProductName", "دبت للحسابات" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END

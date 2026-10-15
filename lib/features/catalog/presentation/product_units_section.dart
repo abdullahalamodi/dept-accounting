@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/catalog_reference.dart';
 import '../data/catalog_references_repository.dart';
 import 'catalog_reference_field.dart';
@@ -67,7 +67,7 @@ class ProductUnitsSection extends StatelessWidget {
             'بدون وحدة إضافية',
         fractional ? 'يسمح بأجزاء من الوحدة' : 'وحدات كاملة فقط',
       ].join(' · ');
-      return DukanPanel(
+      return DeptAccountingPanel(
         title: 'الوحدات والكميات',
         description: service
             ? 'حدد الوحدة التي تقاس بها الخدمة.'
@@ -87,11 +87,13 @@ class ProductUnitsSection extends StatelessWidget {
             ),
             ExpansionTile(
               tilePadding: EdgeInsets.zero,
-              childrenPadding: const EdgeInsets.only(top: DukanSpace.lg),
+              childrenPadding: const EdgeInsets.only(
+                top: DeptAccountingSpace.lg,
+              ),
               initiallyExpanded: hasAlternate || fractional,
               maintainState: true,
               title: const Text('إعدادات الوحدات المتقدمة'),
-              subtitle: Text(summary, style: DukanTypography.label),
+              subtitle: Text(summary, style: DeptAccountingTypography.label),
               children: [
                 SectionStack.form(
                   children: [
@@ -109,7 +111,7 @@ class ProductUnitsSection extends StatelessWidget {
                             enabled: enabled,
                           ),
                           if (hasAlternate)
-                            DukanField(
+                            DeptAccountingField(
                               label: 'عدد الوحدات الأساسية',
                               hint: 'مثال: 12',
                               helper: 'كرتون يحتوي على 12 حبة؟ أدخل 12.',
@@ -120,10 +122,10 @@ class ProductUnitsSection extends StatelessWidget {
                         ],
                       ),
                       if (conversion != null)
-                        DukanNotice(
+                        DeptAccountingNotice(
                           title: conversion,
                           message: 'تتحول الكمية تلقائيًا عند اختيار الوحدة الإضافية في الفاتورة.',
-                          tone: DukanTone.info,
+                          tone: DeptAccountingTone.info,
                         ),
                     ],
                     SwitchListTile(

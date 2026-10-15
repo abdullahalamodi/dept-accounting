@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../app/dependencies.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/export_service.dart';
 
 class PeriodReportViewModel extends ActionViewModel {
@@ -43,7 +43,7 @@ class _PeriodReportsState extends State<PeriodReports> {
     listenable: vm,
     builder: (context, _) {
       final report = vm.report;
-      return DukanPanel(
+      return DeptAccountingPanel(
         title: 'تقارير الفترة والتصدير',
         child: SectionStack(
           children: [
@@ -70,10 +70,10 @@ class _PeriodReportsState extends State<PeriodReports> {
                     vm.changed();
                   },
                 ),
-                DukanButton(
+                DeptAccountingButton(
                   label:
                       '${vm.from.toIso8601String().substring(0, 10)} — ${vm.through.toIso8601String().substring(0, 10)}',
-                  variant: DukanButtonVariant.secondary,
+                  variant: DeptAccountingButtonVariant.secondary,
                   onPressed: () async {
                     final range = await showDateRangePicker(
                       context: context,
@@ -99,24 +99,24 @@ class _PeriodReportsState extends State<PeriodReports> {
               spacing: 12,
               runSpacing: 12,
               children: [
-                DukanButton(
+                DeptAccountingButton(
                   label: 'تصدير PDF',
                   loading: vm.busy,
                   onPressed: vm.pdf,
                 ),
-                DukanButton(
+                DeptAccountingButton(
                   label: 'تصدير Excel',
-                  variant: DukanButtonVariant.secondary,
+                  variant: DeptAccountingButtonVariant.secondary,
                   onPressed: vm.excel,
                 ),
-                DukanButton(
+                DeptAccountingButton(
                   label: 'طباعة',
-                  variant: DukanButtonVariant.secondary,
+                  variant: DeptAccountingButtonVariant.secondary,
                   onPressed: vm.printReport,
                 ),
               ],
             ),
-            DukanDataTable(
+            DeptAccountingDataTable(
               columns: report.columns
                   .map((c) => DataColumn(label: Text(c)))
                   .toList(),
@@ -133,7 +133,7 @@ class _PeriodReportsState extends State<PeriodReports> {
               },
             ),
             for (final entry in report.summary.entries)
-              DukanSummaryLine(
+              DeptAccountingSummaryLine(
                 label: entry.key,
                 value: entry.value,
                 currency: widget.dependencies.store.shop!.currencyLabel,

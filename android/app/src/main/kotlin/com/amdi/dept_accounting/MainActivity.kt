@@ -1,4 +1,4 @@
-package com.example.dukan_app
+package com.amdi.dept_accounting
 
 import io.flutter.embedding.android.FlutterActivity
 

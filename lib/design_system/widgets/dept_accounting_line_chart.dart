@@ -2,10 +2,10 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../theme/dukan_tokens.dart';
+import '../theme/dept_accounting_tokens.dart';
 
-class DukanChartPoint {
-  const DukanChartPoint({
+class DeptAccountingChartPoint {
+  const DeptAccountingChartPoint({
     required this.label,
     required this.value,
     this.secondary,
@@ -15,8 +15,8 @@ class DukanChartPoint {
   final double? secondary;
 }
 
-class DukanLineChart extends StatefulWidget {
-  const DukanLineChart({
+class DeptAccountingLineChart extends StatefulWidget {
+  const DeptAccountingLineChart({
     super.key,
     required this.points,
     required this.formatValue,
@@ -24,17 +24,18 @@ class DukanLineChart extends StatefulWidget {
     this.secondaryLabel,
     this.height = 244,
   });
-  final List<DukanChartPoint> points;
+  final List<DeptAccountingChartPoint> points;
   final String Function(double) formatValue;
   final String primaryLabel;
   final String? secondaryLabel;
   final double height;
 
   @override
-  State<DukanLineChart> createState() => _DukanLineChartState();
+  State<DeptAccountingLineChart> createState() =>
+      _DeptAccountingLineChartState();
 }
 
-class _DukanLineChartState extends State<DukanLineChart> {
+class _DeptAccountingLineChartState extends State<DeptAccountingLineChart> {
   int? selected;
 
   @override
@@ -56,7 +57,7 @@ class _DukanLineChartState extends State<DukanLineChart> {
         ? 3.0
         : (maximum / tick).ceil() * tick;
     final style = Theme.of(context).textTheme.bodySmall!
-        .copyWith(color: DukanColors.muted);
+        .copyWith(color: DeptAccountingColors.muted);
     final index = selected?.clamp(0, points.length - 1);
     return Semantics(
       label: points
@@ -116,19 +117,19 @@ class _DukanLineChartState extends State<DukanLineChart> {
                                       vertical: 8,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: DukanColors.surface,
+                                      color: DeptAccountingColors.surface,
                                       border: Border.all(
-                                        color: DukanColors.border,
+                                        color: DeptAccountingColors.border,
                                       ),
                                       borderRadius: BorderRadius.circular(
-                                        DukanLayout.radius,
+                                        DeptAccountingLayout.radius,
                                       ),
                                     ),
                                     child: Text(
                                       '${points[index].label}  ·  ${widget.primaryLabel}: ${widget.formatValue(points[index].value)}${points[index].secondary == null ? '' : '\n${widget.secondaryLabel}: ${widget.formatValue(points[index].secondary!)}'}',
                                       textDirection: TextDirection.rtl,
                                       style: style.copyWith(
-                                        color: DukanColors.ink,
+                                        color: DeptAccountingColors.ink,
                                       ),
                                     ),
                                   ),
@@ -179,7 +180,7 @@ class _LinePainter extends CustomPainter {
     required this.format,
     required this.selected,
   });
-  final List<DukanChartPoint> points;
+  final List<DeptAccountingChartPoint> points;
   final double minimum, maximum;
   final TextStyle style;
   final String Function(double) format;
@@ -191,7 +192,7 @@ class _LinePainter extends CustomPainter {
     double y(double value) =>
         plot.bottom - (value - minimum) / (maximum - minimum) * plot.height;
     final grid = Paint()
-      ..color = DukanColors.border
+      ..color = DeptAccountingColors.border
       ..strokeWidth = 1;
     for (var i = 0; i <= 3; i++) {
       final value = minimum + (maximum - minimum) * i / 3;
@@ -238,12 +239,12 @@ class _LinePainter extends CustomPainter {
     canvas.clipRect(plot.inflate(5));
     canvas.drawPath(
       fill,
-      Paint()..color = DukanColors.primarySoft.withValues(alpha: .65),
+      Paint()..color = DeptAccountingColors.primarySoft.withValues(alpha: .65),
     );
     canvas.drawPath(
       path,
       Paint()
-        ..color = DukanColors.primary
+        ..color = DeptAccountingColors.primary
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2.8,
     );
@@ -251,7 +252,7 @@ class _LinePainter extends CustomPainter {
       canvas.drawPath(
         line(offsets(true)),
         Paint()
-          ..color = DukanColors.chartSecondary
+          ..color = DeptAccountingColors.chartSecondary
           ..style = PaintingStyle.stroke
           ..strokeWidth = 2.2,
       );
@@ -264,8 +265,8 @@ class _LinePainter extends CustomPainter {
         grid,
       );
     }
-    canvas.drawCircle(dot, 5.5, Paint()..color = DukanColors.surface);
-    canvas.drawCircle(dot, 3.5, Paint()..color = DukanColors.primary);
+    canvas.drawCircle(dot, 5.5, Paint()..color = DeptAccountingColors.surface);
+    canvas.drawCircle(dot, 3.5, Paint()..color = DeptAccountingColors.primary);
     canvas.restore();
   }
 

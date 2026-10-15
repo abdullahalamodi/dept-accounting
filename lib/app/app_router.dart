@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
-import '../design_system/dukan_design_system.dart';
+import '../design_system/dept_accounting_design_system.dart';
 import '../features/auth/presentation/auth_page.dart';
 import '../features/backup/presentation/backup_status_notice.dart';
 import '../features/catalog/presentation/catalog_page.dart';
@@ -47,8 +47,8 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
   },
   errorBuilder: (context, state) => Scaffold(
     body: Center(
-      child: DukanStateView(
-        state: DukanViewState.error,
+      child: DeptAccountingStateView(
+        state: DeptAccountingViewState.error,
         title: 'تعذر فتح الصفحة',
         message: 'تحقق من المسار ثم عد إلى البداية.',
         actionLabel: 'الرئيسية',
@@ -313,7 +313,7 @@ class _AppWorkspace extends StatelessWidget {
         const SingleActivator(LogicalKeyboardKey.keyL, control: true):
             d.store.logout,
       },
-      child: DukanWorkspace(
+      child: DeptAccountingWorkspace(
         libraryMode: false,
         scrollBody: false,
         notice: d.store.user!.canManage
@@ -346,5 +346,6 @@ GoRoute _featureRoute({
   required Widget Function(BuildContext, GoRouterState) builder,
 }) => GoRoute(
   path: path,
-  builder: (context, state) => DukanPageBody(child: builder(context, state)),
+  builder: (context, state) =>
+      DeptAccountingPageBody(child: builder(context, state)),
 );

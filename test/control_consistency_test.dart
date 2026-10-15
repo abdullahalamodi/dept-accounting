@@ -1,5 +1,5 @@
-import 'package:dukan_app/core/ui/form_widgets.dart';
-import 'package:dukan_app/design_system/dukan_design_system.dart';
+import 'package:dept_accounting/core/ui/form_widgets.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +10,7 @@ void main() {
   ) async {
     await tester.pumpWidget(
       MaterialApp(
-        theme: DukanTheme.light(),
+        theme: DeptAccountingTheme.light(),
         locale: const Locale('ar'),
         supportedLocales: const [Locale('ar')],
         localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -20,12 +20,12 @@ void main() {
               width: 360,
               child: SectionStack.form(
                 children: [
-                  const DukanField(label: 'اسم المستخدم'),
+                  const DeptAccountingField(label: 'اسم المستخدم'),
                   TextFormField(
                     obscureText: true,
                     decoration: const InputDecoration(labelText: 'كلمة المرور'),
                   ),
-                  DukanButton(label: 'دخول', onPressed: () {}),
+                  DeptAccountingButton(label: 'دخول', onPressed: () {}),
                 ],
               ),
             ),
@@ -36,7 +36,8 @@ void main() {
     await tester.pumpAndSettle();
     final fields = find.byType(TextFormField);
     expect(
-      tester.getTopLeft(fields.at(1)).dy - tester.getBottomLeft(fields.first).dy,
+      tester.getTopLeft(fields.at(1)).dy -
+          tester.getBottomLeft(fields.first).dy,
       14,
     );
     final buttonHeight = tester.getSize(find.byType(FilledButton)).height;
@@ -62,7 +63,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
-          theme: DukanTheme.light(),
+          theme: DeptAccountingTheme.light(),
           locale: const Locale('ar'),
           supportedLocales: const [Locale('ar')],
           localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -74,7 +75,10 @@ void main() {
                 children: [
                   const SizedBox(
                     width: 280,
-                    child: DukanField(label: 'بحث', prefixIcon: Icons.search),
+                    child: DeptAccountingField(
+                      label: 'بحث',
+                      prefixIcon: Icons.search,
+                    ),
                   ),
                   SizedBox(
                     width: 280,
@@ -88,8 +92,8 @@ void main() {
                       onChanged: (_) {},
                     ),
                   ),
-                  DukanButton(label: 'إضافة', onPressed: () {}),
-                  DukanFilterChip(
+                  DeptAccountingButton(label: 'إضافة', onPressed: () {}),
+                  DeptAccountingFilterChip(
                     label: const Text('مخزون منخفض'),
                     selected: false,
                     onSelected: (_) {},
@@ -102,7 +106,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       final inputHeight = tester.getSize(find.byType(TextFormField)).height;
-      expect(inputHeight, DukanLayout.controlHeight);
+      expect(inputHeight, DeptAccountingLayout.controlHeight);
       expect(
         tester.getSize(find.byType(DropdownButtonFormField<String>)).height,
         inputHeight,
@@ -119,7 +123,10 @@ void main() {
                   .inputDecorationTheme
                   .enabledBorder!
               as OutlineInputBorder;
-      expect(outline.borderSide, const BorderSide(color: DukanColors.border));
+      expect(
+        outline.borderSide,
+        const BorderSide(color: DeptAccountingColors.border),
+      );
       await tester.tap(find.byType(DropdownButton<String>));
       await tester.pumpAndSettle();
       final menuText = tester.element(find.text('أحمد محمد').last);

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'document_view_model.dart';
 
 class DocumentPage extends StatefulWidget {
@@ -37,7 +37,7 @@ class _DocumentPageState extends State<DocumentPage> {
           if (d.store.user!.canManage &&
               vm.cancelled &&
               ['sale', 'purchase'].contains(doc.kind))
-            DukanButton(
+            DeptAccountingButton(
               label: 'إنشاء نسخة مصححة',
               onPressed: () {
                 final draft = vm.correctionDraft();
@@ -51,9 +51,9 @@ class _DocumentPageState extends State<DocumentPage> {
           if (d.store.user!.canManage &&
               !vm.cancelled &&
               ['sale', 'purchase'].contains(doc.kind))
-            DukanButton(
+            DeptAccountingButton(
               label: 'إرجاع منتجات أو خدمة',
-              variant: DukanButtonVariant.secondary,
+              variant: DeptAccountingButtonVariant.secondary,
               onPressed: () => context.go('/returns/${doc.id}'),
             ),
         ],
@@ -67,7 +67,7 @@ class _DocumentPageState extends State<DocumentPage> {
         child: SectionStack(
           children: [
             ErrorNotice(vm.error),
-            DukanPanel(
+            DeptAccountingPanel(
               child: Wrap(
                 spacing: 12,
                 runSpacing: 12,
@@ -83,26 +83,26 @@ class _DocumentPageState extends State<DocumentPage> {
                     selected: thermal,
                     onSelected: (_) => setState(() => thermal = true),
                   ),
-                  DukanButton(
+                  DeptAccountingButton(
                     label: 'طباعة',
                     loading: vm.busy,
                     onPressed: () => vm.printDocument(thermal),
                   ),
-                  DukanButton(
+                  DeptAccountingButton(
                     label: 'حفظ PDF',
-                    variant: DukanButtonVariant.secondary,
+                    variant: DeptAccountingButtonVariant.secondary,
                     onPressed: vm.saveDocument,
                   ),
-                  DukanButton(
+                  DeptAccountingButton(
                     label: 'مشاركة',
-                    variant: DukanButtonVariant.secondary,
+                    variant: DeptAccountingButtonVariant.secondary,
                     onPressed: vm.shareDocument,
                   ),
                   if (d.store.user!.canManage &&
                       ['receipt', 'payment'].contains(doc.kind))
-                    DukanButton(
+                    DeptAccountingButton(
                       label: 'إلغاء تخصيص الفواتير',
-                      variant: DukanButtonVariant.secondary,
+                      variant: DeptAccountingButtonVariant.secondary,
                       onPressed: () async {
                         final reason = await showDialog<String>(
                           context: context,
@@ -123,9 +123,9 @@ class _DocumentPageState extends State<DocumentPage> {
                         'capital',
                         'drawing',
                       ].contains(doc.kind))
-                    DukanButton(
+                    DeptAccountingButton(
                       label: 'إلغاء المستند',
-                      variant: DukanButtonVariant.danger,
+                      variant: DeptAccountingButtonVariant.danger,
                       onPressed: () async {
                         final reason = await showDialog<String>(
                           context: context,
@@ -141,18 +141,20 @@ class _DocumentPageState extends State<DocumentPage> {
                 ],
               ),
             ),
-            DukanNotice(
+            DeptAccountingNotice(
               title: vm.cancelled ? 'ملغى بمستند عكسي' : 'مستند معتمد',
               message:
                   'تاريخ الورقة: ${doc.date} · الاعتماد: ${doc.postedAt.substring(0, 16).replaceAll('T', ' ')} UTC',
-              tone: vm.cancelled ? DukanTone.warning : DukanTone.success,
+              tone: vm.cancelled
+                  ? DeptAccountingTone.warning
+                  : DeptAccountingTone.success,
             ),
             if (doc.partyId != null)
               Text('الطرف: ${d.parties.get(doc.partyId!).name}'),
             if (doc.lines.isNotEmpty)
-              DukanPanel(
+              DeptAccountingPanel(
                 title: 'البنود المعتمدة',
-                child: DukanDataTable(
+                child: DeptAccountingDataTable(
                   columns: const [
                     DataColumn(label: Text('المنتج')),
                     DataColumn(label: Text('الوحدة')),
@@ -176,19 +178,19 @@ class _DocumentPageState extends State<DocumentPage> {
                             ),
                           ),
                           DataCell(
-                            DukanAmount(
+                            DeptAccountingAmount(
                               Numbers.format(doc.lines[i].price),
                               currency: currency,
                             ),
                           ),
                           DataCell(
-                            DukanAmount(
+                            DeptAccountingAmount(
                               Numbers.format(doc.lines[i].discount),
                               currency: currency,
                             ),
                           ),
                           DataCell(
-                            DukanAmount(
+                            DeptAccountingAmount(
                               Numbers.format(
                                 ([
                                       'sale_return',
@@ -209,30 +211,30 @@ class _DocumentPageState extends State<DocumentPage> {
                   onPageChanged: (_) {},
                 ),
               ),
-            DukanPanel(
+            DeptAccountingPanel(
               title: 'الإجمالي والدفع',
               child: SectionStack(
                 children: [
                   if (doc.discount > 0)
-                    DukanSummaryLine(
+                    DeptAccountingSummaryLine(
                       label: 'خصم الفاتورة',
                       value: Numbers.format(doc.discount),
                       currency: currency,
                     ),
                   if (doc.shipping > 0)
-                    DukanSummaryLine(
+                    DeptAccountingSummaryLine(
                       label: 'الشحن المضاف للتكلفة',
                       value: Numbers.format(doc.shipping),
                       currency: currency,
                     ),
-                  DukanSummaryLine(
+                  DeptAccountingSummaryLine(
                     label: 'الإجمالي',
                     value: Numbers.format(doc.total),
                     currency: currency,
                     total: true,
                   ),
                   for (final payment in doc.payments)
-                    DukanSummaryLine(
+                    DeptAccountingSummaryLine(
                       label: d.finance
                           .accounts()
                           .firstWhere((a) => a.code == payment.account)
@@ -241,7 +243,7 @@ class _DocumentPageState extends State<DocumentPage> {
                       currency: currency,
                     ),
                   if (['sale', 'purchase'].contains(doc.kind))
-                    DukanSummaryLine(
+                    DeptAccountingSummaryLine(
                       label: 'المتبقي حاليًا',
                       value: Numbers.format(d.invoices.due(doc.id)),
                       currency: currency,
@@ -281,7 +283,7 @@ class _CancelDialogState extends State<_CancelDialog> {
           const Text(
             'يُنشأ مستند عكسي ويحفظ الأصل. قد تمنع الحركات اللاحقة الإلغاء؛ عندها استخدم المرتجع المرتبط.',
           ),
-          DukanField(label: 'سبب الإلغاء', controller: reason),
+          DeptAccountingField(label: 'سبب الإلغاء', controller: reason),
         ],
       ),
     ),
@@ -290,9 +292,9 @@ class _CancelDialogState extends State<_CancelDialog> {
         onPressed: () => Navigator.pop(context),
         child: const Text('العودة'),
       ),
-      DukanButton(
+      DeptAccountingButton(
         label: 'اعتماد الإلغاء',
-        variant: DukanButtonVariant.danger,
+        variant: DeptAccountingButtonVariant.danger,
         onPressed: () {
           if (reason.text.trim().isNotEmpty) {
             Navigator.pop(context, reason.text.trim());

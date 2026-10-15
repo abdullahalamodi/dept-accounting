@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../theme/dukan_tokens.dart';
+import '../theme/dept_accounting_tokens.dart';
 
-class DukanActionCard extends StatelessWidget {
-  const DukanActionCard({
+class DeptAccountingActionCard extends StatelessWidget {
+  const DeptAccountingActionCard({
     super.key,
     required this.title,
     required this.description,
@@ -16,36 +16,38 @@ class DukanActionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: DukanColors.background,
+    color: DeptAccountingColors.background,
     shape: RoundedRectangleBorder(
-      side: const BorderSide(color: DukanColors.border),
-      borderRadius: BorderRadius.circular(DukanLayout.radius),
+      side: const BorderSide(color: DeptAccountingColors.border),
+      borderRadius: BorderRadius.circular(DeptAccountingLayout.radius),
     ),
     clipBehavior: Clip.antiAlias,
     child: InkWell(
       onTap: onTap,
-      hoverColor: DukanColors.primarySoft,
-      focusColor: DukanColors.sage,
+      hoverColor: DeptAccountingColors.primarySoft,
+      focusColor: DeptAccountingColors.sage,
       child: Padding(
-        padding: const EdgeInsets.all(DukanSpace.lg),
+        padding: const EdgeInsets.all(DeptAccountingSpace.lg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               padding: const EdgeInsets.all(9),
               decoration: BoxDecoration(
-                color: DukanColors.primarySoft,
-                borderRadius: BorderRadius.circular(DukanLayout.radius),
+                color: DeptAccountingColors.primarySoft,
+                borderRadius: BorderRadius.circular(
+                  DeptAccountingLayout.radius,
+                ),
               ),
-              child: Icon(icon, color: DukanColors.primary, size: 22),
+              child: Icon(icon, color: DeptAccountingColors.primary, size: 22),
             ),
-            const SizedBox(height: DukanSpace.md),
+            const SizedBox(height: DeptAccountingSpace.md),
             Text(title, style: Theme.of(context).textTheme.titleMedium),
-            const SizedBox(height: DukanSpace.xs),
+            const SizedBox(height: DeptAccountingSpace.xs),
             Text(
               description,
               style: Theme.of(context).textTheme.bodySmall
-                  ?.copyWith(color: DukanColors.muted),
+                  ?.copyWith(color: DeptAccountingColors.muted),
             ),
           ],
         ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'period_reports.dart';
 
 class ReportsPage extends StatefulWidget {
@@ -29,13 +29,13 @@ class _ReportsPageState extends State<ReportsPage> {
         : d.reports.ledger(code!);
     return SectionStack(
       children: [
-        const DukanPageHeader(
+        const DeptAccountingPageHeader(
           title: 'التقارير والمحاسبة',
           description: 'نتائج تراكمية من القيود المعتمدة · بعملة المحل',
         ),
         PeriodReports(dependencies: d),
         FieldGrid(
-          runSpacing: DukanSpace.xl,
+          runSpacing: DeptAccountingSpace.xl,
           children: [
             for (final (key, label) in [
               ('sales', 'الإيرادات'),
@@ -44,24 +44,26 @@ class _ReportsPageState extends State<ReportsPage> {
               ('expenses', 'المصروفات والتالف'),
               ('profit', 'صافي النتيجة'),
             ])
-              DukanMetricCard(
+              DeptAccountingMetricCard(
                 label: label,
                 value: '${Numbers.format(m[key]!)} $currency',
                 caption: 'من بداية التشغيل',
               ),
           ],
         ),
-        DukanNotice(
+        DeptAccountingNotice(
           title: debit == credit
               ? 'ميزان المراجعة متوازن'
               : 'يوجد فرق في ميزان المراجعة',
           message:
               'مدين ${Numbers.format(debit)} · دائن ${Numbers.format(credit)} $currency',
-          tone: debit == credit ? DukanTone.success : DukanTone.danger,
+          tone: debit == credit
+              ? DeptAccountingTone.success
+              : DeptAccountingTone.danger,
         ),
-        DukanPanel(
+        DeptAccountingPanel(
           title: 'ميزان المراجعة',
-          child: DukanDataTable(
+          child: DeptAccountingDataTable(
             columns: const [
               DataColumn(label: Text('الحساب')),
               DataColumn(label: Text('الاسم')),
@@ -76,19 +78,19 @@ class _ReportsPageState extends State<ReportsPage> {
                     DataCell(Text(row['code'] as String)),
                     DataCell(Text(row['name'] as String)),
                     DataCell(
-                      DukanAmount(
+                      DeptAccountingAmount(
                         Numbers.format(row['debit'] as int),
                         currency: currency,
                       ),
                     ),
                     DataCell(
-                      DukanAmount(
+                      DeptAccountingAmount(
                         Numbers.format(row['credit'] as int),
                         currency: currency,
                       ),
                     ),
                     DataCell(
-                      DukanAmount(
+                      DeptAccountingAmount(
                         Numbers.format(
                           (row['debit'] as int) - (row['credit'] as int),
                         ),
@@ -104,7 +106,7 @@ class _ReportsPageState extends State<ReportsPage> {
             onPageChanged: (_) {},
           ),
         ),
-        DukanPanel(
+        DeptAccountingPanel(
           title: 'دفتر الأستاذ',
           child: SectionStack(
             children: [
@@ -125,7 +127,7 @@ class _ReportsPageState extends State<ReportsPage> {
                   page = 1;
                 }),
               ),
-              DukanDataTable(
+              DeptAccountingDataTable(
                 columns: const [
                   DataColumn(label: Text('الوقت')),
                   DataColumn(label: Text('المرجع')),
@@ -145,13 +147,13 @@ class _ReportsPageState extends State<ReportsPage> {
                         ),
                         DataCell(Text(row['number'] as String)),
                         DataCell(
-                          DukanAmount(
+                          DeptAccountingAmount(
                             Numbers.format(row['debit'] as int),
                             currency: currency,
                           ),
                         ),
                         DataCell(
-                          DukanAmount(
+                          DeptAccountingAmount(
                             Numbers.format(row['credit'] as int),
                             currency: currency,
                           ),

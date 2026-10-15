@@ -129,7 +129,9 @@ class BackupService {
     Directory? temporary;
     try {
       final changed = store.setting('changed_at') ?? '';
-      temporary = await Directory.systemTemp.createTemp('dukan-backup-');
+      temporary = await Directory.systemTemp.createTemp(
+        'dept_accounting-backup-',
+      );
       final snapshot = await store.database.snapshot(temporary);
       final bytes = await snapshot.readAsBytes();
       final encrypted = await encrypt(bytes, store.setting('backup_key')!);
@@ -141,7 +143,7 @@ class BackupService {
       );
       _validate(verified.path);
       final filename =
-          'dukan-${automatic ? 'auto' : 'manual'}-${DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'[:.]'), '-')}.dukan';
+          'dept_accounting-${automatic ? 'auto' : 'manual'}-${DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'[:.]'), '-')}.dept_accounting';
       final configured = forceLocal ? null : store.setting('backup_directory');
       var directory = Directory(configured ?? localDirectory);
       final primaryUnavailable =
@@ -186,8 +188,8 @@ class BackupService {
         .where(
           (e) =>
               e is File &&
-              p.basename(e.path).startsWith('dukan-auto-') &&
-              e.path.endsWith('.dukan'),
+              p.basename(e.path).startsWith('dept_accounting-auto-') &&
+              e.path.endsWith('.dept_accounting'),
         )
         .cast<File>()
         .toList();
@@ -211,7 +213,9 @@ class BackupService {
     String key, {
     required bool existing,
   }) async {
-    final directory = await Directory.systemTemp.createTemp('dukan-restore-');
+    final directory = await Directory.systemTemp.createTemp(
+      'dept_accounting-restore-',
+    );
     try {
       final temporary = File(p.join(directory.path, 'restore.sqlite'));
       await temporary.writeAsBytes(await decrypt(file, key), flush: true);
@@ -264,7 +268,9 @@ class BackupService {
   }
 
   Future<({Shop shop, String date})> inspect(List<int> file, String key) async {
-    final directory = await Directory.systemTemp.createTemp('dukan-inspect-');
+    final directory = await Directory.systemTemp.createTemp(
+      'dept_accounting-inspect-',
+    );
     try {
       final temporary = File(p.join(directory.path, 'restore.sqlite'));
       await temporary.writeAsBytes(await decrypt(file, key), flush: true);

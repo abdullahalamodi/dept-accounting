@@ -1,10 +1,10 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/design_system/dukan_design_system.dart';
-import 'package:dukan_app/features/auth/presentation/auth_page.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
+import 'package:dept_accounting/features/auth/presentation/auth_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -16,11 +16,11 @@ void main() {
   testWidgets(
     'Capture registration with the production font families and weights',
     (tester) async {
-      const output = String.fromEnvironment('DUKAN_CAPTURE_DIR');
+      const output = String.fromEnvironment('DEPT_ACCOUNTING_CAPTURE_DIR');
       expect(
         output,
         isNotEmpty,
-        reason: 'Pass --dart-define=DUKAN_CAPTURE_DIR=/absolute/path',
+        reason: 'Pass --dart-define=DEPT_ACCOUNTING_CAPTURE_DIR=/absolute/path',
       );
       await loadAppFonts();
       tester.view.physicalSize = const Size(960, 1800);
@@ -39,7 +39,7 @@ void main() {
           key: key,
           child: MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: DukanTheme.light(),
+            theme: DeptAccountingTheme.light(),
             locale: const Locale('ar'),
             supportedLocales: const [Locale('ar')],
             localizationsDelegates: GlobalMaterialLocalizations.delegates,

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 
 class InvoicesPage extends StatefulWidget {
   const InvoicesPage({
@@ -38,18 +38,18 @@ class _InvoicesPageState extends State<InvoicesPage> {
         currency = d.store.shop!.currencyLabel;
     return SectionStack(
       children: [
-        DukanPageHeader(
+        DeptAccountingPageHeader(
           title: widget.sale ? 'المبيعات' : 'المشتريات',
           description: 'فواتير محفوظة مع أثر المخزون والحسابات',
           actions: [
-            DukanButton(
+            DeptAccountingButton(
               label: widget.sale ? 'فاتورة بيع جديدة' : 'فاتورة شراء جديدة',
               onPressed: () => context.go('$path/new/${d.store.id()}'),
             ),
           ],
         ),
         if (drafts.isNotEmpty)
-          DukanPanel(
+          DeptAccountingPanel(
             title: 'مسوداتك المحفوظة',
             child: Wrap(
               spacing: 12,
@@ -65,8 +65,8 @@ class _InvoicesPageState extends State<InvoicesPage> {
               ],
             ),
           ),
-        DukanPanel(
-          child: DukanField(
+        DeptAccountingPanel(
+          child: DeptAccountingField(
             label: 'بحث برقم الفاتورة أو الملاحظات',
             onChanged: (v) => setState(() {
               search = v;
@@ -74,9 +74,9 @@ class _InvoicesPageState extends State<InvoicesPage> {
             }),
           ),
         ),
-        DukanPanel(
+        DeptAccountingPanel(
           padding: EdgeInsets.zero,
-          child: DukanDataTable(
+          child: DeptAccountingDataTable(
             columns: const [
               DataColumn(label: Text('رقم الفاتورة')),
               DataColumn(label: Text('تاريخ الورقة')),
@@ -99,13 +99,13 @@ class _InvoicesPageState extends State<InvoicesPage> {
                       ),
                     ),
                     DataCell(
-                      DukanAmount(
+                      DeptAccountingAmount(
                         Numbers.format(doc.total),
                         currency: currency,
                       ),
                     ),
                     DataCell(
-                      DukanAmount(
+                      DeptAccountingAmount(
                         Numbers.format(d.invoices.due(doc.id)),
                         currency: currency,
                       ),

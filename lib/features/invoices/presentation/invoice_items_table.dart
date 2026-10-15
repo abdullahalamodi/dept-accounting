@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'invoice_view_model.dart';
 
 class InvoiceItemsTable extends StatefulWidget {
@@ -28,7 +28,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
     children: [
       Expanded(child: cells[0]),
       for (var i = 1; i < cells.length; i++) ...[
-        const SizedBox(width: DukanSpace.sm),
+        const SizedBox(width: DeptAccountingSpace.sm),
         SizedBox(
           width: [0.0, 100.0, 76.0, 96.0, 100.0, 36.0][i],
           child: cells[i],
@@ -55,8 +55,8 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
   Widget build(BuildContext context) {
     final vm = widget.vm;
     if (vm.lines.isEmpty) {
-      return const DukanStateView(
-        state: DukanViewState.empty,
+      return const DeptAccountingStateView(
+        state: DeptAccountingViewState.empty,
         title: 'أضف بنود الفاتورة',
         message: 'ابحث عن المنتج أو امسح الباركود لإضافته.',
       );
@@ -70,16 +70,18 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
           child: SingleChildScrollView(
             controller: scroll,
             scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.only(bottom: overflow ? DukanSpace.md : 0),
+            padding: EdgeInsets.only(
+              bottom: overflow ? DeptAccountingSpace.md : 0,
+            ),
             child: SizedBox(
               width: math.max(640, constraints.maxWidth),
               child: Column(
                 children: [
                   DefaultTextStyle(
-                    style: DukanTypography.tableHeading,
+                    style: DeptAccountingTypography.tableHeading,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        vertical: DukanSpace.sm,
+                        vertical: DeptAccountingSpace.sm,
                       ),
                       child: columns([
                         const Text('المنتج / الخدمة'),
@@ -96,7 +98,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                     Padding(
                       key: ObjectKey(line),
                       padding: const EdgeInsets.symmetric(
-                        vertical: DukanSpace.sm,
+                        vertical: DeptAccountingSpace.sm,
                       ),
                       child: Builder(
                         builder: (context) {
@@ -106,7 +108,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                               message: product.name,
                               child: Text(
                                 product.name,
-                                style: DukanTypography.tableBody,
+                                style: DeptAccountingTypography.tableBody,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -132,7 +134,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                             ),
                             Semantics(
                               label: 'كمية ${product.name}',
-                              child: DukanField(
+                              child: DeptAccountingField(
                                 label: '',
                                 compact: true,
                                 enabled: vm.receiptId == null,
@@ -146,7 +148,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                             ),
                             Semantics(
                               label: 'سعر ${product.name}',
-                              child: DukanField(
+                              child: DeptAccountingField(
                                 key: ValueKey(line.unit),
                                 label: '',
                                 compact: true,
@@ -162,7 +164,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                               lineTotal(line),
                               textDirection: TextDirection.ltr,
                               textAlign: TextAlign.end,
-                              style: DukanTypography.tableBody,
+                              style: DeptAccountingTypography.tableBody,
                             ),
                             if (vm.receiptId == null)
                               IconButton(
@@ -171,7 +173,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                                 style: IconButton.styleFrom(
                                   minimumSize: const Size.square(36),
                                   padding: EdgeInsets.zero,
-                                  foregroundColor: DukanColors.muted,
+                                  foregroundColor: DeptAccountingColors.muted,
                                 ),
                                 onPressed: () {
                                   vm.lines.remove(line);

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
-import '../../design_system/dukan_design_system.dart';
+import '../../design_system/dept_accounting_design_system.dart';
 import '../app_identity.dart';
 import '../numbers.dart';
 
 class SectionStack extends StatelessWidget {
   const SectionStack({super.key, required this.children})
-    : spacing = DukanSpace.xl;
+    : spacing = DeptAccountingSpace.xl;
   const SectionStack.form({super.key, required this.children})
-    : spacing = DukanSpace.formGap;
+    : spacing = DeptAccountingSpace.formGap;
   final List<Widget> children;
   final double spacing;
   @override
@@ -28,7 +28,7 @@ class FieldGrid extends StatelessWidget {
     super.key,
     required this.children,
     this.minWidth = 260,
-    this.runSpacing = DukanSpace.formGap,
+    this.runSpacing = DeptAccountingSpace.formGap,
   });
   final List<Widget> children;
   final double minWidth;
@@ -36,12 +36,14 @@ class FieldGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, c) {
-      final count = ((c.maxWidth + DukanSpace.lg) / (minWidth + DukanSpace.lg))
-          .floor()
-          .clamp(1, children.length.clamp(1, 3));
-      final width = (c.maxWidth - DukanSpace.lg * (count - 1)) / count;
+      final count =
+          ((c.maxWidth + DeptAccountingSpace.lg) /
+                  (minWidth + DeptAccountingSpace.lg))
+              .floor()
+              .clamp(1, children.length.clamp(1, 3));
+      final width = (c.maxWidth - DeptAccountingSpace.lg * (count - 1)) / count;
       return Wrap(
-        spacing: DukanSpace.lg,
+        spacing: DeptAccountingSpace.lg,
         runSpacing: runSpacing,
         children: [
           for (final child in children) SizedBox(width: width, child: child),
@@ -72,12 +74,16 @@ class ChoiceField<T> extends StatelessWidget {
     key: ValueKey('$label-$value'),
     initialValue: value,
     isExpanded: true,
-    style: compact ? DukanTypography.compactControl : DukanTypography.control,
+    style: compact
+        ? DeptAccountingTypography.compactControl
+        : DeptAccountingTypography.control,
     iconSize: 20,
     decoration: InputDecoration(
       labelText: label.isEmpty ? null : label,
       constraints: compact
-          ? const BoxConstraints(minHeight: DukanLayout.compactControlHeight)
+          ? const BoxConstraints(
+              minHeight: DeptAccountingLayout.compactControlHeight,
+            )
           : null,
       contentPadding: compact
           ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
@@ -159,11 +165,11 @@ class ErrorNotice extends StatelessWidget {
   Widget build(BuildContext context) => error == null
       ? const SizedBox.shrink()
       : Padding(
-          padding: const EdgeInsets.only(bottom: DukanSpace.lg),
-          child: DukanNotice(
+          padding: const EdgeInsets.only(bottom: DeptAccountingSpace.lg),
+          child: DeptAccountingNotice(
             title: 'راجع البيانات',
             message: error!,
-            tone: DukanTone.danger,
+            tone: DeptAccountingTone.danger,
           ),
         );
 }
@@ -183,14 +189,14 @@ class WorkPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => SectionStack(
     children: [
-      DukanPageHeader(
+      DeptAccountingPageHeader(
         title: title,
         description:
             '$appName · ${DateTime.now().toIso8601String().substring(0, 10)}',
         actions: [
-          DukanButton(
+          DeptAccountingButton(
             label: 'العودة',
-            variant: DukanButtonVariant.secondary,
+            variant: DeptAccountingButtonVariant.secondary,
             onPressed: onBack,
           ),
           ...actions,

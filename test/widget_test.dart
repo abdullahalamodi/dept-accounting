@@ -1,10 +1,10 @@
-import 'package:dukan_app/design_system/dukan_design_system.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 Widget host(Widget child) => MaterialApp(
-  theme: DukanTheme.light(),
+  theme: DeptAccountingTheme.light(),
   locale: const Locale('ar'),
   supportedLocales: const [Locale('ar')],
   localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -20,8 +20,12 @@ void main() {
       host(
         Column(
           children: [
-            const DukanButton(label: 'معطل'),
-            DukanButton(label: 'حفظ', loading: true, onPressed: () => calls++),
+            const DeptAccountingButton(label: 'معطل'),
+            DeptAccountingButton(
+              label: 'حفظ',
+              loading: true,
+              onPressed: () => calls++,
+            ),
           ],
         ),
       ),
@@ -38,10 +42,10 @@ void main() {
     await tester.pumpWidget(
       host(
         Builder(
-          builder: (context) => DukanButton(
+          builder: (context) => DeptAccountingButton(
             label: 'افتح',
             onPressed: () async {
-              result = await showDukanConfirmation(
+              result = await showDeptAccountingConfirmation(
                 context,
                 title: 'حذف؟',
                 message: 'مسودة توضيحية',
@@ -74,7 +78,7 @@ void main() {
           : (second + .05) / (first + .05);
     }
 
-    for (final tone in DukanTone.values) {
+    for (final tone in DeptAccountingTone.values) {
       expect(
         contrast(tone.foreground, tone.background),
         greaterThanOrEqualTo(4.5),
@@ -82,13 +86,13 @@ void main() {
       );
     }
     expect(
-      contrast(DukanColors.primary, Colors.white),
+      contrast(DeptAccountingColors.primary, Colors.white),
       greaterThanOrEqualTo(4.5),
     );
     expect(
-      contrast(DukanColors.muted, DukanColors.background),
+      contrast(DeptAccountingColors.muted, DeptAccountingColors.background),
       greaterThanOrEqualTo(4.5),
     );
-    expect(DukanColors.controlBorder, DukanColors.border);
+    expect(DeptAccountingColors.controlBorder, DeptAccountingColors.border);
   });
 }

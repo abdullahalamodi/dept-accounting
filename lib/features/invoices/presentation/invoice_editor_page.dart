@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../../catalog/data/product.dart';
 import 'invoice_view_model.dart';
 import 'invoice_items_table.dart';
@@ -59,7 +59,7 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
   }
 
   Future<void> confirm() async {
-    if (!await showDukanConfirmation(
+    if (!await showDeptAccountingConfirmation(
       context,
       title: 'اعتماد الفاتورة؟',
       message: 'سيُحدّث المخزون والصندوق وحساب الطرف. الفاتورة المعتمدة لا تُعدّل مباشرة.',
@@ -101,9 +101,9 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
           context.go(path);
         },
         actions: [
-          DukanButton(
+          DeptAccountingButton(
             label: 'حفظ مسودة',
-            variant: DukanButtonVariant.secondary,
+            variant: DeptAccountingButtonVariant.secondary,
             onPressed: () {
               vm.saveDraft();
               showMessage(context, vm.draftError ?? 'حُفظت المسودة على الجهاز');
@@ -114,8 +114,8 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
           children: [
             ErrorNotice(vm.error),
             if (vm.sale)
-              DukanPanel(
-                child: DukanField(
+              DeptAccountingPanel(
+                child: DeptAccountingField(
                   label: 'إضافة بالباركود — امسح ثم Enter',
                   controller: barcode,
                   focusNode: barcodeFocus,
@@ -127,11 +127,11 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
                 ),
               ),
             if (vm.draftError != null) ErrorNotice(vm.draftError),
-            DukanEditorLayout(
+            DeptAccountingEditorLayout(
               minFormWidth: 688,
               form: SectionStack(
                 children: [
-                  DukanPanel(
+                  DeptAccountingPanel(
                     title: 'بيانات الفاتورة',
                     child: FieldGrid(
                       children: [
@@ -153,7 +153,7 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
                             vm.edit();
                           },
                         ),
-                        DukanField(
+                        DeptAccountingField(
                           label: 'تاريخ الورقة',
                           initialValue: vm.date,
                           hint: 'YYYY-MM-DD',
@@ -165,13 +165,13 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
                       ],
                     ),
                   ),
-                  DukanPanel(
+                  DeptAccountingPanel(
                     title: 'بنود الفاتورة',
                     action: vm.receiptId != null
                         ? null
-                        : DukanButton(
+                        : DeptAccountingButton(
                             label: 'إضافة منتجات وخدمات',
-                            variant: DukanButtonVariant.secondary,
+                            variant: DeptAccountingButtonVariant.secondary,
                             onPressed: picker,
                           ),
                     child: InvoiceItemsTable(vm: vm),
@@ -221,14 +221,14 @@ class _ProductPickerState extends State<_ProductPicker> {
         child: SingleChildScrollView(
           child: SectionStack(
             children: [
-              DukanField(
+              DeptAccountingField(
                 label: 'الاسم أو الباركود',
                 onChanged: (v) => setState(() {
                   search = v;
                   page = 1;
                 }),
               ),
-              DukanDataTable(
+              DeptAccountingDataTable(
                 minWidth: 600,
                 columns: const [
                   DataColumn(label: Text('المنتج')),
@@ -243,7 +243,7 @@ class _ProductPickerState extends State<_ProductPicker> {
                         DataCell(Text(p.name)),
                         DataCell(Text(p.barcode)),
                         DataCell(
-                          DukanAmount(
+                          DeptAccountingAmount(
                             Numbers.format(
                               widget.sale ? p.salePrice : p.purchasePrice,
                             ),

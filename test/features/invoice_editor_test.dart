@@ -1,11 +1,11 @@
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/design_system/dukan_design_system.dart';
-import 'package:dukan_app/features/auth/data/auth_models.dart';
-import 'package:dukan_app/features/catalog/data/product.dart';
-import 'package:dukan_app/features/invoices/presentation/invoice_items_table.dart';
-import 'package:dukan_app/features/invoices/presentation/invoice_summary_panel.dart';
-import 'package:dukan_app/features/invoices/presentation/invoice_view_model.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
+import 'package:dept_accounting/features/auth/data/auth_models.dart';
+import 'package:dept_accounting/features/catalog/data/product.dart';
+import 'package:dept_accounting/features/invoices/presentation/invoice_items_table.dart';
+import 'package:dept_accounting/features/invoices/presentation/invoice_summary_panel.dart';
+import 'package:dept_accounting/features/invoices/presentation/invoice_view_model.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -118,14 +118,14 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(
         MaterialApp(
-          theme: DukanTheme.light(),
+          theme: DeptAccountingTheme.light(),
           home: Directionality(
             textDirection: TextDirection.rtl,
             child: Scaffold(
               body: SingleChildScrollView(
                 child: ListenableBuilder(
                   listenable: vm,
-                  builder: (context, _) => DukanEditorLayout(
+                  builder: (context, _) => DeptAccountingEditorLayout(
                     minFormWidth: 688,
                     form: InvoiceItemsTable(vm: vm),
                     summary: InvoiceSummaryPanel(vm: vm, onConfirm: () {}),

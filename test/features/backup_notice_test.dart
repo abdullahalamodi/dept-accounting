@@ -1,9 +1,9 @@
 import 'dart:io';
 
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/features/auth/data/auth_models.dart';
-import 'package:dukan_app/features/auth/data/passwords.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/features/auth/data/auth_models.dart';
+import 'package:dept_accounting/features/auth/data/passwords.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -13,7 +13,9 @@ void main() {
     'Backup notices distinguish setup, first copy and an overdue copy',
     () async {
       final d = AppDependencies(LocalDatabase.memory());
-      final directory = await Directory.systemTemp.createTemp('dukan-notice-');
+      final directory = await Directory.systemTemp.createTemp(
+        'dept_accounting-notice-',
+      );
       try {
         await d.store.setup(
           shop: const Shop(name: 'محل جديد', currency: 'SAR'),

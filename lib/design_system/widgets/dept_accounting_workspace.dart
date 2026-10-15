@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_identity.dart';
-import '../theme/dukan_tokens.dart';
-import 'dukan_controls.dart';
+import '../theme/dept_accounting_tokens.dart';
+import 'dept_accounting_controls.dart';
 
-typedef DukanDestination = ({String label, IconData icon});
+typedef DeptAccountingDestination = ({String label, IconData icon});
 
-class DukanWorkspace extends StatelessWidget {
-  const DukanWorkspace({
+class DeptAccountingWorkspace extends StatelessWidget {
+  const DeptAccountingWorkspace({
     super.key,
     required this.destinations,
     required this.selectedIndex,
@@ -22,7 +22,7 @@ class DukanWorkspace extends StatelessWidget {
     this.profileRole,
     this.onProfilePressed,
   });
-  final List<DukanDestination> destinations;
+  final List<DeptAccountingDestination> destinations;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final Widget child;
@@ -38,7 +38,7 @@ class DukanWorkspace extends StatelessWidget {
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, size) {
-      final expanded = size.maxWidth >= DukanLayout.expanded;
+      final expanded = size.maxWidth >= DeptAccountingLayout.expanded;
       final sidebar = _Sidebar(
         destinations: destinations,
         selectedIndex: selectedIndex,
@@ -61,7 +61,7 @@ class DukanWorkspace extends StatelessWidget {
         drawer: expanded
             ? null
             : Drawer(
-                width: DukanLayout.sidebar + 24,
+                width: DeptAccountingLayout.sidebar + 24,
                 child: SafeArea(child: sidebar),
               ),
         body: SafeArea(
@@ -69,7 +69,7 @@ class DukanWorkspace extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               if (expanded)
-                SizedBox(width: DukanLayout.sidebar, child: sidebar),
+                SizedBox(width: DeptAccountingLayout.sidebar, child: sidebar),
               Expanded(
                 child: Column(
                   children: [
@@ -77,7 +77,9 @@ class DukanWorkspace extends StatelessWidget {
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         border: Border(
-                          bottom: BorderSide(color: DukanColors.border),
+                          bottom: BorderSide(
+                            color: DeptAccountingColors.border,
+                          ),
                         ),
                       ),
                       padding: EdgeInsets.symmetric(
@@ -98,7 +100,9 @@ class DukanWorkspace extends StatelessWidget {
                           Expanded(
                             child: Text(
                               '$appName  /  $title',
-                              style: const TextStyle(color: DukanColors.muted),
+                              style: const TextStyle(
+                                color: DeptAccountingColors.muted,
+                              ),
                             ),
                           ),
                         ],
@@ -107,7 +111,7 @@ class DukanWorkspace extends StatelessWidget {
                     ?notice,
                     Expanded(
                       child: scrollBody
-                          ? DukanPageBody(
+                          ? DeptAccountingPageBody(
                               key: ValueKey(selectedIndex),
                               child: child,
                             )
@@ -124,8 +128,8 @@ class DukanWorkspace extends StatelessWidget {
   );
 }
 
-class DukanPageBody extends StatelessWidget {
-  const DukanPageBody({super.key, required this.child});
+class DeptAccountingPageBody extends StatelessWidget {
+  const DeptAccountingPageBody({super.key, required this.child});
   final Widget child;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -134,7 +138,9 @@ class DukanPageBody extends StatelessWidget {
       child: Align(
         alignment: AlignmentDirectional.topCenter,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: DukanLayout.maxContent),
+          constraints: const BoxConstraints(
+            maxWidth: DeptAccountingLayout.maxContent,
+          ),
           child: child,
         ),
       ),
@@ -153,7 +159,7 @@ class _Sidebar extends StatelessWidget {
     required this.profileRole,
     required this.onProfilePressed,
   });
-  final List<DukanDestination> destinations;
+  final List<DeptAccountingDestination> destinations;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final String footer;
@@ -165,7 +171,9 @@ class _Sidebar extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Material(
     color: Colors.white,
-    shape: const BorderDirectional(end: BorderSide(color: DukanColors.border)),
+    shape: const BorderDirectional(
+      end: BorderSide(color: DeptAccountingColors.border),
+    ),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -175,9 +183,9 @@ class _Sidebar extends StatelessWidget {
             children: [
               DecoratedBox(
                 decoration: BoxDecoration(
-                  color: DukanColors.primary,
+                  color: DeptAccountingColors.primary,
                   borderRadius: BorderRadius.all(
-                    Radius.circular(DukanLayout.brandRadius),
+                    Radius.circular(DeptAccountingLayout.brandRadius),
                   ),
                 ),
                 child: Padding(
@@ -207,7 +215,7 @@ class _Sidebar extends StatelessWidget {
                           ? 'لغة واحدة لكل واجهات المحل'
                           : 'إدارة محلك، بكل بساطة',
                       style: const TextStyle(
-                        color: DukanColors.muted,
+                        color: DeptAccountingColors.muted,
                         fontSize: 11,
                       ),
                     ),
@@ -221,7 +229,10 @@ class _Sidebar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Text(
             libraryMode ? 'مكتبة التصميم' : 'مساحة العمل',
-            style: const TextStyle(color: DukanColors.muted, fontSize: 12),
+            style: const TextStyle(
+              color: DeptAccountingColors.muted,
+              fontSize: 12,
+            ),
           ),
         ),
         const SizedBox(height: 12),
@@ -234,12 +245,12 @@ class _Sidebar extends StatelessWidget {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: ListTile(
                     selected: selectedIndex == i,
-                    selectedTileColor: DukanColors.primarySoft,
-                    selectedColor: DukanColors.primary,
-                    iconColor: DukanColors.muted,
+                    selectedTileColor: DeptAccountingColors.primarySoft,
+                    selectedColor: DeptAccountingColors.primary,
+                    iconColor: DeptAccountingColors.muted,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
-                        DukanLayout.smallRadius,
+                        DeptAccountingLayout.smallRadius,
                       ),
                     ),
                     leading: Icon(destinations[i].icon, size: 21),
@@ -255,53 +266,59 @@ class _Sidebar extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(DukanSpace.lg),
+          padding: const EdgeInsets.all(DeptAccountingSpace.lg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const Padding(
-                padding: EdgeInsets.symmetric(horizontal: DukanSpace.sm),
+                padding: EdgeInsets.symmetric(
+                  horizontal: DeptAccountingSpace.sm,
+                ),
                 child: Divider(),
               ),
-              const SizedBox(height: DukanSpace.sm),
+              const SizedBox(height: DeptAccountingSpace.sm),
               if (onProfilePressed != null)
                 Tooltip(
                   message: 'الملف الشخصي',
                   child: ListTile(
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: DukanSpace.sm,
-                      vertical: DukanSpace.xs,
+                      horizontal: DeptAccountingSpace.sm,
+                      vertical: DeptAccountingSpace.xs,
                     ),
                     minLeadingWidth: 36,
-                    horizontalTitleGap: DukanSpace.md,
+                    horizontalTitleGap: DeptAccountingSpace.md,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
-                        DukanLayout.smallRadius,
+                        DeptAccountingLayout.smallRadius,
                       ),
                     ),
                     leading: CircleAvatar(
                       radius: 18,
-                      backgroundColor: DukanColors.primarySoft,
+                      backgroundColor: DeptAccountingColors.primarySoft,
                       child: Text(
                         profileName?.isNotEmpty == true
                             ? profileName!.characters.first
                             : 'د',
-                        style: const TextStyle(color: DukanColors.primary),
+                        style: const TextStyle(
+                          color: DeptAccountingColors.primary,
+                        ),
                       ),
                     ),
                     title: Text(
                       profileName ?? 'الملف الشخصي',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: DukanTypography.control,
+                      style: DeptAccountingTypography.control,
                     ),
                     subtitle: profileRole == null
                         ? null
                         : Padding(
-                            padding: const EdgeInsets.only(top: DukanSpace.xs),
+                            padding: const EdgeInsets.only(
+                              top: DeptAccountingSpace.xs,
+                            ),
                             child: Align(
                               alignment: AlignmentDirectional.centerStart,
-                              child: DukanStatusTag(
+                              child: DeptAccountingStatusTag(
                                 profileRole!,
                                 compact: true,
                               ),
@@ -313,19 +330,19 @@ class _Sidebar extends StatelessWidget {
                 )
               else
                 Padding(
-                  padding: const EdgeInsets.all(DukanSpace.sm),
-                  child: Text(footer, style: DukanTypography.caption),
+                  padding: const EdgeInsets.all(DeptAccountingSpace.sm),
+                  child: Text(footer, style: DeptAccountingTypography.caption),
                 ),
               Padding(
                 padding: const EdgeInsetsDirectional.only(
-                  start: DukanSpace.sm,
-                  top: DukanSpace.sm,
+                  start: DeptAccountingSpace.sm,
+                  top: DeptAccountingSpace.sm,
                 ),
                 child: Text(
                   'الإصدار 1.0',
-                  style: DukanTypography.caption.copyWith(
+                  style: DeptAccountingTypography.caption.copyWith(
                     fontSize: 10,
-                    color: DukanColors.muted,
+                    color: DeptAccountingColors.muted,
                   ),
                 ),
               ),

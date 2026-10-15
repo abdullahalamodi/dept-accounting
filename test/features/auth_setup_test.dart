@@ -1,12 +1,12 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/design_system/dukan_design_system.dart';
-import 'package:dukan_app/features/auth/data/auth_models.dart';
-import 'package:dukan_app/features/auth/presentation/auth_page.dart';
-import 'package:dukan_app/features/auth/presentation/auth_view_model.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
+import 'package:dept_accounting/features/auth/data/auth_models.dart';
+import 'package:dept_accounting/features/auth/presentation/auth_page.dart';
+import 'package:dept_accounting/features/auth/presentation/auth_view_model.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -54,7 +54,7 @@ void main() {
   });
 
   Widget host() => MaterialApp(
-    theme: DukanTheme.light(),
+    theme: DeptAccountingTheme.light(),
     locale: const Locale('ar'),
     supportedLocales: const [Locale('ar')],
     localizationsDelegates: GlobalMaterialLocalizations.delegates,
@@ -78,7 +78,7 @@ void main() {
     expect(vm.canSetup, isFalse);
 
     picker.fail = false;
-    picker.result = Uri.file('/tmp/dukan-recovery-keys.txt');
+    picker.result = Uri.file('/tmp/dept_accounting-recovery-keys.txt');
     await vm.downloadRecoveryKeys();
     expect(vm.recoveryDownloadError, isNull);
     expect(vm.recoveryFileDownloaded, isTrue);
@@ -111,15 +111,18 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       await tester.pumpWidget(host());
-      final create = find.widgetWithText(DukanButton, 'إنشاء المحل وبدء العمل');
+      final create = find.widgetWithText(
+        DeptAccountingButton,
+        'إنشاء المحل وبدء العمل',
+      );
       final download = find.widgetWithText(
-        DukanButton,
+        DeptAccountingButton,
         'تنزيل ملف مفاتيح الاسترداد',
       );
       expect(find.text('١. معلومات المستخدم'), findsOneWidget);
       expect(find.text('٢. بيانات الدخول'), findsOneWidget);
       expect(find.text('٣. مفاتيح الاسترداد'), findsOneWidget);
-      expect(tester.widget<DukanButton>(create).onPressed, isNull);
+      expect(tester.widget<DeptAccountingButton>(create).onPressed, isNull);
       expect(
         tester
             .widget<CheckboxListTile>(find.byType(CheckboxListTile))
@@ -130,22 +133,22 @@ void main() {
       await tester.ensureVisible(download);
       await tester.tap(download);
       await tester.pumpAndSettle();
-      expect(tester.widget<DukanButton>(create).onPressed, isNull);
+      expect(tester.widget<DeptAccountingButton>(create).onPressed, isNull);
       picker.fail = true;
       await tester.tap(download);
       await tester.pumpAndSettle();
       expect(find.text('لم يُحفظ الملف'), findsOneWidget);
       picker.fail = false;
-      picker.result = Uri.file('/tmp/dukan-recovery-keys.txt');
+      picker.result = Uri.file('/tmp/dept_accounting-recovery-keys.txt');
       await tester.tap(download);
       await tester.pumpAndSettle();
       expect(find.text('لم يُحفظ الملف'), findsNothing);
       expect(find.text('تم حفظ ملف المفاتيح'), findsOneWidget);
-      expect(tester.widget<DukanButton>(create).onPressed, isNull);
+      expect(tester.widget<DeptAccountingButton>(create).onPressed, isNull);
       await tester.ensureVisible(find.byType(CheckboxListTile));
       await tester.tap(find.byType(CheckboxListTile));
       await tester.pumpAndSettle();
-      expect(tester.widget<DukanButton>(create).onPressed, isNotNull);
+      expect(tester.widget<DeptAccountingButton>(create).onPressed, isNotNull);
       await tester.ensureVisible(create);
       await tester.tap(create);
       await tester.pumpAndSettle();

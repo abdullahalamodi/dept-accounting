@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/catalog_reference.dart';
 import '../data/catalog_references_repository.dart';
 import 'catalog_references_view_model.dart';
@@ -61,7 +61,7 @@ class _ReferenceEditorState extends State<_ReferenceEditor> {
           child: SectionStack.form(
             children: [
               ErrorNotice(vm.error),
-              DukanField(
+              DeptAccountingField(
                 label: 'اسم ${widget.kind.label}',
                 controller: name,
                 autofocus: true,
@@ -76,12 +76,12 @@ class _ReferenceEditorState extends State<_ReferenceEditor> {
         ),
       ),
       actions: [
-        DukanButton(
+        DeptAccountingButton(
           label: 'إلغاء',
-          variant: DukanButtonVariant.quiet,
+          variant: DeptAccountingButtonVariant.quiet,
           onPressed: () => Navigator.pop(context),
         ),
-        DukanButton(label: 'حفظ', onPressed: save),
+        DeptAccountingButton(label: 'حفظ', onPressed: save),
       ],
     ),
   );

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'inventory_view_model.dart';
 
 class InventoryPage extends StatefulWidget {
@@ -48,14 +48,14 @@ class _InventoryPageState extends State<InventoryPage> {
         title: 'مخزون ${p.name}',
         onBack: () => context.go('/catalog/${p.id}'),
         actions: [
-          DukanButton(
+          DeptAccountingButton(
             label: 'PDF',
-            variant: DukanButtonVariant.secondary,
+            variant: DeptAccountingButtonVariant.secondary,
             onPressed: () => vm.export(),
           ),
-          DukanButton(
+          DeptAccountingButton(
             label: 'Excel',
-            variant: DukanButtonVariant.secondary,
+            variant: DeptAccountingButtonVariant.secondary,
             onPressed: () => vm.export(pdf: false),
           ),
         ],
@@ -63,43 +63,46 @@ class _InventoryPageState extends State<InventoryPage> {
           children: [
             ErrorNotice(vm.error),
             FieldGrid(
-              runSpacing: DukanSpace.xl,
+              runSpacing: DeptAccountingSpace.xl,
               children: [
-                DukanMetricCard(
+                DeptAccountingMetricCard(
                   label: 'الكمية المتاحة',
                   value: Numbers.format(stock.quantity, decimals: 3),
                   caption: p.unit,
                 ),
-                DukanMetricCard(
+                DeptAccountingMetricCard(
                   label: 'قيمة المخزون',
                   value: '${Numbers.format(stock.value)} $currency',
                   caption: 'التكلفة الدفترية',
                 ),
-                DukanMetricCard(
+                DeptAccountingMetricCard(
                   label: 'متوسط تكلفة الوحدة',
                   value: Numbers.format(stock.unitCost, decimals: 6),
                   caption: currency,
                 ),
               ],
             ),
-            DukanPanel(
+            DeptAccountingPanel(
               title: 'الجرد والتسوية',
               description: 'أدخل الكمية الفعلية المتبقية؛ الفرق يُسجّل بحركة وقيد مستقلين.',
               child: SectionStack.form(
                 children: [
                   FieldGrid(
                     children: [
-                      DukanField(
+                      DeptAccountingField(
                         label: 'الكمية الفعلية بعد الجرد / التالف',
                         controller: quantity,
                         numeric: true,
                       ),
-                      DukanField(
+                      DeptAccountingField(
                         label: 'تكلفة الوحدات الزائدة (اختياري)',
                         controller: cost,
                         numeric: true,
                       ),
-                      DukanField(label: 'سبب التسوية', controller: reason),
+                      DeptAccountingField(
+                        label: 'سبب التسوية',
+                        controller: reason,
+                      ),
                     ],
                   ),
                   SwitchListTile(
@@ -108,10 +111,10 @@ class _InventoryPageState extends State<InventoryPage> {
                     value: damaged,
                     onChanged: (v) => setState(() => damaged = v),
                   ),
-                  DukanButton(
+                  DeptAccountingButton(
                     label: 'اعتماد التسوية',
                     onPressed: () async {
-                      if (await showDukanConfirmation(
+                      if (await showDeptAccountingConfirmation(
                             context,
                             title: 'اعتماد تسوية المخزون؟',
                             message: 'سيُحدّث المخزون إلى الكمية الفعلية المدخلة ويُسجّل الفرق.',
@@ -133,9 +136,9 @@ class _InventoryPageState extends State<InventoryPage> {
                 ],
               ),
             ),
-            DukanPanel(
+            DeptAccountingPanel(
               title: 'حركة المخزون',
-              child: DukanDataTable(
+              child: DeptAccountingDataTable(
                 columns: const [
                   DataColumn(label: Text('المرجع')),
                   DataColumn(label: Text('التاريخ')),
@@ -163,7 +166,7 @@ class _InventoryPageState extends State<InventoryPage> {
                           ),
                         ),
                         DataCell(
-                          DukanAmount(
+                          DeptAccountingAmount(
                             Numbers.format(m['value'] as int),
                             currency: currency,
                           ),

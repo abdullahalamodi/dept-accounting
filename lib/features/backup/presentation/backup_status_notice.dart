@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/backup_service.dart';
 
 class BackupStatusNotice extends StatelessWidget {
@@ -20,10 +20,12 @@ class BackupStatusNotice extends StatelessWidget {
         ? const SizedBox.shrink()
         : Padding(
             padding: padding,
-            child: DukanNotice(
+            child: DeptAccountingNotice(
               title: notice.title,
               message: notice.message,
-              tone: notice.warning ? DukanTone.warning : DukanTone.info,
+              tone: notice.warning
+                  ? DeptAccountingTone.warning
+                  : DeptAccountingTone.info,
             ),
           ),
   );

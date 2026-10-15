@@ -1,10 +1,10 @@
 import 'dart:io';
 
-import 'package:dukan_app/app/dependencies.dart';
-import 'package:dukan_app/core/data/local_database.dart';
-import 'package:dukan_app/features/auth/data/auth_models.dart';
-import 'package:dukan_app/features/auth/data/passwords.dart';
-import 'package:dukan_app/features/reports/data/export_service.dart';
+import 'package:dept_accounting/app/dependencies.dart';
+import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/features/auth/data/auth_models.dart';
+import 'package:dept_accounting/features/auth/data/passwords.dart';
+import 'package:dept_accounting/features/reports/data/export_service.dart';
 import 'package:excel/excel.dart' as x;
 import 'package:flutter_test/flutter_test.dart';
 
@@ -14,7 +14,7 @@ void main() {
     final source = AppDependencies(LocalDatabase.memory()),
         restored = AppDependencies(LocalDatabase.memory());
     final directory = await Directory.systemTemp.createTemp(
-      'dukan-recovery-check-',
+      'dept_accounting-recovery-check-',
     );
     try {
       final key = Passwords.token(32);
@@ -29,6 +29,7 @@ void main() {
       source.store.setSetting('backup_directory', directory.path);
       source.finance.openAccount('1100', 2000000);
       final file = await source.backups.backup();
+      expect(file, endsWith('.dept_accounting'));
       final bytes = await File(file).readAsBytes();
       final info = await restored.backups.inspect(bytes, key);
       expect(info.shop.name, 'محل الاستعادة');

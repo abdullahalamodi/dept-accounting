@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 
-import '../theme/dukan_tokens.dart';
+import '../theme/dept_accounting_tokens.dart';
 
-enum DukanButtonVariant { primary, secondary, quiet, danger }
+enum DeptAccountingButtonVariant { primary, secondary, quiet, danger }
 
-class DukanButton extends StatelessWidget {
-  const DukanButton({
+class DeptAccountingButton extends StatelessWidget {
+  const DeptAccountingButton({
     super.key,
     required this.label,
     this.onPressed,
     this.icon,
-    this.variant = DukanButtonVariant.primary,
+    this.variant = DeptAccountingButtonVariant.primary,
     this.loading = false,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
-  final DukanButtonVariant variant;
+  final DeptAccountingButtonVariant variant;
   final bool loading;
 
   @override
@@ -43,20 +43,22 @@ class DukanButton extends StatelessWidget {
     return Semantics(
       liveRegion: loading,
       child: switch (variant) {
-        DukanButtonVariant.primary => FilledButton(
+        DeptAccountingButtonVariant.primary => FilledButton(
           onPressed: action,
           child: content,
         ),
-        DukanButtonVariant.secondary => OutlinedButton(
+        DeptAccountingButtonVariant.secondary => OutlinedButton(
           onPressed: action,
           child: content,
         ),
-        DukanButtonVariant.quiet => TextButton(
+        DeptAccountingButtonVariant.quiet => TextButton(
           onPressed: action,
           child: content,
         ),
-        DukanButtonVariant.danger => FilledButton(
-          style: FilledButton.styleFrom(backgroundColor: DukanColors.danger),
+        DeptAccountingButtonVariant.danger => FilledButton(
+          style: FilledButton.styleFrom(
+            backgroundColor: DeptAccountingColors.danger,
+          ),
           onPressed: action,
           child: content,
         ),
@@ -65,14 +67,14 @@ class DukanButton extends StatelessWidget {
   }
 }
 
-class DukanPanel extends StatelessWidget {
-  const DukanPanel({
+class DeptAccountingPanel extends StatelessWidget {
+  const DeptAccountingPanel({
     super.key,
     this.title,
     this.description,
     this.action,
     required this.child,
-    this.padding = const EdgeInsets.all(DukanSpace.xl),
+    this.padding = const EdgeInsets.all(DeptAccountingSpace.xl),
     this.showHeaderDivider = true,
     this.minHeight = 0,
   });
@@ -87,10 +89,10 @@ class DukanPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Material(
-    color: DukanColors.surface,
+    color: DeptAccountingColors.surface,
     shape: RoundedRectangleBorder(
-      side: const BorderSide(color: DukanColors.border),
-      borderRadius: BorderRadius.circular(DukanLayout.panelRadius),
+      side: const BorderSide(color: DeptAccountingColors.border),
+      borderRadius: BorderRadius.circular(DeptAccountingLayout.panelRadius),
     ),
     child: ConstrainedBox(
       constraints: BoxConstraints(minHeight: minHeight),
@@ -99,7 +101,7 @@ class DukanPanel extends StatelessWidget {
         children: [
           if (title != null) ...[
             Padding(
-              padding: const EdgeInsets.all(DukanSpace.xl),
+              padding: const EdgeInsets.all(DeptAccountingSpace.xl),
               child: LayoutBuilder(
                 builder: (context, constraints) => Wrap(
                   spacing: 16,
@@ -121,7 +123,9 @@ class DukanPanel extends StatelessWidget {
                           if (description != null)
                             Text(
                               description!,
-                              style: const TextStyle(color: DukanColors.muted),
+                              style: const TextStyle(
+                                color: DeptAccountingColors.muted,
+                              ),
                             ),
                         ],
                       ),
@@ -140,8 +144,8 @@ class DukanPanel extends StatelessWidget {
   );
 }
 
-class DukanPageHeader extends StatelessWidget {
-  const DukanPageHeader({
+class DeptAccountingPageHeader extends StatelessWidget {
+  const DeptAccountingPageHeader({
     super.key,
     required this.title,
     required this.description,
@@ -159,7 +163,10 @@ class DukanPageHeader extends StatelessWidget {
         children: [
           Text(title, style: Theme.of(context).textTheme.headlineMedium),
           const SizedBox(height: 4),
-          Text(description, style: const TextStyle(color: DukanColors.muted)),
+          Text(
+            description,
+            style: const TextStyle(color: DeptAccountingColors.muted),
+          ),
         ],
       );
       if (size.maxWidth < 700) {
@@ -186,15 +193,15 @@ class DukanPageHeader extends StatelessWidget {
   );
 }
 
-class DukanStatusTag extends StatelessWidget {
-  const DukanStatusTag(
+class DeptAccountingStatusTag extends StatelessWidget {
+  const DeptAccountingStatusTag(
     this.label, {
     super.key,
-    this.tone = DukanTone.neutral,
+    this.tone = DeptAccountingTone.neutral,
     this.compact = false,
   });
   final String label;
-  final DukanTone tone;
+  final DeptAccountingTone tone;
   final bool compact;
 
   @override
@@ -204,7 +211,7 @@ class DukanStatusTag extends StatelessWidget {
         : const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
       color: tone.background,
-      borderRadius: BorderRadius.circular(DukanLayout.badgeRadius),
+      borderRadius: BorderRadius.circular(DeptAccountingLayout.badgeRadius),
     ),
     child: Text(
       label,
@@ -214,15 +221,15 @@ class DukanStatusTag extends StatelessWidget {
         color: tone.foreground,
         fontSize: compact ? 10 : null,
         fontWeight: compact
-            ? DukanTypography.regular
-            : DukanTypography.emphasis,
+            ? DeptAccountingTypography.regular
+            : DeptAccountingTypography.emphasis,
       ),
     ),
   );
 }
 
-class DukanMetricCard extends StatelessWidget {
-  const DukanMetricCard({
+class DeptAccountingMetricCard extends StatelessWidget {
+  const DeptAccountingMetricCard({
     super.key,
     required this.label,
     required this.value,
@@ -233,11 +240,11 @@ class DukanMetricCard extends StatelessWidget {
   final String caption;
 
   @override
-  Widget build(BuildContext context) => DukanPanel(
+  Widget build(BuildContext context) => DeptAccountingPanel(
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(color: DukanColors.muted)),
+        Text(label, style: const TextStyle(color: DeptAccountingColors.muted)),
         const SizedBox(height: 8),
         Text(
           value,
@@ -248,15 +255,15 @@ class DukanMetricCard extends StatelessWidget {
         Text(
           caption,
           style: Theme.of(context).textTheme.bodySmall
-              ?.copyWith(color: DukanColors.muted),
+              ?.copyWith(color: DeptAccountingColors.muted),
         ),
       ],
     ),
   );
 }
 
-class DukanField extends StatelessWidget {
-  const DukanField({
+class DeptAccountingField extends StatelessWidget {
+  const DeptAccountingField({
     super.key,
     required this.label,
     this.hint,
@@ -302,7 +309,9 @@ class DukanField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TextFormField(
-    style: compact ? DukanTypography.compactControl : DukanTypography.control,
+    style: compact
+        ? DeptAccountingTypography.compactControl
+        : DeptAccountingTypography.control,
     controller: controller,
     initialValue: initialValue,
     validator: validator,
@@ -328,7 +337,9 @@ class DukanField extends StatelessWidget {
     decoration: InputDecoration(
       labelText: label.isEmpty ? null : label,
       constraints: compact
-          ? const BoxConstraints(minHeight: DukanLayout.compactControlHeight)
+          ? const BoxConstraints(
+              minHeight: DeptAccountingLayout.compactControlHeight,
+            )
           : null,
       contentPadding: compact
           ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
@@ -341,8 +352,8 @@ class DukanField extends StatelessWidget {
   );
 }
 
-class DukanFilterChip extends StatelessWidget {
-  const DukanFilterChip({
+class DeptAccountingFilterChip extends StatelessWidget {
+  const DeptAccountingFilterChip({
     super.key,
     required this.label,
     required this.selected,
@@ -355,11 +366,11 @@ class DukanFilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final height = DukanTypography.controlHeight(context);
+    final height = DeptAccountingTypography.controlHeight(context);
     final textHeight =
         MediaQuery.textScalerOf(context)
-            .scale(DukanTypography.controlFontSize) *
-        DukanTypography.control.height!;
+            .scale(DeptAccountingTypography.controlFontSize) *
+        DeptAccountingTypography.control.height!;
     return FilterChip(
       label: label,
       selected: selected,
@@ -372,23 +383,23 @@ class DukanFilterChip extends StatelessWidget {
   }
 }
 
-class DukanNotice extends StatelessWidget {
-  const DukanNotice({
+class DeptAccountingNotice extends StatelessWidget {
+  const DeptAccountingNotice({
     super.key,
     required this.title,
     this.message,
-    this.tone = DukanTone.info,
+    this.tone = DeptAccountingTone.info,
   });
   final String title;
   final String? message;
-  final DukanTone tone;
+  final DeptAccountingTone tone;
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final scrollable =
-        size.width < DukanLayout.compact &&
-        (tone == DukanTone.warning || tone == DukanTone.info);
+        size.width < DeptAccountingLayout.compact &&
+        (tone == DeptAccountingTone.warning || tone == DeptAccountingTone.info);
     final content = Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -412,18 +423,21 @@ class DukanNotice extends StatelessWidget {
       ],
     );
     return Semantics(
-      liveRegion: tone == DukanTone.danger,
+      liveRegion: tone == DeptAccountingTone.danger,
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: scrollable
-              ? (size.height * .25).clamp(0, DukanLayout.compactNoticeMaxHeight)
+              ? (size.height * .25).clamp(
+                  0,
+                  DeptAccountingLayout.compactNoticeMaxHeight,
+                )
               : double.infinity,
         ),
         child: Container(
-          padding: const EdgeInsets.all(DukanSpace.lg),
+          padding: const EdgeInsets.all(DeptAccountingSpace.lg),
           decoration: BoxDecoration(
             color: tone.background,
-            borderRadius: BorderRadius.circular(DukanLayout.radius),
+            borderRadius: BorderRadius.circular(DeptAccountingLayout.radius),
           ),
           child: scrollable
               ? SingleChildScrollView(primary: false, child: content)
@@ -434,10 +448,10 @@ class DukanNotice extends StatelessWidget {
   }
 }
 
-enum DukanViewState { empty, error, loading }
+enum DeptAccountingViewState { empty, error, loading }
 
-class DukanStateView extends StatelessWidget {
-  const DukanStateView({
+class DeptAccountingStateView extends StatelessWidget {
+  const DeptAccountingStateView({
     super.key,
     required this.state,
     required this.title,
@@ -445,7 +459,7 @@ class DukanStateView extends StatelessWidget {
     this.actionLabel,
     this.onAction,
   });
-  final DukanViewState state;
+  final DeptAccountingViewState state;
   final String title;
   final String message;
   final String? actionLabel;
@@ -459,7 +473,7 @@ class DukanStateView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          if (state == DukanViewState.loading)
+          if (state == DeptAccountingViewState.loading)
             const SizedBox(
               width: 28,
               height: 28,
@@ -467,13 +481,13 @@ class DukanStateView extends StatelessWidget {
             )
           else
             Icon(
-              state == DukanViewState.error
+              state == DeptAccountingViewState.error
                   ? Icons.error_outline
                   : Icons.inbox_outlined,
               size: 32,
-              color: state == DukanViewState.error
-                  ? DukanColors.danger
-                  : DukanColors.muted,
+              color: state == DeptAccountingViewState.error
+                  ? DeptAccountingColors.danger
+                  : DeptAccountingColors.muted,
             ),
           const SizedBox(height: 16),
           Text(
@@ -484,12 +498,12 @@ class DukanStateView extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             message,
-            style: const TextStyle(color: DukanColors.muted),
+            style: const TextStyle(color: DeptAccountingColors.muted),
             textAlign: TextAlign.center,
           ),
           if (actionLabel != null) ...[
             const SizedBox(height: 20),
-            DukanButton(label: actionLabel!, onPressed: onAction),
+            DeptAccountingButton(label: actionLabel!, onPressed: onAction),
           ],
         ],
       ),
@@ -497,7 +511,7 @@ class DukanStateView extends StatelessWidget {
   );
 }
 
-Future<bool> showDukanConfirmation(
+Future<bool> showDeptAccountingConfirmation(
   BuildContext context, {
   required String title,
   required String message,
@@ -510,16 +524,16 @@ Future<bool> showDukanConfirmation(
         title: Text(title),
         content: Text(message),
         actions: [
-          DukanButton(
+          DeptAccountingButton(
             label: 'العودة',
-            variant: DukanButtonVariant.quiet,
+            variant: DeptAccountingButtonVariant.quiet,
             onPressed: () => Navigator.pop(context, false),
           ),
-          DukanButton(
+          DeptAccountingButton(
             label: confirmLabel,
             variant: destructive
-                ? DukanButtonVariant.danger
-                : DukanButtonVariant.primary,
+                ? DeptAccountingButtonVariant.danger
+                : DeptAccountingButtonVariant.primary,
             onPressed: () => Navigator.pop(context, true),
           ),
         ],
@@ -527,8 +541,8 @@ Future<bool> showDukanConfirmation(
     ) ??
     false;
 
-class DukanAmount extends StatelessWidget {
-  const DukanAmount(
+class DeptAccountingAmount extends StatelessWidget {
+  const DeptAccountingAmount(
     this.value, {
     super.key,
     this.currency = 'ر.ي',
@@ -552,21 +566,24 @@ class DukanAmount extends StatelessWidget {
           style: TextStyle(
             fontFeatures: const [FontFeature.tabularFigures()],
             fontWeight: emphasized
-                ? DukanTypography.emphasis
-                : DukanTypography.regular,
+                ? DeptAccountingTypography.emphasis
+                : DeptAccountingTypography.regular,
           ),
         ),
         Text(
           currency,
-          style: const TextStyle(color: DukanColors.muted, fontSize: 12),
+          style: const TextStyle(
+            color: DeptAccountingColors.muted,
+            fontSize: 12,
+          ),
         ),
       ],
     ),
   );
 }
 
-class DukanEditorLayout extends StatelessWidget {
-  const DukanEditorLayout({
+class DeptAccountingEditorLayout extends StatelessWidget {
+  const DeptAccountingEditorLayout({
     super.key,
     required this.form,
     required this.summary,
@@ -597,8 +614,8 @@ class DukanEditorLayout extends StatelessWidget {
   );
 }
 
-class DukanSummaryLine extends StatelessWidget {
-  const DukanSummaryLine({
+class DeptAccountingSummaryLine extends StatelessWidget {
+  const DeptAccountingSummaryLine({
     super.key,
     required this.label,
     required this.value,
@@ -619,20 +636,22 @@ class DukanSummaryLine extends StatelessWidget {
           child: Text(
             label,
             style: TextStyle(
-              color: total ? DukanColors.ink : DukanColors.muted,
-              fontWeight: total ? DukanTypography.emphasis : null,
+              color: total
+                  ? DeptAccountingColors.ink
+                  : DeptAccountingColors.muted,
+              fontWeight: total ? DeptAccountingTypography.emphasis : null,
             ),
           ),
         ),
         const SizedBox(width: 16),
-        DukanAmount(value, emphasized: total, currency: currency),
+        DeptAccountingAmount(value, emphasized: total, currency: currency),
       ],
     ),
   );
 }
 
-class DukanPasswordField extends StatefulWidget {
-  const DukanPasswordField({
+class DeptAccountingPasswordField extends StatefulWidget {
+  const DeptAccountingPasswordField({
     super.key,
     required this.label,
     required this.controller,
@@ -647,14 +666,16 @@ class DukanPasswordField extends StatefulWidget {
   final ValueChanged<String>? onSubmitted;
 
   @override
-  State<DukanPasswordField> createState() => _DukanPasswordFieldState();
+  State<DeptAccountingPasswordField> createState() =>
+      _DeptAccountingPasswordFieldState();
 }
 
-class _DukanPasswordFieldState extends State<DukanPasswordField> {
+class _DeptAccountingPasswordFieldState
+    extends State<DeptAccountingPasswordField> {
   bool hidden = true;
 
   @override
-  Widget build(BuildContext context) => DukanField(
+  Widget build(BuildContext context) => DeptAccountingField(
     label: widget.label,
     controller: widget.controller,
     helper: widget.helper,

@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'return_view_model.dart';
 
 class ReturnPage extends StatefulWidget {
@@ -40,11 +40,11 @@ class _ReturnPageState extends State<ReturnPage> {
           '/${original.isSale ? 'sales' : 'purchases'}/view/${original.id}',
         ),
         actions: [
-          DukanButton(
+          DeptAccountingButton(
             label: 'اعتماد المرتجع',
             loading: vm.busy,
             onPressed: () async {
-              if (!await showDukanConfirmation(
+              if (!await showDeptAccountingConfirmation(
                 context,
                 title: 'اعتماد المرتجع؟',
                 message: 'سيتم تخفيض غير المسدد أولًا، ثم رد الفائض أو إبقاؤه رصيدًا للطرف.',
@@ -62,15 +62,15 @@ class _ReturnPageState extends State<ReturnPage> {
         child: SectionStack(
           children: [
             ErrorNotice(vm.error),
-            DukanEditorLayout(
+            DeptAccountingEditorLayout(
               form: SectionStack(
                 children: [
-                  DukanPanel(
+                  DeptAccountingPanel(
                     title: 'البنود القابلة للإرجاع',
                     child: SectionStack(
                       children: [
                         for (var i = 0; i < original.lines.length; i++)
-                          DukanPanel(
+                          DeptAccountingPanel(
                             child: SectionStack.form(
                               children: [
                                 CheckboxListTile(
@@ -87,7 +87,7 @@ class _ReturnPageState extends State<ReturnPage> {
                                 ),
                                 if (vm.inputs[i].selected) ...[
                                   if (original.lines[i].service)
-                                    DukanField(
+                                    DeptAccountingField(
                                       label: 'مبلغ رد الخدمة',
                                       initialValue: vm.inputs[i].amount,
                                       numeric: true,
@@ -97,7 +97,7 @@ class _ReturnPageState extends State<ReturnPage> {
                                       },
                                     )
                                   else
-                                    DukanField(
+                                    DeptAccountingField(
                                       label:
                                           'الكمية المرتجعة (${original.lines[i].unit})',
                                       initialValue: vm.inputs[i].quantity,
@@ -127,11 +127,11 @@ class _ReturnPageState extends State<ReturnPage> {
                       ],
                     ),
                   ),
-                  DukanPanel(
+                  DeptAccountingPanel(
                     title: 'سبب المرتجع والرد النقدي',
                     child: SectionStack.form(
                       children: [
-                        DukanField(
+                        DeptAccountingField(
                           label: 'سبب المرتجع (إلزامي)',
                           onChanged: (v) {
                             vm.reason = v;
@@ -155,7 +155,7 @@ class _ReturnPageState extends State<ReturnPage> {
                             vm.changed();
                           },
                         ),
-                        DukanField(
+                        DeptAccountingField(
                           label: 'المبلغ النقدي من الفائض',
                           initialValue: vm.refund,
                           numeric: true,
@@ -169,29 +169,29 @@ class _ReturnPageState extends State<ReturnPage> {
                   ),
                 ],
               ),
-              summary: DukanPanel(
+              summary: DeptAccountingPanel(
                 title: 'ملخص المرتجع',
                 child: SectionStack(
                   children: [
-                    DukanSummaryLine(
+                    DeptAccountingSummaryLine(
                       label: 'قيمة المرتجع',
                       value: Numbers.format(vm.total),
                       currency: currency,
                       total: true,
                     ),
-                    DukanSummaryLine(
+                    DeptAccountingSummaryLine(
                       label: 'غير المسدد',
                       value: Numbers.format(d.invoices.due(original.id)),
                       currency: currency,
                     ),
-                    DukanSummaryLine(
+                    DeptAccountingSummaryLine(
                       label: 'الفائض القابل للرد',
                       value: Numbers.format(vm.excess),
                       currency: currency,
                     ),
                     const Text(
                       'المبالغ تراعي الخصومات الأصلية. رد الخدمة لا يحرك المخزون.',
-                      style: TextStyle(color: DukanColors.muted),
+                      style: TextStyle(color: DeptAccountingColors.muted),
                     ),
                   ],
                 ),

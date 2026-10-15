@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/product.dart';
 import '../data/catalog_reference.dart';
 import 'catalog_navigation.dart';
@@ -41,12 +41,12 @@ class _CatalogPageState extends State<CatalogPage> {
           currency = widget.dependencies.store.shop!.currencyLabel;
       return SectionStack(
         children: [
-          DukanPageHeader(
+          DeptAccountingPageHeader(
             title: 'المنتجات والخدمات',
             description: 'منتجات محلك، وحداتها وأسعارها ومخزونها',
             actions: [
               if (manage)
-                DukanButton(
+                DeptAccountingButton(
                   label: 'إضافة منتج',
                   onPressed: () => context.go('/catalog/new'),
                 ),
@@ -54,10 +54,10 @@ class _CatalogPageState extends State<CatalogPage> {
           ),
           CatalogNavigation(selected: '/catalog', canManage: manage),
           ErrorNotice(vm.error),
-          DukanPanel(
+          DeptAccountingPanel(
             child: FieldGrid(
               children: [
-                DukanField(
+                DeptAccountingField(
                   label: 'بحث بالاسم أو الباركود',
                   onChanged: vm.filter,
                 ),
@@ -77,7 +77,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 ),
                 Wrap(
                   children: [
-                    DukanFilterChip(
+                    DeptAccountingFilterChip(
                       label: const Text('مخزون منخفض'),
                       selected: vm.lowOnly,
                       onSelected: (v) {
@@ -86,7 +86,7 @@ class _CatalogPageState extends State<CatalogPage> {
                       },
                     ),
                     const SizedBox(width: 8),
-                    DukanFilterChip(
+                    DeptAccountingFilterChip(
                       label: const Text('الخدمات'),
                       selected: vm.servicesOnly,
                       onSelected: (v) {
@@ -99,9 +99,9 @@ class _CatalogPageState extends State<CatalogPage> {
               ],
             ),
           ),
-          DukanPanel(
+          DeptAccountingPanel(
             padding: EdgeInsets.zero,
-            child: DukanDataTable(
+            child: DeptAccountingDataTable(
               columns: [
                 const DataColumn(label: Text('المنتج')),
                 const DataColumn(label: Text('الباركود')),
@@ -127,24 +127,24 @@ class _CatalogPageState extends State<CatalogPage> {
                         ),
                       ),
                       DataCell(
-                        DukanAmount(
+                        DeptAccountingAmount(
                           Numbers.format(p.salePrice),
                           currency: currency,
                         ),
                       ),
                       if (manage)
                         DataCell(
-                          DukanAmount(
+                          DeptAccountingAmount(
                             Numbers.format(p.purchasePrice),
                             currency: currency,
                           ),
                         ),
                       DataCell(
-                        DukanStatusTag(
+                        DeptAccountingStatusTag(
                           p.active ? 'نشط' : 'موقوف',
                           tone: p.active
-                              ? DukanTone.success
-                              : DukanTone.neutral,
+                              ? DeptAccountingTone.success
+                              : DeptAccountingTone.neutral,
                         ),
                       ),
                       DataCell(
@@ -254,8 +254,8 @@ class _ProductPageState extends State<ProductPage> {
   Widget build(BuildContext context) {
     final manage = widget.dependencies.store.user!.canManage;
     if (widget.id != 'new' && product == null) {
-      return const DukanStateView(
-        state: DukanViewState.error,
+      return const DeptAccountingStateView(
+        state: DeptAccountingViewState.error,
         title: 'المنتج غير موجود',
         message: 'ارجع إلى قائمة المنتجات.',
       );
@@ -272,28 +272,29 @@ class _ProductPageState extends State<ProductPage> {
         onBack: () => context.go('/catalog'),
         actions: [
           if (manage && product != null && !service)
-            DukanButton(
+            DeptAccountingButton(
               label: 'حركة المخزون والجرد',
-              variant: DukanButtonVariant.secondary,
+              variant: DeptAccountingButtonVariant.secondary,
               onPressed: () => context.go('/inventory/$id'),
             ),
           if (canAddOpening)
-            DukanButton(
+            DeptAccountingButton(
               label: 'حفظ وإضافة مخزون افتتاحي',
-              variant: DukanButtonVariant.secondary,
+              variant: DeptAccountingButtonVariant.secondary,
               onPressed: () => save(addOpening: true),
             ),
-          if (manage) DukanButton(label: 'حفظ المنتج', onPressed: () => save()),
+          if (manage)
+            DeptAccountingButton(label: 'حفظ المنتج', onPressed: () => save()),
         ],
         child: SectionStack(
           children: [
             ErrorNotice(vm.error),
             if (canAddOpening)
-              const DukanNotice(
+              const DeptAccountingNotice(
                 title: 'لديك كمية موجودة من هذا المنتج؟',
                 message: 'اختر «حفظ وإضافة مخزون افتتاحي» لتسجيلها بسعر الشراء. يمكنك حفظ المنتج فقط وإضافة الكمية لاحقًا، قبل أول حركة عليه.',
               ),
-            DukanPanel(
+            DeptAccountingPanel(
               title: 'بيانات المنتج',
               child: SectionStack.form(
                 children: [
@@ -317,7 +318,7 @@ class _ProductPageState extends State<ProductPage> {
                         if (manage) ('purchasePrice', 'سعر الشراء', true),
                         if (!service) ('minStock', 'حد تنبيه المخزون', true),
                       ])
-                        DukanField(
+                        DeptAccountingField(
                           label: label,
                           helper: key == 'salePrice' || key == 'purchasePrice'
                               ? 'لكل وحدة أساسية'

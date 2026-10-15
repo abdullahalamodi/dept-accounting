@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
-import '../../../design_system/dukan_design_system.dart';
+import '../../../design_system/dept_accounting_design_system.dart';
 import 'invoice_view_model.dart';
 
 class InvoiceSummaryPanel extends StatelessWidget {
@@ -18,19 +18,19 @@ class InvoiceSummaryPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     final currency = vm.d.store.shop!.currencyLabel;
     final accounts = vm.d.finance.accounts();
-    return DukanPanel(
+    return DeptAccountingPanel(
       title: 'ملخص الفاتورة',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          DukanSummaryLine(
+          DeptAccountingSummaryLine(
             label: 'مجموع البنود',
             value: Numbers.format(vm.subtotal),
             currency: currency,
           ),
           if (!vm.quick && vm.receiptId == null) ...[
-            const SizedBox(height: DukanSpace.sm),
-            DukanField(
+            const SizedBox(height: DeptAccountingSpace.sm),
+            DeptAccountingField(
               label: 'خصم الفاتورة ($currency)',
               compact: true,
               initialValue: vm.discount,
@@ -42,8 +42,8 @@ class InvoiceSummaryPanel extends StatelessWidget {
             ),
           ],
           if (!vm.sale && !vm.quick) ...[
-            const SizedBox(height: DukanSpace.lg),
-            DukanField(
+            const SizedBox(height: DeptAccountingSpace.lg),
+            DeptAccountingField(
               label: 'شحن يضاف لتكلفة المنتجات',
               compact: true,
               initialValue: vm.shipping,
@@ -54,23 +54,23 @@ class InvoiceSummaryPanel extends StatelessWidget {
               },
             ),
           ],
-          const SizedBox(height: DukanSpace.lg),
+          const SizedBox(height: DeptAccountingSpace.lg),
           const Divider(),
-          DukanSummaryLine(
+          DeptAccountingSummaryLine(
             label: 'الإجمالي',
             value: Numbers.format(vm.total),
             currency: currency,
             total: true,
           ),
           if (!vm.quick) ...[
-            const SizedBox(height: DukanSpace.lg),
+            const SizedBox(height: DeptAccountingSpace.lg),
             Text('طريقة الدفع', style: Theme.of(context).textTheme.titleSmall),
-            const SizedBox(height: DukanSpace.md),
+            const SizedBox(height: DeptAccountingSpace.md),
             Row(
               children: [
                 for (final mode in InvoicePaymentMode.values) ...[
                   if (mode != InvoicePaymentMode.values.first)
-                    const SizedBox(width: DukanSpace.xs),
+                    const SizedBox(width: DeptAccountingSpace.xs),
                   Expanded(
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
@@ -79,14 +79,14 @@ class InvoiceSummaryPanel extends StatelessWidget {
                           horizontal: 4,
                           vertical: 8,
                         ),
-                        textStyle: DukanTypography.compactControl,
+                        textStyle: DeptAccountingTypography.compactControl,
                         backgroundColor: vm.paymentMode == mode
-                            ? DukanColors.primarySoft
+                            ? DeptAccountingColors.primarySoft
                             : null,
                         side: BorderSide(
                           color: vm.paymentMode == mode
-                              ? DukanColors.chartSecondary
-                              : DukanColors.border,
+                              ? DeptAccountingColors.chartSecondary
+                              : DeptAccountingColors.border,
                         ),
                       ),
                       onPressed: () => vm.changePaymentMode(mode),
@@ -104,14 +104,16 @@ class InvoiceSummaryPanel extends StatelessWidget {
               ],
             ),
             if (vm.paymentMode != InvoicePaymentMode.credit) ...[
-              const SizedBox(height: DukanSpace.xl),
+              const SizedBox(height: DeptAccountingSpace.xl),
               for (final payment
                   in vm.paymentMode == InvoicePaymentMode.cash
                       ? vm.payments.take(1)
                       : vm.payments)
                 Padding(
                   key: ObjectKey(payment),
-                  padding: const EdgeInsets.only(bottom: DukanSpace.lg),
+                  padding: const EdgeInsets.only(
+                    bottom: DeptAccountingSpace.lg,
+                  ),
                   child: Column(
                     children: [
                       ChoiceField(
@@ -127,11 +129,11 @@ class InvoiceSummaryPanel extends StatelessWidget {
                         },
                       ),
                       if (vm.paymentMode == InvoicePaymentMode.partial) ...[
-                        const SizedBox(height: DukanSpace.lg),
+                        const SizedBox(height: DeptAccountingSpace.lg),
                         Row(
                           children: [
                             Expanded(
-                              child: DukanField(
+                              child: DeptAccountingField(
                                 label: 'المدفوع ($currency)',
                                 compact: true,
                                 numeric: true,
@@ -158,26 +160,26 @@ class InvoiceSummaryPanel extends StatelessWidget {
                   ),
                 ),
               if (vm.paymentMode == InvoicePaymentMode.partial)
-                DukanButton(
+                DeptAccountingButton(
                   label: 'إضافة حساب للدفع',
-                  variant: DukanButtonVariant.quiet,
+                  variant: DeptAccountingButtonVariant.quiet,
                   onPressed: vm.addPayment,
                 ),
             ],
-            const SizedBox(height: DukanSpace.sm),
-            DukanSummaryLine(
+            const SizedBox(height: DeptAccountingSpace.sm),
+            DeptAccountingSummaryLine(
               label: 'المدفوع',
               value: Numbers.format(vm.paid),
               currency: currency,
             ),
-            DukanSummaryLine(
+            DeptAccountingSummaryLine(
               label: vm.sale ? 'المتبقي على العميل' : 'المتبقي للمورد',
               value: Numbers.format(vm.total - vm.paid),
               currency: currency,
             ),
           ],
-          const SizedBox(height: DukanSpace.lg),
-          DukanButton(
+          const SizedBox(height: DeptAccountingSpace.lg),
+          DeptAccountingButton(
             label: vm.quick
                 ? 'اعتماد الاستلام'
                 : vm.sale
