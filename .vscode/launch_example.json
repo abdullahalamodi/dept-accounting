@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "dev-web",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "noDebug": true,
+            "args": [
+                "-d","chrome",
+                "--web-port","2026",
+                "--dart-define-from-file","assets/config/dev.json"
+            ]
+        }
+    ]
+}

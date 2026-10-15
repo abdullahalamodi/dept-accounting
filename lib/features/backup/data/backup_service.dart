@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../../core/data/app_store.dart';
+import '../../../core/data/local_database.dart';
 import '../../../core/numbers.dart';
 import '../../auth/data/auth_models.dart';
 import 'folder_access.dart';
@@ -218,6 +219,7 @@ class BackupService {
       if (existing) await backup(forceLocal: true);
       final source = sqlite3.open(temporary.path);
       try {
+        LocalDatabase.fromHandle(source, temporary.path);
         await source.backup(store.database.handle).drain<void>();
       } finally {
         source.close();
@@ -241,8 +243,10 @@ class BackupService {
   Shop _validate(String path) {
     final db = sqlite3.open(path, mode: OpenMode.readOnly);
     try {
-      if (db.userVersion != 1 ||
-          db.select('PRAGMA integrity_check').first.values.first != 'ok') {
+      if (db.userVersion < 1 ||
+          db.userVersion > currentSchemaVersion ||
+          db.select('PRAGMA integrity_check').first.values.first != 'ok' ||
+          db.select('PRAGMA foreign_key_check').isNotEmpty) {
         throw const BusinessException(
           'النسخة تالفة أو غير متوافقة مع هذا الإصدار.',
         );

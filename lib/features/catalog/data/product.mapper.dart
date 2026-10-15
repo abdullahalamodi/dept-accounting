@@ -40,6 +40,27 @@ class ProductMapper extends ClassMapperBase<Product> {
     opt: true,
     def: '',
   );
+  static String _$categoryId(Product v) => v.categoryId;
+  static const Field<Product, String> _f$categoryId = Field(
+    'categoryId',
+    _$categoryId,
+    opt: true,
+    def: '',
+  );
+  static String _$unitId(Product v) => v.unitId;
+  static const Field<Product, String> _f$unitId = Field(
+    'unitId',
+    _$unitId,
+    opt: true,
+    def: '',
+  );
+  static String _$alternateUnitId(Product v) => v.alternateUnitId;
+  static const Field<Product, String> _f$alternateUnitId = Field(
+    'alternateUnitId',
+    _$alternateUnitId,
+    opt: true,
+    def: '',
+  );
   static String _$unit(Product v) => v.unit;
   static const Field<Product, String> _f$unit = Field(
     'unit',
@@ -110,6 +131,9 @@ class ProductMapper extends ClassMapperBase<Product> {
     #name: _f$name,
     #barcode: _f$barcode,
     #category: _f$category,
+    #categoryId: _f$categoryId,
+    #unitId: _f$unitId,
+    #alternateUnitId: _f$alternateUnitId,
     #unit: _f$unit,
     #alternateUnit: _f$alternateUnit,
     #factor: _f$factor,
@@ -127,6 +151,9 @@ class ProductMapper extends ClassMapperBase<Product> {
       name: data.dec(_f$name),
       barcode: data.dec(_f$barcode),
       category: data.dec(_f$category),
+      categoryId: data.dec(_f$categoryId),
+      unitId: data.dec(_f$unitId),
+      alternateUnitId: data.dec(_f$alternateUnitId),
       unit: data.dec(_f$unit),
       alternateUnit: data.dec(_f$alternateUnit),
       factor: data.dec(_f$factor),
@@ -201,6 +228,9 @@ abstract class ProductCopyWith<$R, $In extends Product, $Out>
     String? name,
     String? barcode,
     String? category,
+    String? categoryId,
+    String? unitId,
+    String? alternateUnitId,
     String? unit,
     String? alternateUnit,
     int? factor,
@@ -228,6 +258,9 @@ class _ProductCopyWithImpl<$R, $Out>
     String? name,
     String? barcode,
     String? category,
+    String? categoryId,
+    String? unitId,
+    String? alternateUnitId,
     String? unit,
     String? alternateUnit,
     int? factor,
@@ -243,6 +276,9 @@ class _ProductCopyWithImpl<$R, $Out>
       if (name != null) #name: name,
       if (barcode != null) #barcode: barcode,
       if (category != null) #category: category,
+      if (categoryId != null) #categoryId: categoryId,
+      if (unitId != null) #unitId: unitId,
+      if (alternateUnitId != null) #alternateUnitId: alternateUnitId,
       if (unit != null) #unit: unit,
       if (alternateUnit != null) #alternateUnit: alternateUnit,
       if (factor != null) #factor: factor,
@@ -260,6 +296,9 @@ class _ProductCopyWithImpl<$R, $Out>
     name: data.get(#name, or: $value.name),
     barcode: data.get(#barcode, or: $value.barcode),
     category: data.get(#category, or: $value.category),
+    categoryId: data.get(#categoryId, or: $value.categoryId),
+    unitId: data.get(#unitId, or: $value.unitId),
+    alternateUnitId: data.get(#alternateUnitId, or: $value.alternateUnitId),
     unit: data.get(#unit, or: $value.unit),
     alternateUnit: data.get(#alternateUnit, or: $value.alternateUnit),
     factor: data.get(#factor, or: $value.factor),

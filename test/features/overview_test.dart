@@ -39,8 +39,10 @@ void seed(AppDependencies d) {
     ('coffee', 'قهوة عربية 250 جم', 4000),
     ('juice', 'عصير برتقال 1 لتر', 7000),
   ]) {
-    d.catalog.save(Product(id: id, name: name, minStock: 10000));
-    d.catalog.opening(id, quantity, 100000000);
+    d.catalog.save(
+      Product(id: id, name: name, minStock: 10000, purchasePrice: 10000),
+    );
+    d.catalog.opening(id, quantity);
   }
   d.parties.save(const Party(id: 'customer', name: 'أحمد العتيبي'));
   final now = DateTime.now();
@@ -135,9 +137,7 @@ void main() {
     'Overview adapts and its period, stock link and quick actions work',
     (tester) async {
       const capture = String.fromEnvironment('DUKAN_CAPTURE_DIR');
-      if (capture.isNotEmpty) {
-        await loadAppFonts();
-      }
+      await loadAppFonts();
       final key = GlobalKey();
       for (final width in [1920.0, 1440.0, 800.0, 390.0]) {
         tester.view.physicalSize = Size(width, 1200);
@@ -153,6 +153,18 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text('حركة المبيعات'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'overview at $width');
+        final actions = tester.getRect(
+          find.widgetWithText(DukanPanel, 'خطوة سريعة'),
+        );
+        final chart = tester.getRect(
+          find.widgetWithText(DukanPanel, 'حركة المبيعات'),
+        );
+        if (width >= 1440) {
+          expect(actions.left, greaterThan(chart.right));
+          expect(actions.top, chart.top);
+        } else {
+          expect(actions.bottom, lessThan(chart.top));
+        }
         if (width >= 1440) {
           final scroll = tester.widget<SingleChildScrollView>(
             find.descendant(
@@ -180,6 +192,7 @@ void main() {
             image.dispose();
           });
         }
+        await tester.ensureVisible(find.byTooltip('فترة حركة المبيعات'));
         await tester.tap(find.byTooltip('فترة حركة المبيعات'));
         await tester.pumpAndSettle();
         await tester.tap(find.text('آخر ٣٠ يومًا'));

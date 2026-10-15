@@ -83,7 +83,7 @@ void main() {
     expect(vm.recoveryDownloadError, isNull);
     expect(vm.recoveryFileDownloaded, isTrue);
     expect(vm.canSetup, isFalse);
-    expect(picker.filename, 'dukan-recovery-keys.txt');
+    expect(picker.filename, 'دبت للحسابات-مفاتيح الاسترداد.txt');
     final lines = const LineSplitter().convert(picker.contents!);
     final recovery = lines[lines.indexOf('رمز استرداد دخول المالك') + 1];
     final backup = lines[lines.indexOf('مفتاح استعادة النسخ الاحتياطية') + 1];

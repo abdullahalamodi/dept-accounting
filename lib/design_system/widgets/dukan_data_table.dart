@@ -81,12 +81,38 @@ class _DukanDataTableState extends State<DukanDataTable> {
                         ? constraints.maxWidth
                         : widget.minWidth,
                   ),
-                  child: DataTable(
-                    columnSpacing: widget.columnSpacing,
-                    horizontalMargin: widget.horizontalMargin,
-                    columns: widget.columns,
-                    rows: widget.rows,
-                    showCheckboxColumn: false,
+                  child: TextButtonTheme(
+                    data: TextButtonThemeData(
+                      style:
+                          TextButton.styleFrom(
+                            textStyle: DukanTypography.tableBody,
+                            minimumSize: const Size(48, 36),
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            splashFactory: NoSplash.splashFactory,
+                            overlayColor: Colors.transparent,
+                          ).copyWith(
+                            foregroundColor: WidgetStateProperty.resolveWith(
+                              (states) => states.contains(WidgetState.disabled)
+                                  ? DukanColors.muted
+                                  : states.contains(WidgetState.hovered)
+                                  ? DukanColors.primaryHover
+                                  : DukanColors.primary,
+                            ),
+                            side: WidgetStateProperty.resolveWith(
+                              (states) => states.contains(WidgetState.focused)
+                                  ? const BorderSide(color: DukanColors.primary)
+                                  : BorderSide.none,
+                            ),
+                          ),
+                    ),
+                    child: DataTable(
+                      columnSpacing: widget.columnSpacing,
+                      horizontalMargin: widget.horizontalMargin,
+                      columns: widget.columns,
+                      rows: widget.rows,
+                      showCheckboxColumn: false,
+                    ),
                   ),
                 ),
               ),
@@ -95,70 +121,245 @@ class _DukanDataTableState extends State<DukanDataTable> {
         if (widget.showPagination) ...[
           const Divider(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              alignment: WrapAlignment.spaceBetween,
-              children: [
-                Text(
-                  '$start–$end من ${widget.totalRows}',
-                  style: const TextStyle(color: DukanColors.muted),
-                ),
-                Wrap(
-                  spacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (widget.onPageSizeChanged != null)
-                      DropdownButton<int>(
-                        style: DukanTypography.control,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final range = Text(
+                  'عرض $start–$end من ${widget.totalRows}',
+                  style: DukanTypography.tableBody.copyWith(
+                    color: DukanColors.muted,
+                  ),
+                );
+                final pageSize = widget.onPageSizeChanged == null
+                    ? null
+                    : _PageSizeSelector(
                         value: widget.pageSize,
-                        underline: const SizedBox.shrink(),
-                        items: [5, 10, 20]
-                            .map(
-                              (n) => DropdownMenuItem(
-                                value: n,
-                                child: Text('$n / صفحة'),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          if (value != null) widget.onPageSizeChanged!(value);
-                        },
+                        onChanged: widget.onPageSizeChanged!,
+                      );
+                final navigation = _PageNavigation(
+                  page: page,
+                  count: count,
+                  onChanged: widget.onPageChanged,
+                );
+                if (constraints.maxWidth < 900) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Wrap(
+                        alignment: WrapAlignment.spaceBetween,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 16,
+                        runSpacing: 12,
+                        children: [range, ?pageSize],
                       ),
-                    IconButton(
-                      tooltip: 'الصفحة السابقة',
-                      onPressed: page > 1
-                          ? () => widget.onPageChanged(page - 1)
-                          : null,
-                      icon: Icon(
-                        Directionality.of(context) == TextDirection.rtl
-                            ? Icons.chevron_right
-                            : Icons.chevron_left,
-                        textDirection: TextDirection.ltr,
-                      ),
-                    ),
-                    Text('$page / $count'),
-                    IconButton(
-                      tooltip: 'الصفحة التالية',
-                      onPressed: page < count
-                          ? () => widget.onPageChanged(page + 1)
-                          : null,
-                      icon: Icon(
-                        Directionality.of(context) == TextDirection.rtl
-                            ? Icons.chevron_left
-                            : Icons.chevron_right,
-                        textDirection: TextDirection.ltr,
+                      const SizedBox(height: 12),
+                      navigation,
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(child: range),
+                    ?pageSize,
+                    Expanded(
+                      child: Align(
+                        alignment: AlignmentDirectional.centerEnd,
+                        child: navigation,
                       ),
                     ),
                   ],
-                ),
-              ],
+                );
+              },
             ),
           ),
         ],
       ],
     );
   }
+}
+
+class _PageSizeSelector extends StatefulWidget {
+  const _PageSizeSelector({required this.value, required this.onChanged});
+
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  @override
+  State<_PageSizeSelector> createState() => _PageSizeSelectorState();
+}
+
+class _PageSizeSelectorState extends State<_PageSizeSelector> {
+  final _focusNode = FocusNode();
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textHeight =
+        MediaQuery.textScalerOf(context)
+            .scale(DukanTypography.tableBody.fontSize!) *
+        DukanTypography.tableBody.height!;
+    final height = (textHeight + 12).clamp(
+      DukanLayout.paginationControlHeight,
+      double.infinity,
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          'صفوف الصفحة',
+          style: DukanTypography.caption.copyWith(color: DukanColors.muted),
+        ),
+        const SizedBox(width: 10),
+        Theme(
+          data: Theme.of(context).copyWith(
+            focusColor: Colors.transparent,
+            hoverColor: Colors.transparent,
+            highlightColor: Colors.transparent,
+            splashColor: Colors.transparent,
+            splashFactory: NoSplash.splashFactory,
+          ),
+          child: ListenableBuilder(
+            listenable: _focusNode,
+            builder: (context, _) => Container(
+              height: height,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: _focusNode.hasFocus
+                      ? DukanColors.primary
+                      : DukanColors.border,
+                ),
+                borderRadius: BorderRadius.circular(DukanLayout.radius),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<int>(
+                  value: widget.value,
+                  focusNode: _focusNode,
+                  focusColor: Colors.transparent,
+                  isDense: true,
+                  padding: EdgeInsets.zero,
+                  borderRadius: BorderRadius.circular(DukanLayout.radius),
+                  style: DukanTypography.tableBody,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 18,
+                    color: DukanColors.muted,
+                  ),
+                  items: ({5, 10, 20, widget.value}.toList()..sort())
+                      .map((n) => DropdownMenuItem(value: n, child: Text('$n')))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value != null) widget.onChanged(value);
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _PageNavigation extends StatelessWidget {
+  const _PageNavigation({
+    required this.page,
+    required this.count,
+    required this.onChanged,
+  });
+
+  final int page;
+  final int count;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final first = (page - 1).clamp(1, (count - 2).clamp(1, count));
+    final last = (first + 2).clamp(1, count);
+    final pages = {1, for (var i = first; i <= last; i++) i, count}.toList()
+      ..sort();
+    return Wrap(
+      spacing: 6,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _PageButton(
+          label: 'السابق',
+          onPressed: page > 1 ? () => onChanged(page - 1) : null,
+        ),
+        for (var i = 0; i < pages.length; i++) ...[
+          if (i > 0 && pages[i] - pages[i - 1] > 1)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+              child: Text('…', style: DukanTypography.tableBody),
+            ),
+          _PageButton(
+            label: '${pages[i]}',
+            selected: pages[i] == page,
+            onPressed: () => onChanged(pages[i]),
+          ),
+        ],
+        _PageButton(
+          label: 'التالي',
+          onPressed: page < count ? () => onChanged(page + 1) : null,
+        ),
+      ],
+    );
+  }
+}
+
+class _PageButton extends StatelessWidget {
+  const _PageButton({
+    required this.label,
+    required this.onPressed,
+    this.selected = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    selected: selected,
+    child: TextButton(
+      onPressed: onPressed,
+      style:
+          TextButton.styleFrom(
+            textStyle: DukanTypography.tableBody,
+            foregroundColor: selected ? DukanColors.primary : DukanColors.ink,
+            disabledForegroundColor: DukanColors.muted.withValues(alpha: 0.45),
+            backgroundColor: selected
+                ? DukanColors.primarySoft
+                : DukanColors.surface,
+            minimumSize: const Size(
+              DukanLayout.paginationControlHeight,
+              DukanLayout.paginationControlHeight,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            splashFactory: NoSplash.splashFactory,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(DukanLayout.radius),
+            ),
+          ).copyWith(
+            side: WidgetStateProperty.resolveWith(
+              (states) => BorderSide(
+                color: states.contains(WidgetState.focused)
+                    ? DukanColors.primary
+                    : selected
+                    ? DukanColors.chartSecondary
+                    : DukanColors.border,
+                width: states.contains(WidgetState.focused) ? 2 : 1,
+              ),
+            ),
+          ),
+      child: Text(label),
+    ),
+  );
 }

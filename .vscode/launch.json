@@ -1,0 +1,41 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+
+        {
+            "name": "dev-mobile",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            // "flutterMode": "release",
+            "noDebug": true,
+            // "args": [
+            //     "--flavor","local"
+            // ]
+        },
+        {
+            "name": "prod-mobile",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "flutterMode": "release",
+            "noDebug": true,
+            "args": []
+        },
+        {
+            "name": "dev-web",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "noDebug": true,
+            "args": [
+                "-d","chrome",
+                "--web-port","21299",
+                // "--web-browser-flag" ,"--disable-web-security",
+                // "--web-browser-flag" ,"--ignore-certificate-errors",
+                // "--web-browser-flag" ,"--ignore-ssl-errors",
+                // "--dart-define-from-file","assets/config/dev.json",
+            ]
+        }
+    ]
+}

@@ -6,7 +6,11 @@ import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dukan_design_system.dart';
 import '../data/product.dart';
+import '../data/catalog_reference.dart';
+import 'catalog_navigation.dart';
+import 'catalog_reference_field.dart';
 import 'catalog_view_model.dart';
+import 'product_units_section.dart';
 
 class CatalogPage extends StatefulWidget {
   const CatalogPage({
@@ -31,7 +35,7 @@ class _CatalogPageState extends State<CatalogPage> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: vm,
+    listenable: Listenable.merge([vm, widget.dependencies.store]),
     builder: (context, _) {
       final manage = widget.dependencies.store.user!.canManage,
           currency = widget.dependencies.store.shop!.currencyLabel;
@@ -39,15 +43,16 @@ class _CatalogPageState extends State<CatalogPage> {
         children: [
           DukanPageHeader(
             title: 'المنتجات والخدمات',
-            description: 'أصناف محلك، وحداتها وأسعارها ومخزونها',
+            description: 'منتجات محلك، وحداتها وأسعارها ومخزونها',
             actions: [
               if (manage)
                 DukanButton(
-                  label: 'إضافة صنف',
+                  label: 'إضافة منتج',
                   onPressed: () => context.go('/catalog/new'),
                 ),
             ],
           ),
+          CatalogNavigation(selected: '/catalog', canManage: manage),
           ErrorNotice(vm.error),
           DukanPanel(
             child: FieldGrid(
@@ -61,11 +66,9 @@ class _CatalogPageState extends State<CatalogPage> {
                   value: vm.category,
                   items: [
                     (value: '', label: 'كل التصنيفات'),
-                    ...vm.products
-                        .map((p) => p.category)
-                        .where((c) => c.isNotEmpty)
-                        .toSet()
-                        .map((c) => (value: c, label: c)),
+                    ...widget.dependencies.catalogReferences
+                        .all(CatalogReferenceKind.category)
+                        .map((c) => (value: c.id, label: c.name)),
                   ],
                   onChanged: (v) {
                     vm.category = v!;
@@ -100,12 +103,12 @@ class _CatalogPageState extends State<CatalogPage> {
             padding: EdgeInsets.zero,
             child: DukanDataTable(
               columns: [
-                const DataColumn(label: Text('الصنف')),
+                const DataColumn(label: Text('المنتج')),
                 const DataColumn(label: Text('الباركود')),
                 const DataColumn(label: Text('التصنيف')),
                 const DataColumn(label: Text('المتوفر')),
                 const DataColumn(label: Text('سعر البيع')),
-                if (manage) const DataColumn(label: Text('آخر سعر شراء')),
+                if (manage) const DataColumn(label: Text('سعر الشراء')),
                 const DataColumn(label: Text('الحالة')),
                 const DataColumn(label: Text('الإجراء')),
               ],
@@ -161,7 +164,7 @@ class _CatalogPageState extends State<CatalogPage> {
                 vm.pageSize = v;
                 vm.go(1);
               },
-              emptyTitle: 'لا توجد أصناف',
+              emptyTitle: 'لا توجد منتجات',
               emptyMessage: 'أضف منتجاتك وخدماتك، ثم ابدأ الشراء والبيع.',
             ),
           ),
@@ -194,9 +197,23 @@ class _ProductPageState extends State<ProductPage> {
   late final fields = <String, TextEditingController>{
     'name': TextEditingController(text: product?.name),
     'barcode': TextEditingController(text: product?.barcode),
-    'category': TextEditingController(text: product?.category),
-    'unit': TextEditingController(text: product?.unit ?? 'حبة'),
-    'alternateUnit': TextEditingController(text: product?.alternateUnit),
+    'category': TextEditingController(text: product?.categoryId),
+    'unit': TextEditingController(
+      text:
+          product?.unitId ??
+          widget.dependencies.catalogReferences
+              .all(CatalogReferenceKind.unit)
+              .where((r) => r.active && r.id == 'unit_piece')
+              .firstOrNull
+              ?.id ??
+          widget.dependencies.catalogReferences
+              .all(CatalogReferenceKind.unit)
+              .where((r) => r.active)
+              .firstOrNull
+              ?.id ??
+          '',
+    ),
+    'alternateUnit': TextEditingController(text: product?.alternateUnitId),
     'factor': TextEditingController(
       text: Numbers.input(product?.factor ?? 1000, decimals: 3),
     ),
@@ -209,9 +226,21 @@ class _ProductPageState extends State<ProductPage> {
     'minStock': TextEditingController(
       text: Numbers.input(product?.minStock ?? 0, decimals: 3),
     ),
-    'openingQuantity': TextEditingController(),
-    'openingCost': TextEditingController(),
   };
+
+  void save({bool addOpening = false}) {
+    if (vm.save(
+      id: id,
+      values: fields.map((k, v) => MapEntry(k, v.text)),
+      service: service,
+      fractional: fractional,
+      active: active,
+    )) {
+      showMessage(context, 'تم حفظ المنتج');
+      context.go(addOpening ? '/catalog/$id/opening' : '/catalog');
+    }
+  }
+
   @override
   void dispose() {
     for (final c in fields.values) {
@@ -227,14 +256,19 @@ class _ProductPageState extends State<ProductPage> {
     if (widget.id != 'new' && product == null) {
       return const DukanStateView(
         state: DukanViewState.error,
-        title: 'الصنف غير موجود',
-        message: 'ارجع إلى قائمة الأصناف.',
+        title: 'المنتج غير موجود',
+        message: 'ارجع إلى قائمة المنتجات.',
       );
     }
+    final canAddOpening =
+        manage &&
+        !service &&
+        widget.dependencies.catalog.openingUnavailableReason(product?.id) ==
+            null;
     return ListenableBuilder(
-      listenable: vm,
+      listenable: Listenable.merge([vm, widget.dependencies.store]),
       builder: (context, _) => WorkPage(
-        title: product == null ? 'صنف جديد' : product!.name,
+        title: product == null ? 'منتج جديد' : product!.name,
         onBack: () => context.go('/catalog'),
         actions: [
           if (manage && product != null && !service)
@@ -243,28 +277,24 @@ class _ProductPageState extends State<ProductPage> {
               variant: DukanButtonVariant.secondary,
               onPressed: () => context.go('/inventory/$id'),
             ),
-          if (manage)
+          if (canAddOpening)
             DukanButton(
-              label: 'حفظ الصنف',
-              onPressed: () {
-                if (vm.save(
-                  id: id,
-                  values: fields.map((k, v) => MapEntry(k, v.text)),
-                  service: service,
-                  fractional: fractional,
-                  active: active,
-                )) {
-                  showMessage(context, 'تم حفظ الصنف');
-                  context.go('/catalog');
-                }
-              },
+              label: 'حفظ وإضافة مخزون افتتاحي',
+              variant: DukanButtonVariant.secondary,
+              onPressed: () => save(addOpening: true),
             ),
+          if (manage) DukanButton(label: 'حفظ المنتج', onPressed: () => save()),
         ],
         child: SectionStack(
           children: [
             ErrorNotice(vm.error),
+            if (canAddOpening)
+              const DukanNotice(
+                title: 'لديك كمية موجودة من هذا المنتج؟',
+                message: 'اختر «حفظ وإضافة مخزون افتتاحي» لتسجيلها بسعر الشراء. يمكنك حفظ المنتج فقط وإضافة الكمية لاحقًا، قبل أول حركة عليه.',
+              ),
             DukanPanel(
-              title: 'بيانات الصنف',
+              title: 'بيانات المنتج',
               child: SectionStack.form(
                 children: [
                   if (manage)
@@ -280,40 +310,36 @@ class _ProductPageState extends State<ProductPage> {
                   FieldGrid(
                     children: [
                       for (final (key, label, numeric) in [
-                        ('name', 'اسم الصنف', false),
+                        ('name', 'اسم المنتج', false),
                         ('barcode', 'الباركود', false),
-                        ('category', 'التصنيف', false),
-                        ('unit', 'الوحدة الأساسية', false),
+
                         ('salePrice', 'سعر البيع', true),
-                        if (manage) ('purchasePrice', 'آخر سعر شراء', true),
-                        if (!service) ...[
-                          ('alternateUnit', 'وحدة إضافية (اختياري)', false),
-                          (
-                            'factor',
-                            'عدد الوحدات الأساسية في الوحدة الإضافية',
-                            true,
-                          ),
-                          ('minStock', 'حد تنبيه المخزون', true),
-                        ],
+                        if (manage) ('purchasePrice', 'سعر الشراء', true),
+                        if (!service) ('minStock', 'حد تنبيه المخزون', true),
                       ])
                         DukanField(
                           label: label,
+                          helper: key == 'salePrice' || key == 'purchasePrice'
+                              ? 'لكل وحدة أساسية'
+                              : null,
                           controller: fields[key],
                           numeric: numeric,
                           enabled: manage,
                         ),
+                      CatalogReferenceField(
+                        repository: widget.dependencies.catalogReferences,
+                        kind: CatalogReferenceKind.category,
+                        label: 'التصنيف',
+                        controller: fields['category']!,
+                        optional: true,
+                        enabled: manage,
+                      ),
                     ],
                   ),
                   if (manage) ...[
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('السماح بكسور الوحدة الأساسية'),
-                      value: fractional,
-                      onChanged: (v) => setState(() => fractional = v),
-                    ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('الصنف نشط'),
+                      title: const Text('المنتج نشط'),
                       value: active,
                       onChanged: (v) => setState(() => active = v),
                     ),
@@ -321,54 +347,16 @@ class _ProductPageState extends State<ProductPage> {
                 ],
               ),
             ),
-            if (product != null && !service && manage)
-              DukanPanel(
-                title: 'المخزون الافتتاحي',
-                description: 'متاح قبل أول حركة فقط؛ الكمية بالوحدة الأساسية والتكلفة لكل وحدة',
-                child: SectionStack.form(
-                  children: [
-                    Text(
-                      'المتوفر: ${Numbers.format(widget.dependencies.engine.stock(id).quantity, decimals: 3)} ${product!.unit}',
-                    ),
-                    FieldGrid(
-                      children: [
-                        DukanField(
-                          label: 'الكمية الافتتاحية',
-                          controller: fields['openingQuantity'],
-                          numeric: true,
-                        ),
-                        DukanField(
-                          label: 'تكلفة الوحدة (حتى 6 منازل)',
-                          controller: fields['openingCost'],
-                          numeric: true,
-                        ),
-                      ],
-                    ),
-                    DukanButton(
-                      label: 'اعتماد المخزون الافتتاحي',
-                      variant: DukanButtonVariant.secondary,
-                      onPressed: () async {
-                        if (await showDukanConfirmation(
-                              context,
-                              title: 'اعتماد المخزون الافتتاحي؟',
-                              message: 'سيسجل قيدًا افتتاحيًا وحركة مخزون؛ لا يمكن تعديل الافتتاح بعد ذلك.',
-                              confirmLabel: 'اعتماد',
-                            ) &&
-                            mounted) {
-                          if (vm.opening(
-                                id,
-                                fields['openingQuantity']!.text,
-                                fields['openingCost']!.text,
-                              ) &&
-                              context.mounted) {
-                            showMessage(context, 'تم اعتماد المخزون الافتتاحي');
-                          }
-                        }
-                      },
-                    ),
-                  ],
-                ),
-              ),
+            ProductUnitsSection(
+              repository: widget.dependencies.catalogReferences,
+              unit: fields['unit']!,
+              alternateUnit: fields['alternateUnit']!,
+              factor: fields['factor']!,
+              fractional: fractional,
+              service: service,
+              enabled: manage,
+              onFractionalChanged: (v) => setState(() => fractional = v),
+            ),
           ],
         ),
       ),

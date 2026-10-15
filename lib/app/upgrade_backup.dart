@@ -4,20 +4,24 @@ import 'package:path/path.dart' as p;
 import 'package:sqlite3/sqlite3.dart';
 
 import '../core/numbers.dart';
+import '../core/app_identity.dart';
+import '../core/data/local_database.dart';
 import '../features/backup/data/backup_codec.dart';
 
 const applicationVersion = '0.1.0+1';
 Future<void> backupBeforeUpgrade(Database database, String path) async {
   if (database.userVersion == 0) return;
-  if (database.userVersion > 1) {
-    throw const BusinessException('البيانات تحتاج إصدارًا أحدث من دكّان.');
+  if (database.userVersion > currentSchemaVersion) {
+    throw const BusinessException('البيانات تحتاج إصدارًا أحدث من $appName.');
   }
   final shop = database.select("SELECT value FROM settings WHERE key = 'shop'");
   if (shop.isEmpty) return;
   final version = database.select(
     "SELECT value FROM settings WHERE key = 'app_version'",
   );
-  if (version.isNotEmpty && version.first['value'] == applicationVersion) {
+  if (database.userVersion == currentSchemaVersion &&
+      version.isNotEmpty &&
+      version.first['value'] == applicationVersion) {
     return;
   }
   final key = database.select(

@@ -163,8 +163,8 @@ class AppStore extends ChangeNotifier {
   void updateProfile({required String name, required String username}) {
     require();
     final actor = user!;
-    if (name.trim().isEmpty || username.trim().isEmpty) {
-      throw const BusinessException('أدخل الاسم واسم المستخدم.');
+    if (username.trim().isEmpty) {
+      throw const BusinessException('أدخل اسم المستخدم.');
     }
     final duplicate = database.handle.select(
       'SELECT id FROM users WHERE username = ? COLLATE NOCASE AND id != ?',
@@ -232,8 +232,7 @@ class AppStore extends ChangeNotifier {
 
   Future<void> saveUser(AppUser next, String password) async {
     require(owner: true);
-    if (next.name.trim().isEmpty ||
-        next.username.trim().isEmpty ||
+    if (next.username.trim().isEmpty ||
         !['owner', 'seller', 'accountant'].contains(next.role) ||
         next.discountLimit < 0 ||
         next.discountLimit > 100) {
@@ -281,7 +280,7 @@ class AppStore extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateShop(Shop next) {
+  void updateShop(Shop next, {String? ownerName}) {
     require(owner: true);
     if (next.name.trim().isEmpty) {
       throw const BusinessException('اسم المحل مطلوب.');
@@ -295,10 +294,22 @@ class AppStore extends ChangeNotifier {
         'لا يمكن تغيير العملة بعد أول عملية مالية.',
       );
     }
+    final owner = ownerName == null
+        ? null
+        : user!.copyWith(name: ownerName.trim());
     write(() {
       setSetting('shop', next.toJson());
+      if (owner != null) {
+        database.handle.execute('UPDATE users SET data = ? WHERE id = ?', [
+          owner.toJson(),
+          owner.id,
+        ]);
+        audit('تحديث الملف الشخصي', owner.id);
+      }
       audit('تحديث المحل', 'shop');
-    });
+    }, notify: false);
+    if (owner != null) user = owner;
+    notifyListeners();
   }
 
   Map<String, dynamic> decode(String data) =>

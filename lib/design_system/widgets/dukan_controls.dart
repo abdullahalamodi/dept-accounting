@@ -187,22 +187,35 @@ class DukanPageHeader extends StatelessWidget {
 }
 
 class DukanStatusTag extends StatelessWidget {
-  const DukanStatusTag(this.label, {super.key, this.tone = DukanTone.neutral});
+  const DukanStatusTag(
+    this.label, {
+    super.key,
+    this.tone = DukanTone.neutral,
+    this.compact = false,
+  });
   final String label;
   final DukanTone tone;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    padding: compact
+        ? const EdgeInsets.symmetric(horizontal: 6, vertical: 2)
+        : const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
     decoration: BoxDecoration(
       color: tone.background,
       borderRadius: BorderRadius.circular(DukanLayout.badgeRadius),
     ),
     child: Text(
       label,
+      maxLines: compact ? 1 : null,
+      overflow: compact ? TextOverflow.ellipsis : null,
       style: Theme.of(context).textTheme.bodySmall?.copyWith(
         color: tone.foreground,
-        fontWeight: DukanTypography.emphasis,
+        fontSize: compact ? 10 : null,
+        fontWeight: compact
+            ? DukanTypography.regular
+            : DukanTypography.emphasis,
       ),
     ),
   );
@@ -251,6 +264,8 @@ class DukanField extends StatelessWidget {
     this.controller,
     this.initialValue,
     this.validator,
+    this.readOnly = false,
+    this.onTap,
     this.onChanged,
     this.onSubmitted,
     this.focusNode,
@@ -262,6 +277,7 @@ class DukanField extends StatelessWidget {
     this.obscureText = false,
     this.autocorrect = true,
     this.maxLines = 1,
+    this.compact = false,
   });
   final String label;
   final String? hint;
@@ -269,6 +285,8 @@ class DukanField extends StatelessWidget {
   final TextEditingController? controller;
   final String? initialValue;
   final FormFieldValidator<String>? validator;
+  final bool readOnly;
+  final VoidCallback? onTap;
   final ValueChanged<String>? onChanged;
   final ValueChanged<String>? onSubmitted;
   final FocusNode? focusNode;
@@ -280,13 +298,16 @@ class DukanField extends StatelessWidget {
   final bool obscureText;
   final bool autocorrect;
   final int maxLines;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) => TextFormField(
-    style: DukanTypography.control,
+    style: compact ? DukanTypography.compactControl : DukanTypography.control,
     controller: controller,
     initialValue: initialValue,
     validator: validator,
+    readOnly: readOnly,
+    onTap: onTap,
     onChanged: onChanged,
     onFieldSubmitted: onSubmitted,
     focusNode: focusNode,
@@ -305,7 +326,13 @@ class DukanField extends StatelessWidget {
         ? TextInputAction.next
         : TextInputAction.newline,
     decoration: InputDecoration(
-      labelText: label,
+      labelText: label.isEmpty ? null : label,
+      constraints: compact
+          ? const BoxConstraints(minHeight: DukanLayout.compactControlHeight)
+          : null,
+      contentPadding: compact
+          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+          : null,
       hintText: hint,
       helperText: helper,
       prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
@@ -543,14 +570,16 @@ class DukanEditorLayout extends StatelessWidget {
     super.key,
     required this.form,
     required this.summary,
+    this.minFormWidth = 576,
   });
   final Widget form;
   final Widget summary;
+  final double minFormWidth;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, size) {
-      if (size.maxWidth < 900) {
+      if (size.maxWidth < minFormWidth + 324) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [form, const SizedBox(height: 24), summary],

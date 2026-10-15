@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../design_system/dukan_design_system.dart';
+import '../app_identity.dart';
 import '../numbers.dart';
 
 class SectionStack extends StatelessWidget {
@@ -58,20 +59,30 @@ class ChoiceField<T> extends StatelessWidget {
     required this.items,
     required this.onChanged,
     this.enabled = true,
+    this.compact = false,
   });
   final String label;
   final T? value;
   final List<({T value, String label})> items;
   final ValueChanged<T?> onChanged;
   final bool enabled;
+  final bool compact;
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<T>(
     key: ValueKey('$label-$value'),
     initialValue: value,
     isExpanded: true,
-    style: DukanTypography.control,
+    style: compact ? DukanTypography.compactControl : DukanTypography.control,
     iconSize: 20,
-    decoration: InputDecoration(labelText: label),
+    decoration: InputDecoration(
+      labelText: label.isEmpty ? null : label,
+      constraints: compact
+          ? const BoxConstraints(minHeight: DukanLayout.compactControlHeight)
+          : null,
+      contentPadding: compact
+          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+          : null,
+    ),
     items: [
       for (final item in items)
         DropdownMenuItem(
@@ -175,7 +186,7 @@ class WorkPage extends StatelessWidget {
       DukanPageHeader(
         title: title,
         description:
-            'دكّان · ${DateTime.now().toIso8601String().substring(0, 10)}',
+            '$appName · ${DateTime.now().toIso8601String().substring(0, 10)}',
         actions: [
           DukanButton(
             label: 'العودة',

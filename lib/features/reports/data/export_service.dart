@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../../core/numbers.dart';
+import '../../../core/app_identity.dart';
 import '../../auth/data/auth_models.dart';
 import '../../invoices/data/document.dart';
 
@@ -77,7 +78,7 @@ class ExportService {
         footer: (context) => pw.Padding(
           padding: const pw.EdgeInsets.only(top: 12),
           child: pw.Text(
-            'دكّان · ${context.pageNumber} / ${context.pagesCount}',
+            '$appName · ${context.pageNumber} / ${context.pagesCount}',
             style: const pw.TextStyle(fontSize: 8),
           ),
         ),
@@ -174,7 +175,7 @@ class ExportService {
       subtitle:
           '${doc.date}${party == null ? '' : ' · $party'}\n${doc.notes}${doc.reason.isEmpty ? '' : '\nالسبب: ${doc.reason}'}',
       columns: const [
-        'الصنف',
+        'المنتج',
         'الوحدة',
         'الكمية',
         'سعر الوحدة',
@@ -224,19 +225,19 @@ class ExportService {
     bool thermal = false,
   }) async {
     final bytes = await reportPdf(shop, report, thermal: thermal);
-    await Printing.sharePdf(bytes: bytes, filename: 'dukan-document.pdf');
+    await Printing.sharePdf(bytes: bytes, filename: '$appName-مستند.pdf');
   }
 
   Future<void> savePdf(Shop shop, ReportTable report) async {
     await FilePicker.saveFile(
-      fileName: 'dukan-report.pdf',
+      fileName: '$appName-تقرير.pdf',
       bytes: await reportPdf(shop, report),
     );
   }
 
   Future<void> saveExcel(Shop shop, ReportTable report) async {
     await FilePicker.saveFile(
-      fileName: 'dukan-report.xlsx',
+      fileName: '$appName-تقرير.xlsx',
       bytes: reportExcel(shop, report),
     );
   }

@@ -38,6 +38,8 @@ abstract final class DukanLayout {
   static const maxContent = 1440.0;
   static const minTarget = 48.0;
   static const controlHeight = 52.0;
+  static const compactControlHeight = 36.0;
+  static const paginationControlHeight = 36.0;
   static const compactNoticeMaxHeight = 160.0;
   static const badgeRadius = 4.0;
   static const smallRadius = 6.0;
@@ -60,6 +62,13 @@ abstract final class DukanTypography {
     height: controlLineHeight / controlFontSize,
     color: DukanColors.ink,
   );
+  static const compactControl = TextStyle(
+    fontFamily: family,
+    fontSize: 13,
+    fontWeight: regular,
+    height: 1.5,
+    color: DukanColors.ink,
+  );
   static const label = TextStyle(
     fontFamily: family,
     fontSize: 13,
@@ -74,6 +83,21 @@ abstract final class DukanTypography {
     fontWeight: regular,
     height: 1.7,
     color: DukanColors.ink,
+  );
+  static const tableBody = TextStyle(
+    fontFamily: family,
+    fontSize: 13,
+    fontWeight: regular,
+    height: 1.6,
+    color: DukanColors.ink,
+    fontFeatures: [FontFeature.tabularFigures()],
+  );
+  static const tableHeading = TextStyle(
+    fontFamily: family,
+    fontSize: 12,
+    fontWeight: emphasis,
+    height: 1.5,
+    color: DukanColors.muted,
   );
   static const sectionTitle = TextStyle(
     fontFamily: family,

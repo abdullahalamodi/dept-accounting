@@ -32,6 +32,7 @@ class AppUser with AppUserMappable {
   final String name;
   final String username;
   final String role;
+  String get displayName => name.isEmpty ? username : name;
   final int discountLimit;
   final bool canChangePrice;
   final bool active;

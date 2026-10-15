@@ -8,6 +8,9 @@ class Product with ProductMappable {
     required this.name,
     this.barcode = '',
     this.category = '',
+    this.categoryId = '',
+    this.unitId = '',
+    this.alternateUnitId = '',
     this.unit = 'حبة',
     this.alternateUnit = '',
     this.factor = 1000,
@@ -22,6 +25,9 @@ class Product with ProductMappable {
   final String name;
   final String barcode;
   final String category;
+  final String categoryId;
+  final String unitId;
+  final String alternateUnitId;
   final String unit;
   final String alternateUnit;
   final int factor;

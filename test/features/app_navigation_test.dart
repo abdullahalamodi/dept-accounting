@@ -11,6 +11,200 @@ import 'package:go_router/go_router.dart';
 
 void main() {
   testWidgets(
+    'New items can continue to opening stock and missing buying prices can be corrected',
+    (tester) async {
+      tester.view.physicalSize = const Size(1440, 1500);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final d = AppDependencies(LocalDatabase.memory());
+      d.store.setSetting(
+        'shop',
+        const Shop(name: 'اختبار', currency: 'SAR').toJson(),
+      );
+      d.store.user = const AppUser(
+        id: 'owner',
+        name: 'مالك',
+        username: 'owner',
+        role: 'owner',
+      );
+      await tester.pumpWidget(DukanApp(dependencies: d));
+      await tester.pumpAndSettle();
+      final router = GoRouter.of(tester.element(find.byType(DukanWorkspace)));
+      router.go('/catalog/new');
+      await tester.pumpAndSettle();
+      expect(find.text('لديك كمية موجودة من هذا المنتج؟'), findsOneWidget);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'اسم المنتج'),
+        'منتج جديد',
+      );
+      await tester.tap(find.text('حفظ وإضافة مخزون افتتاحي'));
+      await tester.pumpAndSettle();
+      final id = d.catalog.all().single.id;
+      expect(
+        router.routeInformationProvider.value.uri.path,
+        '/catalog/$id/opening',
+      );
+      expect(find.text('أضف سعر الشراء أولًا'), findsOneWidget);
+      expect(
+        tester
+            .widget<DukanButton>(
+              find.widgetWithText(DukanButton, 'اعتماد المخزون الافتتاحي'),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.text('تعديل بيانات المنتج'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'سعر الشراء'),
+        '10.25',
+      );
+      await tester.tap(find.text('حفظ وإضافة مخزون افتتاحي'));
+      await tester.pumpAndSettle();
+      expect(find.text('أضف سعر الشراء أولًا'), findsNothing);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'الكمية الافتتاحية'),
+        '2',
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('20.5'), findsOneWidget);
+      await tester.tap(find.text('اعتماد المخزون الافتتاحي'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(DukanButton, 'اعتماد'));
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/catalog');
+      expect(d.engine.stock(id).quantity, 2000);
+      expect(d.engine.stock(id).value, 2050);
+      d.store.setSetting('opening_closed', 'true');
+      router.go('/catalog/new');
+      await tester.pumpAndSettle();
+      expect(find.text('حفظ وإضافة مخزون افتتاحي'), findsNothing);
+      d.store.user = d.store.user!.copyWith(role: 'seller');
+      router.go('/catalog/$id/opening');
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, '/');
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    },
+  );
+
+  testWidgets('Item edits and opening stock return to an updated list', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1440, 1500);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final d = AppDependencies(LocalDatabase.memory());
+    d.store.setSetting(
+      'shop',
+      const Shop(name: 'محل اختبار', currency: 'YER').toJson(),
+    );
+    d.store.user = const AppUser(
+      id: 'owner',
+      name: 'مالك',
+      username: 'owner',
+      role: 'owner',
+    );
+    d.catalog.save(const Product(id: 'p', name: 'مصباح'));
+    await tester.pumpWidget(DukanApp(dependencies: d));
+    await tester.pumpAndSettle();
+    final router = GoRouter.of(tester.element(find.byType(DukanWorkspace)));
+    router.go('/catalog/p');
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'اسم المنتج'),
+      'مصباح محدث',
+    );
+    expect(
+      find.widgetWithText(TextFormField, 'وحدة إضافية (اختياري)'),
+      findsNothing,
+    );
+    final advanced = find.text('إعدادات الوحدات المتقدمة');
+    await tester.ensureVisible(advanced);
+    await tester.tap(advanced);
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(TextFormField, 'عدد الوحدات الأساسية'),
+      findsNothing,
+    );
+    await tester.tap(
+      find.widgetWithText(TextFormField, 'وحدة إضافية (اختياري)'),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'بحث بالاسم'),
+      'كرتون',
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'اختيار'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'عدد الوحدات الأساسية'),
+      '12',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('1 كرتون = 12 حبة'), findsOneWidget);
+    await tester.tap(advanced);
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.widgetWithText(DukanButton, 'حفظ المنتج'));
+    await tester.tap(find.widgetWithText(DukanButton, 'حفظ المنتج'));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/catalog');
+    expect(find.text('مصباح محدث'), findsOneWidget);
+    expect(d.catalog.get('p').alternateUnit, 'كرتون');
+    expect(d.catalog.get('p').factor, 12000);
+
+    await tester.tap(find.text('عرض وتعديل'));
+    await tester.pumpAndSettle();
+    expect(find.text('1 كرتون = 12 حبة'), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'سعر الشراء'),
+      '10',
+    );
+    await tester.ensureVisible(find.text('حفظ وإضافة مخزون افتتاحي'));
+    await tester.tap(find.text('حفظ وإضافة مخزون افتتاحي'));
+    await tester.pumpAndSettle();
+    expect(
+      router.routeInformationProvider.value.uri.path,
+      '/catalog/p/opening',
+    );
+    expect(find.text('سعر الشراء لكل حبة'), findsOneWidget);
+    expect(find.widgetWithText(TextFormField, 'تكلفة الوحدة'), findsNothing);
+    expect(find.byType(TextFormField), findsOneWidget);
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'الكمية الافتتاحية'),
+      '20',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('200'), findsOneWidget);
+    final opening = find.widgetWithText(
+      DukanButton,
+      'اعتماد المخزون الافتتاحي',
+    );
+    await tester.ensureVisible(opening);
+    await tester.tap(opening);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(DukanButton, 'اعتماد'));
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/catalog');
+    expect(find.text('20 حبة'), findsOneWidget);
+    expect(d.engine.stock('p').value, 20000);
+    router.go('/catalog/p');
+    await tester.pumpAndSettle();
+    expect(find.text('حفظ وإضافة مخزون افتتاحي'), findsNothing);
+    router.go('/catalog/p/opening');
+    await tester.pumpAndSettle();
+    expect(find.text('المخزون الافتتاحي غير متاح'), findsOneWidget);
+    expect(find.text('اعتماد المخزون الافتتاحي'), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets(
     'Feature routes fit a phone and desktop and draft navigation stays safe',
     (tester) async {
       for (final width in [390.0, 1440.0]) {
@@ -33,6 +227,9 @@ void main() {
             name: 'مصباح',
             salePrice: 150000,
             purchasePrice: 100000,
+            alternateUnit: 'كرتون',
+            factor: 12000,
+            fractional: true,
           ),
         );
         d.parties.save(
@@ -44,6 +241,7 @@ void main() {
         for (final path in [
           '/catalog',
           '/catalog/p',
+          '/catalog/p/opening',
           '/inventory/p',
           '/parties',
           '/parties/party',

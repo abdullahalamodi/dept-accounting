@@ -16,5 +16,5 @@ jobs:
         run: ./tool/build_windows.ps1
       - uses: actions/upload-artifact@v4
         with:
-          name: dukan-windows-development
+          name: دبت للحسابات-windows-development
           path: build/distribution/*.zip

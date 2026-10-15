@@ -125,7 +125,7 @@ class ReportsRepository {
       return ReportTable(
         title: 'المخزون وقيمته في نهاية الفترة',
         subtitle: subtitle,
-        columns: ['الصنف', 'الكمية الأساسية', 'القيمة'],
+        columns: ['المنتج', 'الكمية الأساسية', 'القيمة'],
         rows: [
           for (final r in rows)
             [

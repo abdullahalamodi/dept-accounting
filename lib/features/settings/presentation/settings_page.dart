@@ -35,6 +35,9 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       address = TextEditingController(
         text: widget.dependencies.store.shop!.address,
+      ),
+      fullName = TextEditingController(
+        text: widget.dependencies.store.user!.name,
       );
   final backupKey = TextEditingController();
   int auditPage = 1;
@@ -42,7 +45,7 @@ class _SettingsPageState extends State<SettingsPage> {
   late String currency = widget.dependencies.store.shop!.currency;
   @override
   void dispose() {
-    for (final c in [name, phone, address, backupKey]) {
+    for (final c in [name, phone, address, fullName, backupKey]) {
       c.dispose();
     }
     vm.dispose();
@@ -98,6 +101,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   FieldGrid(
                     minWidth: 400,
                     children: [
+                      DukanField(
+                        label: 'الاسم الكامل (اختياري)',
+                        controller: fullName,
+                      ),
                       DukanField(label: 'اسم المحل', controller: name),
                       DukanField(label: 'الهاتف', controller: phone),
                       DukanField(label: 'العنوان', controller: address),
@@ -123,6 +130,7 @@ class _SettingsPageState extends State<SettingsPage> {
                             phone: phone.text.trim(),
                             address: address.text.trim(),
                           ),
+                          ownerName: fullName.text,
                         ),
                       )) {
                         showMessage(context, 'تم حفظ الإعدادات');
@@ -138,7 +146,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 contentPadding: EdgeInsets.zero,
                 title: const Text('تفعيل نقطة البيع السريعة'),
                 subtitle: const Text(
-                  'نفس قواعد الفواتير والصلاحيات · F2 بيع، F3 أصناف، F4 أطراف، F6 شراء، Ctrl+L قفل',
+                  'نفس قواعد الفواتير والصلاحيات · F2 بيع، F3 منتجات، F4 أطراف، F6 شراء، Ctrl+L قفل',
                 ),
                 value: s.setting('pos_enabled') == 'true',
                 onChanged: (v) =>
@@ -323,7 +331,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   for (final user in s.users())
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: Text(user.name),
+                      title: Text(user.displayName),
                       subtitle: Text(
                         '${user.username} · ${user.roleLabel}${user.active ? '' : ' · موقوف'}',
                       ),

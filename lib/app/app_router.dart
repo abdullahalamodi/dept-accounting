@@ -6,6 +6,9 @@ import '../design_system/dukan_design_system.dart';
 import '../features/auth/presentation/auth_page.dart';
 import '../features/backup/presentation/backup_status_notice.dart';
 import '../features/catalog/presentation/catalog_page.dart';
+import '../features/catalog/presentation/catalog_references_page.dart';
+import '../features/catalog/data/catalog_reference.dart';
+import '../features/catalog/presentation/opening_stock_page.dart';
 import '../features/finance/presentation/finance_page.dart';
 import '../features/invoices/presentation/document_page.dart';
 import '../features/invoices/presentation/invoice_editor_page.dart';
@@ -34,7 +37,10 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
             path.startsWith('/receiving') ||
             path.startsWith('/inventory') ||
             path.startsWith('/returns') ||
-            path == '/catalog/new')) {
+            path == '/catalog/new' ||
+            path == '/catalog/units' ||
+            path == '/catalog/categories' ||
+            (path.startsWith('/catalog/') && path.endsWith('/opening')))) {
       return '/';
     }
     return null;
@@ -60,8 +66,12 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
       builder: (context, state) => AuthPage(dependencies: d, setup: false),
     ),
     ShellRoute(
-      builder: (context, state, child) =>
-          _AppWorkspace(d: d, path: state.uri.path, child: child),
+      builder: (context, state, child) => ListenableBuilder(
+        listenable: d.store,
+        child: child,
+        builder: (context, child) =>
+            _AppWorkspace(d: d, path: state.uri.path, child: child!),
+      ),
       routes: [
         _featureRoute(
           path: '/',
@@ -75,12 +85,29 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
             lowStockOnly: state.uri.queryParameters['stock'] == 'low',
           ),
         ),
+        for (final kind in CatalogReferenceKind.values)
+          _featureRoute(
+            path: '/catalog/${kind.table}',
+            builder: (context, state) => CatalogReferencesPage(
+              key: ValueKey(kind),
+              dependencies: d,
+              kind: kind,
+            ),
+          ),
         _featureRoute(
           path: '/catalog/:id',
           builder: (context, state) => ProductPage(
             key: ValueKey(state.uri),
             dependencies: d,
             id: state.pathParameters['id']!,
+          ),
+        ),
+        _featureRoute(
+          path: '/catalog/:id/opening',
+          builder: (context, state) => OpeningStockPage(
+            key: ValueKey(state.uri),
+            dependencies: d,
+            productId: state.pathParameters['id']!,
           ),
         ),
         _featureRoute(
@@ -298,8 +325,8 @@ class _AppWorkspace extends StatelessWidget {
         destinations: items.map((i) => (label: i.label, icon: i.icon)).toList(),
         selectedIndex: selected < 0 ? 0 : selected,
         title: items[selected < 0 ? 0 : selected].label,
-        footer: '${d.store.shop!.name} · ${d.store.user!.roleLabel}',
-        profileName: d.store.user!.name,
+        profileName: d.store.user!.displayName,
+        profileRole: d.store.user!.roleLabel,
         onProfilePressed: () => context.go('/profile'),
         onSelected: (index) {
           context.go(

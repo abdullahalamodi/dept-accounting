@@ -123,7 +123,7 @@ class InvoiceRepository {
       final snapshots = <InvoiceLine>[];
       for (final line in lines) {
         final item = catalog.get(line.productId);
-        if (!item.active) throw BusinessException('الصنف ${item.name} موقوف.');
+        if (!item.active) throw BusinessException('المنتج ${item.name} موقوف.');
         final alternate =
             line.unit == item.alternateUnit && item.alternateUnit.isNotEmpty;
         final factor = alternate ? item.factor : 1000;
@@ -208,7 +208,7 @@ class InvoiceRepository {
         for (final e in requiredStock.entries) {
           if (engine.stock(e.key).quantity < e.value) {
             throw BusinessException(
-              'المخزون لا يكفي للصنف ${catalog.get(e.key).name}.',
+              'المخزون لا يكفي للمنتج ${catalog.get(e.key).name}.',
             );
           }
         }

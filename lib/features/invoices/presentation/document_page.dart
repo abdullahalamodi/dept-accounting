@@ -154,7 +154,7 @@ class _DocumentPageState extends State<DocumentPage> {
                 title: 'البنود المعتمدة',
                 child: DukanDataTable(
                   columns: const [
-                    DataColumn(label: Text('الصنف')),
+                    DataColumn(label: Text('المنتج')),
                     DataColumn(label: Text('الوحدة')),
                     DataColumn(label: Text('الكمية')),
                     DataColumn(label: Text('السعر')),

@@ -7,6 +7,8 @@ import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dukan_design_system.dart';
 import '../../catalog/data/product.dart';
 import 'invoice_view_model.dart';
+import 'invoice_items_table.dart';
+import 'invoice_summary_panel.dart';
 
 class InvoiceEditorPage extends StatefulWidget {
   const InvoiceEditorPage({
@@ -56,12 +58,26 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
     );
   }
 
+  Future<void> confirm() async {
+    if (!await showDukanConfirmation(
+      context,
+      title: 'اعتماد الفاتورة؟',
+      message: 'سيُحدّث المخزون والصندوق وحساب الطرف. الفاتورة المعتمدة لا تُعدّل مباشرة.',
+      confirmLabel: 'اعتماد',
+    )) {
+      return;
+    }
+    final doc = await vm.post();
+    if (doc != null && mounted) {
+      context.go('/documents/${doc.id}');
+    }
+  }
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: vm,
     builder: (context, _) {
       final d = vm.d,
-          currency = d.store.shop!.currencyLabel,
           path = vm.quick || vm.receiptId != null
               ? '/receiving'
               : vm.sale
@@ -93,24 +109,6 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
               showMessage(context, vm.draftError ?? 'حُفظت المسودة على الجهاز');
             },
           ),
-          DukanButton(
-            label: 'اعتماد الفاتورة',
-            loading: vm.busy,
-            onPressed: () async {
-              if (!await showDukanConfirmation(
-                context,
-                title: 'اعتماد الفاتورة؟',
-                message: 'سيُحدّث المخزون والصندوق وحساب الطرف. الفاتورة المعتمدة لا تُعدّل مباشرة.',
-                confirmLabel: 'اعتماد',
-              )) {
-                return;
-              }
-              final doc = await vm.post();
-              if (doc != null && context.mounted) {
-                context.go('/documents/${doc.id}');
-              }
-            },
-          ),
         ],
         child: SectionStack(
           children: [
@@ -130,6 +128,7 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
               ),
             if (vm.draftError != null) ErrorNotice(vm.draftError),
             DukanEditorLayout(
+              minFormWidth: 688,
               form: SectionStack(
                 children: [
                   DukanPanel(
@@ -163,14 +162,6 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
                             vm.edit();
                           },
                         ),
-                        DukanField(
-                          label: 'ملاحظات',
-                          initialValue: vm.notes,
-                          onChanged: (v) {
-                            vm.notes = v;
-                            vm.edit();
-                          },
-                        ),
                       ],
                     ),
                   ),
@@ -183,229 +174,11 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
                             variant: DukanButtonVariant.secondary,
                             onPressed: picker,
                           ),
-                    child: SectionStack(
-                      children: [
-                        if (vm.lines.isEmpty)
-                          const DukanStateView(
-                            state: DukanViewState.empty,
-                            title: 'أضف بنود الفاتورة',
-                            message: 'ابحث عن المنتج أو امسح الباركود لإضافته.',
-                          ),
-                        for (final line in vm.lines)
-                          DukanPanel(
-                            key: ObjectKey(line),
-                            padding: const EdgeInsets.all(16),
-                            child: SectionStack.form(
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        d.catalog.get(line.productId).name,
-                                        style: Theme.of(context)
-                                            .textTheme
-                                            .titleSmall,
-                                      ),
-                                    ),
-                                    if (vm.receiptId == null)
-                                      TextButton(
-                                        onPressed: () {
-                                          vm.lines.remove(line);
-                                          vm.edit();
-                                        },
-                                        child: const Text('إزالة'),
-                                      ),
-                                  ],
-                                ),
-                                FieldGrid(
-                                  minWidth: 170,
-                                  children: [
-                                    ChoiceField(
-                                      label: 'الوحدة',
-                                      enabled: vm.receiptId == null,
-                                      value: line.unit,
-                                      items: [
-                                        (
-                                          value: d.catalog
-                                              .get(line.productId)
-                                              .unit,
-                                          label: d.catalog
-                                              .get(line.productId)
-                                              .unit,
-                                        ),
-                                        if (d.catalog
-                                            .get(line.productId)
-                                            .alternateUnit
-                                            .isNotEmpty)
-                                          (
-                                            value: d.catalog
-                                                .get(line.productId)
-                                                .alternateUnit,
-                                            label: d.catalog
-                                                .get(line.productId)
-                                                .alternateUnit,
-                                          ),
-                                      ],
-                                      onChanged: (v) => vm.changeUnit(line, v!),
-                                    ),
-                                    DukanField(
-                                      label: 'الكمية',
-                                      enabled: vm.receiptId == null,
-                                      initialValue: line.quantity,
-                                      numeric: true,
-                                      onChanged: (v) {
-                                        line.quantity = v;
-                                        vm.edit();
-                                      },
-                                    ),
-                                    DukanField(
-                                      key: ValueKey('${line.unit}-price'),
-                                      label: 'سعر الوحدة',
-                                      initialValue: line.price,
-                                      numeric: true,
-                                      onChanged: (v) {
-                                        line.price = v;
-                                        vm.edit();
-                                      },
-                                    ),
-                                    if (!vm.quick && vm.receiptId == null)
-                                      DukanField(
-                                        label: 'خصم البند ($currency)',
-                                        initialValue: line.discount,
-                                        numeric: true,
-                                        onChanged: (v) {
-                                          line.discount = v;
-                                          vm.edit();
-                                        },
-                                      ),
-                                    DukanField(
-                                      label: 'وصف البند (اختياري)',
-                                      initialValue: line.description,
-                                      onChanged: (v) {
-                                        line.description = v;
-                                        vm.edit();
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                      ],
-                    ),
+                    child: InvoiceItemsTable(vm: vm),
                   ),
-                  if (!vm.quick)
-                    DukanPanel(
-                      title: 'الدفعات',
-                      description: 'اتركها فارغة للبيع الآجل، أو وزّع المبلغ بين عدة حسابات.',
-                      action: DukanButton(
-                        label: 'إضافة دفعة',
-                        variant: DukanButtonVariant.secondary,
-                        onPressed: () {
-                          vm.payments.add(
-                            PaymentInput(
-                              account: d.finance.accounts().first.code,
-                            ),
-                          );
-                          vm.edit();
-                        },
-                      ),
-                      child: SectionStack.form(
-                        children: [
-                          for (final p in vm.payments)
-                            FieldGrid(
-                              key: ObjectKey(p),
-                              minWidth: 170,
-                              children: [
-                                ChoiceField(
-                                  label: 'الحساب',
-                                  value: p.account,
-                                  items: d.finance
-                                      .accounts()
-                                      .map(
-                                        (a) => (value: a.code, label: a.name),
-                                      )
-                                      .toList(),
-                                  onChanged: (v) {
-                                    p.account = v!;
-                                    vm.edit();
-                                  },
-                                ),
-                                DukanField(
-                                  label: 'المدفوع ($currency)',
-                                  initialValue: p.amount,
-                                  numeric: true,
-                                  onChanged: (v) {
-                                    p.amount = v;
-                                    vm.edit();
-                                  },
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    vm.payments.remove(p);
-                                    vm.edit();
-                                  },
-                                  child: const Text('إزالة الدفعة'),
-                                ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
                 ],
               ),
-              summary: DukanPanel(
-                title: 'ملخص الفاتورة',
-                child: SectionStack(
-                  children: [
-                    DukanSummaryLine(
-                      label: 'قيمة البنود',
-                      value: Numbers.format(vm.subtotal),
-                      currency: currency,
-                    ),
-                    if (!vm.quick && vm.receiptId == null)
-                      DukanField(
-                        label: 'خصم الفاتورة ($currency)',
-                        initialValue: vm.discount,
-                        numeric: true,
-                        onChanged: (v) {
-                          vm.discount = v;
-                          vm.edit();
-                        },
-                      ),
-                    if (!vm.sale && !vm.quick)
-                      DukanField(
-                        label: 'شحن يضاف لتكلفة المنتجات',
-                        initialValue: vm.shipping,
-                        numeric: true,
-                        onChanged: (v) {
-                          vm.shipping = v;
-                          vm.edit();
-                        },
-                      ),
-                    DukanSummaryLine(
-                      label: 'الإجمالي',
-                      value: Numbers.format(vm.total),
-                      currency: currency,
-                      total: true,
-                    ),
-                    DukanSummaryLine(
-                      label: 'المدفوع',
-                      value: Numbers.format(vm.paid),
-                      currency: currency,
-                    ),
-                    DukanSummaryLine(
-                      label: 'المتبقي',
-                      value: Numbers.format(vm.total - vm.paid),
-                      currency: currency,
-                    ),
-                    const Text(
-                      'المسودة تحفظ تلقائيًا. تاريخ الورقة مرجعي؛ حركة المخزون والتكلفة تحدث وقت الاعتماد.',
-                      style: TextStyle(color: DukanColors.muted),
-                    ),
-                  ],
-                ),
-              ),
+              summary: InvoiceSummaryPanel(vm: vm, onConfirm: confirm),
             ),
           ],
         ),
@@ -442,7 +215,7 @@ class _ProductPickerState extends State<_ProductPicker> {
         )
         .toList();
     return AlertDialog(
-      title: const Text('اختيار الأصناف'),
+      title: const Text('اختيار المنتجات'),
       content: SizedBox(
         width: 820,
         child: SingleChildScrollView(
@@ -458,7 +231,7 @@ class _ProductPickerState extends State<_ProductPicker> {
               DukanDataTable(
                 minWidth: 600,
                 columns: const [
-                  DataColumn(label: Text('الصنف')),
+                  DataColumn(label: Text('المنتج')),
                   DataColumn(label: Text('الباركود')),
                   DataColumn(label: Text('السعر')),
                   DataColumn(label: Text('الإجراء')),

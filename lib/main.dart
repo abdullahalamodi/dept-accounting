@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'app/app_router.dart';
 import 'app/dependencies.dart';
 import 'app/upgrade_backup.dart';
+import 'core/app_identity.dart';
 import 'core/data/local_database.dart';
 import 'design_system/dukan_design_system.dart';
 
@@ -22,6 +23,7 @@ Future<void> main() async {
   } catch (_) {
     runApp(
       MaterialApp(
+        title: appName,
         theme: DukanTheme.light(),
         locale: const Locale('ar'),
         supportedLocales: const [Locale('ar')],
@@ -76,7 +78,7 @@ class _DukanAppState extends State<DukanApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) => MaterialApp.router(
-    title: 'دكّان',
+    title: appName,
     debugShowCheckedModeBanner: false,
     theme: DukanTheme.light(),
     locale: const Locale('ar'),

@@ -16,7 +16,7 @@ class CatalogViewModel extends ActionViewModel {
             ('${p.name} ${p.barcode}'.toLowerCase().contains(
               search.toLowerCase(),
             )) &&
-            (category.isEmpty || p.category == category) &&
+            (category.isEmpty || p.categoryId == category) &&
             (!servicesOnly || p.service) &&
             (!lowOnly ||
                 (p.active &&
@@ -52,9 +52,9 @@ class CatalogViewModel extends ActionViewModel {
         id: id,
         name: values['name']!.trim(),
         barcode: values['barcode']!.trim(),
-        category: values['category']!.trim(),
-        unit: values['unit']!.trim(),
-        alternateUnit: service ? '' : values['alternateUnit']!.trim(),
+        categoryId: values['category']!.trim(),
+        unitId: values['unit']!.trim(),
+        alternateUnitId: service ? '' : values['alternateUnit']!.trim(),
         factor: service || values['alternateUnit']!.trim().isEmpty
             ? 1000
             : Numbers.parse(values['factor']!, decimals: 3),
@@ -65,13 +65,6 @@ class CatalogViewModel extends ActionViewModel {
         minStock: Numbers.parse(values['minStock']!, decimals: 3),
         active: active,
       ),
-    ),
-  );
-  bool opening(String id, String quantity, String cost) => perform(
-    () => repository.opening(
-      id,
-      Numbers.parse(quantity, decimals: 3),
-      Numbers.parse(cost, decimals: 6),
     ),
   );
 }

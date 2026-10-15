@@ -123,7 +123,7 @@ class ReturnsRepository {
           final base = Numbers.baseQuantity(s.quantity, line.factor),
               product = catalog.get(line.productId);
           if (!product.fractional && base % 1000 != 0) {
-            throw const BusinessException('الصنف لا يقبل كسر الوحدة الأساسية.');
+            throw const BusinessException('المنتج لا يقبل كسر الوحدة الأساسية.');
           }
           final value = s.quantity == remainingQuantity
               ? remainingValue

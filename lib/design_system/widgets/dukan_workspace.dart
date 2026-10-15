@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/app_identity.dart';
 import '../theme/dukan_tokens.dart';
+import 'dukan_controls.dart';
 
 typedef DukanDestination = ({String label, IconData icon});
 
@@ -12,11 +14,12 @@ class DukanWorkspace extends StatelessWidget {
     required this.onSelected,
     required this.child,
     this.title = 'نظام التصميم',
-    this.footer = 'دكّان · مكتبة الواجهات',
+    this.footer = '$appName · مكتبة الواجهات',
     this.scrollBody = true,
     this.notice,
     this.libraryMode = true,
     this.profileName,
+    this.profileRole,
     this.onProfilePressed,
   });
   final List<DukanDestination> destinations;
@@ -29,6 +32,7 @@ class DukanWorkspace extends StatelessWidget {
   final Widget? notice;
   final bool libraryMode;
   final String? profileName;
+  final String? profileRole;
   final VoidCallback? onProfilePressed;
 
   @override
@@ -44,6 +48,14 @@ class DukanWorkspace extends StatelessWidget {
         },
         footer: footer,
         libraryMode: libraryMode,
+        profileName: profileName,
+        profileRole: profileRole,
+        onProfilePressed: onProfilePressed == null
+            ? null
+            : () {
+                if (!expanded) Navigator.of(context).pop();
+                onProfilePressed!();
+              },
       );
       return Scaffold(
         drawer: expanded
@@ -85,37 +97,10 @@ class DukanWorkspace extends StatelessWidget {
                             ),
                           Expanded(
                             child: Text(
-                              'دكّان  /  $title',
+                              '$appName  /  $title',
                               style: const TextStyle(color: DukanColors.muted),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          if (onProfilePressed != null)
-                            IconButton(
-                              tooltip: 'الملف الشخصي',
-                              onPressed: onProfilePressed,
-                              icon: CircleAvatar(
-                                radius: 18,
-                                backgroundColor: DukanColors.primarySoft,
-                                child: Text(
-                                  profileName?.isNotEmpty == true
-                                      ? profileName!.characters.first
-                                      : 'د',
-                                  style: const TextStyle(
-                                    color: DukanColors.primary,
-                                  ),
-                                ),
-                              ),
-                            )
-                          else
-                            const CircleAvatar(
-                              radius: 18,
-                              backgroundColor: DukanColors.primarySoft,
-                              child: Text(
-                                'د',
-                                style: TextStyle(color: DukanColors.primary),
-                              ),
-                            ),
                         ],
                       ),
                     ),
@@ -164,12 +149,18 @@ class _Sidebar extends StatelessWidget {
     required this.onSelected,
     required this.footer,
     required this.libraryMode,
+    required this.profileName,
+    required this.profileRole,
+    required this.onProfilePressed,
   });
   final List<DukanDestination> destinations;
   final int selectedIndex;
   final ValueChanged<int> onSelected;
   final String footer;
   final bool libraryMode;
+  final String? profileName;
+  final String? profileRole;
+  final VoidCallback? onProfilePressed;
 
   @override
   Widget build(BuildContext context) => Material(
@@ -204,7 +195,7 @@ class _Sidebar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'دكّان',
+                      appName,
                       style: TextStyle(
                         fontFamily: 'NotoKufiArabic',
                         fontSize: 25,
@@ -264,20 +255,79 @@ class _Sidebar extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(24),
+          padding: const EdgeInsets.all(DukanSpace.lg),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Divider(),
-              const SizedBox(height: 16),
-              Text(
-                footer,
-                style: const TextStyle(fontSize: 12, color: DukanColors.muted),
+              const Padding(
+                padding: EdgeInsets.symmetric(horizontal: DukanSpace.sm),
+                child: Divider(),
               ),
-              const SizedBox(height: 4),
-              const Text(
-                'الإصدار 1.0 · واجهة عربية',
-                style: TextStyle(fontSize: 11, color: DukanColors.muted),
+              const SizedBox(height: DukanSpace.sm),
+              if (onProfilePressed != null)
+                Tooltip(
+                  message: 'الملف الشخصي',
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: DukanSpace.sm,
+                      vertical: DukanSpace.xs,
+                    ),
+                    minLeadingWidth: 36,
+                    horizontalTitleGap: DukanSpace.md,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        DukanLayout.smallRadius,
+                      ),
+                    ),
+                    leading: CircleAvatar(
+                      radius: 18,
+                      backgroundColor: DukanColors.primarySoft,
+                      child: Text(
+                        profileName?.isNotEmpty == true
+                            ? profileName!.characters.first
+                            : 'د',
+                        style: const TextStyle(color: DukanColors.primary),
+                      ),
+                    ),
+                    title: Text(
+                      profileName ?? 'الملف الشخصي',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: DukanTypography.control,
+                    ),
+                    subtitle: profileRole == null
+                        ? null
+                        : Padding(
+                            padding: const EdgeInsets.only(top: DukanSpace.xs),
+                            child: Align(
+                              alignment: AlignmentDirectional.centerStart,
+                              child: DukanStatusTag(
+                                profileRole!,
+                                compact: true,
+                              ),
+                            ),
+                          ),
+                    trailing: const Icon(Icons.chevron_right, size: 18),
+                    onTap: onProfilePressed,
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.all(DukanSpace.sm),
+                  child: Text(footer, style: DukanTypography.caption),
+                ),
+              Padding(
+                padding: const EdgeInsetsDirectional.only(
+                  start: DukanSpace.sm,
+                  top: DukanSpace.sm,
+                ),
+                child: Text(
+                  'الإصدار 1.0',
+                  style: DukanTypography.caption.copyWith(
+                    fontSize: 10,
+                    color: DukanColors.muted,
+                  ),
+                ),
               ),
             ],
           ),

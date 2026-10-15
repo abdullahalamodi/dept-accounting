@@ -39,6 +39,57 @@ void main() {
     d.store.dispose();
     d.store.database.close();
   });
+  test(
+    'Opening stock reads the saved buying price and preserves its posted value',
+    () {
+      d.catalog.save(
+        d.catalog.get('p').copyWith(purchasePrice: 12345, fractional: true),
+      );
+      d.catalog.opening('p', 1500);
+      expect(d.engine.stock('p').quantity, 1500);
+      expect(d.engine.stock('p').value, 18518);
+      expect(d.engine.balance('1300'), 18518);
+      expect(d.engine.balance('3900'), -18518);
+      d.catalog.save(d.catalog.get('p').copyWith(purchasePrice: 20000));
+      expect(d.engine.stock('p').value, 18518);
+      expect(
+        () => d.catalog.opening('p', 1000),
+        throwsA(isA<BusinessException>()),
+      );
+      d.catalog.save(const Product(id: 'zero', name: 'بدون سعر'));
+      expect(
+        () => d.catalog.opening('zero', 1000),
+        throwsA(isA<BusinessException>()),
+      );
+      expect(d.engine.stock('zero').quantity, 0);
+      d.catalog.save(
+        const Product(id: 'whole', name: 'منتج كامل', purchasePrice: 100),
+      );
+      expect(
+        () => d.catalog.opening('whole', 500),
+        throwsA(isA<BusinessException>()),
+      );
+      d.catalog.save(
+        const Product(
+          id: 'service',
+          name: 'خدمة',
+          service: true,
+          purchasePrice: 100,
+        ),
+      );
+      expect(
+        () => d.catalog.opening('service', 1000),
+        throwsA(isA<BusinessException>()),
+      );
+      d.store.setSetting('opening_closed', 'true');
+      expect(
+        () => d.catalog.opening('whole', 1000),
+        throwsA(isA<BusinessException>()),
+      );
+      expect(d.engine.stock('whole').quantity, 0);
+    },
+  );
+
   test('Approved operating cycle reconciles cash, stock, both party roles, and journal', () {
     d.finance.openAccount('1100', 2000000);
     d.invoices.post(
@@ -270,7 +321,7 @@ void main() {
           salePrice: 50000,
         ),
       );
-      d.catalog.opening('p', 2000, 1000000000);
+      d.catalog.opening('p', 2000);
       final sale = d.invoices.post(
         requestId: 'mixed',
         sale: true,

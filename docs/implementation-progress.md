@@ -1,4 +1,4 @@
-# Dukan implementation progress
+# تقدم تنفيذ دبت للحسابات
 
 Current direction: implement the approved v1 scope feature by feature. The user's latest stack rules take precedence over earlier suggestions: Flutter, go_router, ChangeNotifier/MVVM, dart_mappable, and feature folders. Reuse the existing design system. Keep tests minimal and focused on consequential behavior.
 

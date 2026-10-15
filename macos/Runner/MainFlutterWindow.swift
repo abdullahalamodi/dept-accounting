@@ -5,9 +5,19 @@ class MainFlutterWindow: NSWindow {
   private var scopedFolders: [String: URL] = [:]
 
   override func awakeFromNib() {
+    titleVisibility = .hidden
+    isRestorable = false
+
     let flutterViewController = FlutterViewController()
-    let windowFrame = self.frame
     self.contentViewController = flutterViewController
+
+    var windowFrame = frameRect(forContentRect: NSRect(x: 0, y: 0, width: 1440, height: 900))
+    if let visibleFrame = (screen ?? NSScreen.main)?.visibleFrame {
+      windowFrame.size.width = min(windowFrame.width, visibleFrame.width * 0.9)
+      windowFrame.size.height = min(windowFrame.height, visibleFrame.height * 0.9)
+      windowFrame.origin.x = visibleFrame.midX - windowFrame.width / 2
+      windowFrame.origin.y = visibleFrame.midY - windowFrame.height / 2
+    }
     self.setFrame(windowFrame, display: true)
 
     RegisterGeneratedPlugins(registry: flutterViewController)

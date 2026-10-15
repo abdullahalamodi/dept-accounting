@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
 import '../../../app/dependencies.dart';
+import '../../../core/app_identity.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dukan_design_system.dart';
 import '../data/auth_models.dart';
@@ -106,13 +107,13 @@ class _AuthPageState extends State<AuthPage> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(DukanSpace.xl),
           child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: widget.setup ? 760 : 620),
+            constraints: BoxConstraints(maxWidth: widget.setup ? 760 : 440),
             child: ListenableBuilder(
               listenable: vm,
               builder: (context, _) => SectionStack(
                 children: [
                   const Text(
-                    'دكّان',
+                    appName,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontFamily: 'NotoKufiArabic',
@@ -189,7 +190,7 @@ class _AuthPageState extends State<AuthPage> {
               DukanField(
                 label: 'اسم المستخدم',
                 controller: username,
-                helper: 'ستستخدمه مع كلمة المرور للدخول إلى دكّان.',
+                helper: 'ستستخدمه مع كلمة المرور للدخول إلى $appName.',
                 validator: (value) => _required(value, 'أدخل اسم المستخدم.'),
               ),
               FieldGrid(

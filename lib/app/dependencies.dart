@@ -7,6 +7,7 @@ import '../features/inventory/data/inventory_repository.dart';
 import '../features/receiving/data/receiving_repository.dart';
 import '../features/invoices/data/correction_repository.dart';
 import '../features/catalog/data/catalog_repository.dart';
+import '../features/catalog/data/catalog_references_repository.dart';
 import '../features/finance/data/finance_repository.dart';
 import '../features/finance/data/credit_repository.dart';
 import '../features/finance/data/reconciliation_repository.dart';
@@ -20,7 +21,8 @@ class AppDependencies {
   AppDependencies(LocalDatabase database) {
     store = AppStore(database);
     engine = PostingEngine(store);
-    catalog = CatalogRepository(store, engine);
+    catalogReferences = CatalogReferencesRepository(store);
+    catalog = CatalogRepository(store, engine, catalogReferences);
     parties = PartyRepository(store, engine);
     invoices = InvoiceRepository(store, engine, catalog, parties);
     finance = FinanceRepository(store, engine, invoices, parties);
@@ -36,6 +38,7 @@ class AppDependencies {
   }
   late final AppStore store;
   late final PostingEngine engine;
+  late final CatalogReferencesRepository catalogReferences;
   late final CatalogRepository catalog;
   late final PartyRepository parties;
   late final InvoiceRepository invoices;

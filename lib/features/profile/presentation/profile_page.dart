@@ -15,27 +15,25 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   late final vm = ProfileViewModel(widget.dependencies.store);
-  final detailsForm = GlobalKey<FormState>(),
-      passwordForm = GlobalKey<FormState>();
-  late final name = TextEditingController(text: vm.store.user!.name),
-      username = TextEditingController(text: vm.store.user!.username);
-  final currentPassword = TextEditingController(),
-      newPassword = TextEditingController(),
-      confirmation = TextEditingController();
+  final usernameForm = GlobalKey<FormState>();
+  late final username = TextEditingController(text: vm.store.user!.username);
 
   @override
   void dispose() {
-    for (final controller in [
-      name,
-      username,
-      currentPassword,
-      newPassword,
-      confirmation,
-    ]) {
-      controller.dispose();
-    }
+    username.dispose();
     vm.dispose();
     super.dispose();
+  }
+
+  Future<void> _changePassword() async {
+    final changed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _ChangePasswordDialog(dependencies: widget.dependencies),
+    );
+    if (changed == true && mounted) {
+      showMessage(context, 'تم تحديث كلمة المرور.');
+    }
   }
 
   @override
@@ -58,7 +56,7 @@ class _ProfilePageState extends State<ProfilePage> {
                   backgroundColor: DukanColors.primarySoft,
                   foregroundColor: DukanColors.primary,
                   child: Text(
-                    user.name.characters.first,
+                    user.displayName.characters.first,
                     style: Theme.of(context).textTheme.titleLarge
                         ?.copyWith(color: DukanColors.primary),
                   ),
@@ -69,7 +67,7 @@ class _ProfilePageState extends State<ProfilePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        user.name,
+                        user.displayName,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       Text(
@@ -87,123 +85,41 @@ class _ProfilePageState extends State<ProfilePage> {
             ),
           ),
           DukanPanel(
-            title: 'بيانات الحساب',
+            title: 'اسم المستخدم وكلمة المرور',
             child: Form(
-              key: detailsForm,
+              key: usernameForm,
               child: SectionStack.form(
                 children: [
-                  if (vm.error != null && !vm.editingPassword)
-                    ErrorNotice(vm.error),
-                  FieldGrid(
+                  if (vm.error != null) ErrorNotice(vm.error),
+                  DukanField(
+                    label: 'اسم المستخدم',
+                    controller: username,
+                    helper: 'استخدم الاسم الجديد عند تسجيل الدخول لاحقًا.',
+                    validator: (value) => value == null || value.trim().isEmpty
+                        ? 'أدخل اسم المستخدم.'
+                        : null,
+                  ),
+                  Wrap(
+                    spacing: DukanSpace.md,
+                    runSpacing: DukanSpace.md,
                     children: [
-                      DukanField(
-                        label: 'الاسم',
-                        controller: name,
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty
-                            ? 'أدخل اسمك.'
-                            : null,
+                      DukanButton(
+                        label: 'حفظ اسم المستخدم',
+                        onPressed: vm.busy
+                            ? null
+                            : () {
+                                if (usernameForm.currentState!.validate() &&
+                                    vm.saveUsername(username.text)) {
+                                  showMessage(context, 'تم حفظ اسم المستخدم.');
+                                }
+                              },
                       ),
-                      DukanField(
-                        label: 'اسم المستخدم',
-                        controller: username,
-                        helper: 'استخدم الاسم الجديد عند تسجيل الدخول لاحقًا.',
-                        validator: (value) =>
-                            value == null || value.trim().isEmpty
-                            ? 'أدخل اسم المستخدم.'
-                            : null,
+                      DukanButton(
+                        label: 'تغيير كلمة المرور',
+                        variant: DukanButtonVariant.secondary,
+                        onPressed: vm.busy ? null : _changePassword,
                       ),
                     ],
-                  ),
-                  Text(
-                    user.isOwner
-                        ? 'حساب المالك · إدارة المحل والمستخدمين والصلاحيات.'
-                        : 'صلاحية الحساب: ${user.roleLabel} · يحدد المالك الصلاحيات من إعدادات المحل.',
-                    style: const TextStyle(color: DukanColors.muted),
-                  ),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: DukanButton(
-                      label: 'حفظ بيانات الحساب',
-                      onPressed: vm.busy
-                          ? null
-                          : () {
-                              if (detailsForm.currentState!.validate() &&
-                                  vm.saveDetails(name.text, username.text)) {
-                                showMessage(context, 'تم حفظ بيانات حسابك.');
-                              }
-                            },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          DukanPanel(
-            title: 'كلمة المرور',
-            child: Form(
-              key: passwordForm,
-              child: SectionStack.form(
-                children: [
-                  if (vm.error != null && vm.editingPassword)
-                    ErrorNotice(vm.error),
-                  const Text(
-                    'لتغيير كلمة المرور، أدخل كلمتك الحالية أولًا.',
-                    style: TextStyle(color: DukanColors.muted),
-                  ),
-                  FieldGrid(
-                    children: [
-                      DukanPasswordField(
-                        label: 'كلمة المرور الحالية',
-                        controller: currentPassword,
-                        validator: (value) => value == null || value.isEmpty
-                            ? 'أدخل كلمة المرور الحالية.'
-                            : null,
-                      ),
-                      DukanPasswordField(
-                        label: 'كلمة المرور الجديدة',
-                        controller: newPassword,
-                        helper: '8 أحرف على الأقل',
-                        validator: (value) => (value?.length ?? 0) < 8
-                            ? 'استخدم 8 أحرف على الأقل.'
-                            : null,
-                      ),
-                      DukanPasswordField(
-                        label: 'تأكيد كلمة المرور الجديدة',
-                        controller: confirmation,
-                        validator: (value) =>
-                            value != newPassword.text ||
-                                (value?.isEmpty ?? true)
-                            ? 'كلمتا المرور غير متطابقتين.'
-                            : null,
-                      ),
-                    ],
-                  ),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: DukanButton(
-                      label: 'تحديث كلمة المرور',
-                      variant: DukanButtonVariant.secondary,
-                      loading: vm.busy,
-                      onPressed: () async {
-                        if (!passwordForm.currentState!.validate()) return;
-                        if (await vm.changePassword(
-                              currentPassword.text,
-                              newPassword.text,
-                            ) &&
-                            context.mounted) {
-                          passwordForm.currentState!.reset();
-                          for (final controller in [
-                            currentPassword,
-                            newPassword,
-                            confirmation,
-                          ]) {
-                            controller.clear();
-                          }
-                          showMessage(context, 'تم تحديث كلمة المرور.');
-                        }
-                      },
-                    ),
                   ),
                 ],
               ),
@@ -243,5 +159,104 @@ class _ProfilePageState extends State<ProfilePage> {
         ],
       );
     },
+  );
+}
+
+class _ChangePasswordDialog extends StatefulWidget {
+  const _ChangePasswordDialog({required this.dependencies});
+  final AppDependencies dependencies;
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final vm = ActionViewModel();
+  final form = GlobalKey<FormState>();
+  final currentPassword = TextEditingController(),
+      newPassword = TextEditingController(),
+      confirmation = TextEditingController();
+
+  @override
+  void dispose() {
+    for (final controller in [currentPassword, newPassword, confirmation]) {
+      controller.dispose();
+    }
+    vm.dispose();
+    super.dispose();
+  }
+
+  Future<void> submit() async {
+    if (vm.busy || !form.currentState!.validate()) return;
+    final changed = await vm.run(
+      () => widget.dependencies.store.changePassword(
+        currentPassword.text,
+        newPassword.text,
+      ),
+    );
+    if (changed && mounted) Navigator.pop(context, true);
+  }
+
+  @override
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: vm,
+    builder: (context, _) => PopScope(
+      canPop: !vm.busy,
+      child: AlertDialog(
+        title: const Text('تغيير كلمة المرور'),
+        content: SizedBox(
+          width: 440,
+          child: SingleChildScrollView(
+            child: Form(
+              key: form,
+              child: SectionStack.form(
+                children: [
+                  const Text(
+                    'لتغيير كلمة المرور، أدخل كلمتك الحالية أولًا.',
+                    style: TextStyle(color: DukanColors.muted),
+                  ),
+                  if (vm.error != null) ErrorNotice(vm.error),
+                  DukanPasswordField(
+                    label: 'كلمة المرور الحالية',
+                    controller: currentPassword,
+                    validator: (value) => value == null || value.isEmpty
+                        ? 'أدخل كلمة المرور الحالية.'
+                        : null,
+                  ),
+                  DukanPasswordField(
+                    label: 'كلمة المرور الجديدة',
+                    controller: newPassword,
+                    helper: '8 أحرف على الأقل',
+                    validator: (value) => (value?.length ?? 0) < 8
+                        ? 'استخدم 8 أحرف على الأقل.'
+                        : null,
+                  ),
+                  DukanPasswordField(
+                    label: 'تأكيد كلمة المرور الجديدة',
+                    controller: confirmation,
+                    validator: (value) =>
+                        value != newPassword.text || (value?.isEmpty ?? true)
+                        ? 'كلمتا المرور غير متطابقتين.'
+                        : null,
+                    onSubmitted: (_) => submit(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: vm.busy ? null : () => Navigator.pop(context),
+            child: const Text('إلغاء'),
+          ),
+          DukanButton(
+            label: 'تحديث كلمة المرور',
+            loading: vm.busy,
+            onPressed: submit,
+          ),
+        ],
+      ),
+    ),
   );
 }

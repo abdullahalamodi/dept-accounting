@@ -3,13 +3,15 @@ import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 
+import '../../../core/app_identity.dart';
+
 class RecoveryKeyExport {
   Future<bool> save({
     required String recoveryCode,
     required String backupKey,
   }) async {
     final content = [
-      'دكّان — مفاتيح الاسترداد',
+      '$appName — مفاتيح الاسترداد',
       '',
       'رمز استرداد دخول المالك',
       recoveryCode,
@@ -27,7 +29,7 @@ class RecoveryKeyExport {
       '',
     ].join('\n');
     final saved = await FilePicker.saveFile(
-      fileName: 'dukan-recovery-keys.txt',
+      fileName: '$appName-مفاتيح الاسترداد.txt',
       dialogTitle: 'حفظ مفاتيح الاسترداد',
       mimeType: 'text/plain',
       bytes: Uint8List.fromList(utf8.encode(content)),

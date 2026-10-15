@@ -40,7 +40,7 @@ class ReceivingRepository {
       final existing = engine.find(requestId);
       if (existing != null) return existing;
       if (!parties.get(partyId).supplier || lines.isEmpty) {
-        throw const BusinessException('اختر موردًا وأضف أصناف الاستلام.');
+        throw const BusinessException('اختر موردًا وأضف منتجات الاستلام.');
       }
       final snapshots = <InvoiceLine>[];
       for (final line in lines) {

@@ -5,23 +5,30 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../numbers.dart';
+import 'catalog_migration.dart';
+
+const currentSchemaVersion = 2;
 
 class LocalDatabase {
-  LocalDatabase._(this.handle, this.path) {
-    _migrate();
+  LocalDatabase.fromHandle(this.handle, this.path) {
+    migrate();
   }
   final Database handle;
   final String path;
   static Future<LocalDatabase> open({
     Future<void> Function(Database, String)? beforeMigration,
   }) async {
-    final directory = await getApplicationSupportDirectory();
+    final support = await getApplicationSupportDirectory();
+    // Windows derives this path from ProductName; keep the existing data folder.
+    final directory = Platform.isWindows
+        ? Directory(p.join(p.dirname(support.path), 'dukan_app'))
+        : support;
     await directory.create(recursive: true);
     final path = p.join(directory.path, 'dukan.sqlite');
     final handle = sqlite3.open(path);
     try {
       await beforeMigration?.call(handle, path);
-      return LocalDatabase._(handle, path);
+      return LocalDatabase.fromHandle(handle, path);
     } catch (_) {
       handle.close();
       rethrow;
@@ -29,21 +36,22 @@ class LocalDatabase {
   }
 
   factory LocalDatabase.memory() =>
-      LocalDatabase._(sqlite3.openInMemory(), ':memory:');
+      LocalDatabase.fromHandle(sqlite3.openInMemory(), ':memory:');
 
-  void _migrate() {
+  void migrate() {
     handle.execute('PRAGMA foreign_keys = ON');
     handle.execute('PRAGMA busy_timeout = 5000');
     handle.execute('PRAGMA journal_mode = WAL');
     handle.execute('PRAGMA synchronous = FULL');
-    if (handle.userVersion > 1) {
+    if (handle.userVersion > currentSchemaVersion) {
       throw const BusinessException(
         'قاعدة البيانات أحدث من هذا الإصدار. حدّث التطبيق.',
       );
     }
-    if (handle.userVersion == 1) return;
+    if (handle.userVersion == currentSchemaVersion) return;
     transaction(() {
-      handle.execute('''
+      if (handle.userVersion == 0) {
+        handle.execute('''
         CREATE TABLE settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
         CREATE TABLE users (id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
           data TEXT NOT NULL, password TEXT NOT NULL);
@@ -77,31 +85,36 @@ class LocalDatabase {
         CREATE INDEX allocations_invoice ON allocations(invoice_id);
         CREATE INDEX documents_party ON documents(party_id, kind);
       ''');
-      const accounts = [
-        ('1100', 'الصندوق الرئيسي', 'asset', 1),
-        ('1200', 'ذمم العملاء', 'asset', 0),
-        ('1300', 'المخزون', 'asset', 0),
-        ('2100', 'ذمم الموردين', 'liability', 0),
-        ('2200', 'بضاعة مستلمة غير مفوترة', 'liability', 0),
-        ('3100', 'رأس المال', 'equity', 0),
-        ('3200', 'مسحوبات المالك', 'equity', 0),
-        ('3900', 'التسوية الافتتاحية', 'equity', 0),
-        ('4100', 'مبيعات المنتجات', 'income', 0),
-        ('4200', 'إيرادات الخدمات', 'income', 0),
-        ('5100', 'تكلفة البضاعة المباعة', 'expense', 0),
-        ('6100', 'مصروفات تشغيلية', 'expense', 0),
-        ('6200', 'تالف وفروق المخزون', 'expense', 0),
-        ('6900', 'فروق التقريب', 'expense', 0),
-      ];
-      for (final (code, name, kind, cash) in accounts) {
-        handle.execute('INSERT INTO accounts VALUES (?, ?, ?, ?)', [
-          code,
-          name,
-          kind,
-          cash,
-        ]);
+        const accounts = [
+          ('1100', 'الصندوق الرئيسي', 'asset', 1),
+          ('1200', 'ذمم العملاء', 'asset', 0),
+          ('1300', 'المخزون', 'asset', 0),
+          ('2100', 'ذمم الموردين', 'liability', 0),
+          ('2200', 'بضاعة مستلمة غير مفوترة', 'liability', 0),
+          ('3100', 'رأس المال', 'equity', 0),
+          ('3200', 'مسحوبات المالك', 'equity', 0),
+          ('3900', 'التسوية الافتتاحية', 'equity', 0),
+          ('4100', 'مبيعات المنتجات', 'income', 0),
+          ('4200', 'إيرادات الخدمات', 'income', 0),
+          ('5100', 'تكلفة البضاعة المباعة', 'expense', 0),
+          ('6100', 'مصروفات تشغيلية', 'expense', 0),
+          ('6200', 'تالف وفروق المخزون', 'expense', 0),
+          ('6900', 'فروق التقريب', 'expense', 0),
+        ];
+        for (final (code, name, kind, cash) in accounts) {
+          handle.execute('INSERT INTO accounts VALUES (?, ?, ?, ?)', [
+            code,
+            name,
+            kind,
+            cash,
+          ]);
+        }
+        handle.userVersion = 1;
       }
-      handle.userVersion = 1;
+      if (handle.userVersion == 1) {
+        migrateCatalogReferences(handle);
+        handle.userVersion = currentSchemaVersion;
+      }
     });
   }
 

@@ -34,7 +34,7 @@ class _OverviewPageState extends State<OverviewPage> {
           DukanPageHeader(
             title: 'نظرة على محلك',
             description:
-                'مرحبًا ${d.store.user!.name}، إليك آخر حركة في ${d.store.shop!.name}.',
+                'مرحبًا ${d.store.user!.displayName}، إليك آخر حركة في ${d.store.shop!.name}.',
             actions: [
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
@@ -66,19 +66,27 @@ class _OverviewPageState extends State<OverviewPage> {
               final stock = _LowStock(items: vm.lowStock, wide: wide);
               if (!wide) {
                 return SectionStack(
-                  children: [chart, actions, invoices, stock],
+                  children: [actions, chart, invoices, stock],
                 );
               }
-              Widget row(Widget main, Widget side) => Row(
+              Widget row(
+                Widget first,
+                Widget second, {
+                int firstFlex = 7,
+                int secondFlex = 4,
+              }) => Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 7, child: main),
+                  Expanded(flex: firstFlex, child: first),
                   const SizedBox(width: DukanSpace.xl),
-                  Expanded(flex: 4, child: side),
+                  Expanded(flex: secondFlex, child: second),
                 ],
               );
               return SectionStack(
-                children: [row(chart, actions), row(invoices, stock)],
+                children: [
+                  row(actions, chart, firstFlex: 4, secondFlex: 7),
+                  row(invoices, stock),
+                ],
               );
             },
           ),
@@ -436,7 +444,7 @@ class _LowStock extends StatelessWidget {
                 const DukanStateView(
                   state: DukanViewState.empty,
                   title: 'مخزونك بخير',
-                  message: 'لا توجد أصناف وصلت إلى حد التنبيه.',
+                  message: 'لا توجد منتجات وصلت إلى حد التنبيه.',
                 )
               else
                 for (final item in items.take(4)) ...[

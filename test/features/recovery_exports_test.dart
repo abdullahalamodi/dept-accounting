@@ -51,7 +51,7 @@ void main() {
         shop = const Shop(name: 'دكان تجريبي', currency: 'YER');
     final report = ReportTable(
       title: 'فاتورة تجريبية',
-      columns: ['الصنف', 'الكمية', 'القيمة'],
+      columns: ['المنتج', 'الكمية', 'القيمة'],
       rows: [
         ['مصباح', '2', '3,000'],
       ],

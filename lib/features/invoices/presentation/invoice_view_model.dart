@@ -10,28 +10,24 @@ class InvoiceItemInput {
     required this.unit,
     this.quantity = '1',
     this.price = '0',
-    this.discount = '0',
-    this.description = '',
   });
   final String productId;
-  String unit, quantity, price, discount, description;
+  String unit, quantity, price;
   Map<String, dynamic> toMap() => {
     'productId': productId,
     'unit': unit,
     'quantity': quantity,
     'price': price,
-    'discount': discount,
-    'description': description,
   };
   factory InvoiceItemInput.fromMap(Map<String, dynamic> m) => InvoiceItemInput(
     productId: m['productId'] as String,
     unit: m['unit'] as String,
     quantity: m['quantity'] as String,
     price: m['price'] as String,
-    discount: m['discount'] as String,
-    description: m['description'] as String? ?? '',
   );
 }
+
+enum InvoicePaymentMode { cash, credit, partial }
 
 class PaymentInput {
   PaymentInput({required this.account, this.amount = '0'});
@@ -64,6 +60,22 @@ class InvoiceViewModel extends ActionViewModel {
       );
       partyId = draft['partyId'] as String?;
       discount = draft['discount'] as String? ?? '0';
+      // Older drafts and correction copies may contain line discounts.
+      // Carry them into the single invoice discount without changing the total.
+      final legacyDiscounts = (draft['lines'] as List).fold<int>(
+        0,
+        (sum, row) => sum + Numbers.parse(row['discount'] as String? ?? '0'),
+      );
+      if (legacyDiscounts != 0) {
+        discount = Numbers.input(Numbers.parse(discount) + legacyDiscounts);
+      }
+      paymentMode =
+          InvoicePaymentMode.values
+              .where((mode) => mode.name == draft['paymentMode'])
+              .firstOrNull ??
+          (payments.isEmpty
+              ? InvoicePaymentMode.credit
+              : InvoicePaymentMode.partial);
       shipping = draft['shipping'] as String? ?? '0';
       notes = draft['notes'] as String? ?? '';
       date = draft['date'] as String? ?? date;
@@ -82,6 +94,7 @@ class InvoiceViewModel extends ActionViewModel {
         ),
       );
     }
+    if (paymentMode != InvoicePaymentMode.credit) _ensurePayment();
   }
   final AppDependencies d;
   final bool sale, quick;
@@ -89,6 +102,7 @@ class InvoiceViewModel extends ActionViewModel {
   final String id;
   final lines = <InvoiceItemInput>[];
   final payments = <PaymentInput>[];
+  InvoicePaymentMode paymentMode = InvoicePaymentMode.cash;
   String? partyId, correctionOf;
   String discount = '0',
       shipping = '0',
@@ -104,16 +118,11 @@ class InvoiceViewModel extends ActionViewModel {
         .firstOrNull;
     if (product == null) {
       throw const BusinessException(
-        'الباركود غير موجود. ابحث عن الصنف أو أضفه أولًا.',
+        'الباركود غير موجود. ابحث عن المنتج أو أضفه أولًا.',
       );
     }
     final existing = lines
-        .where(
-          (l) =>
-              l.productId == product.id &&
-              l.unit == product.unit &&
-              l.discount == '0',
-        )
+        .where((l) => l.productId == product.id && l.unit == product.unit)
         .firstOrNull;
     if (existing == null) {
       add(product);
@@ -159,10 +168,8 @@ class InvoiceViewModel extends ActionViewModel {
           unit: l.unit,
           quantity: Numbers.parse(l.quantity, decimals: 3),
           price: Numbers.parse(l.price),
-          discount: Numbers.parse(l.discount),
           factor: l.unit == p.unit ? 1000 : p.factor,
           service: p.service,
-          description: l.description,
         );
       })(),
   ];
@@ -185,12 +192,49 @@ class InvoiceViewModel extends ActionViewModel {
   }
 
   int get paid {
+    if (quick || paymentMode == InvoicePaymentMode.credit) return 0;
+    if (paymentMode == InvoicePaymentMode.cash) return total;
     try {
       return payments.fold<int>(0, (n, p) => n + Numbers.parse(p.amount));
     } catch (_) {
       return 0;
     }
   }
+
+  void _ensurePayment() {
+    if (payments.isEmpty) {
+      payments.add(PaymentInput(account: d.finance.accounts().first.code));
+    }
+  }
+
+  void changePaymentMode(InvoicePaymentMode mode) {
+    if (paymentMode == mode) return;
+    paymentMode = mode;
+    if (mode != InvoicePaymentMode.credit) _ensurePayment();
+    if (mode == InvoicePaymentMode.cash) {
+      payments.removeRange(1, payments.length);
+    }
+    edit();
+  }
+
+  void addPayment() {
+    payments.add(PaymentInput(account: d.finance.accounts().first.code));
+    edit();
+  }
+
+  List<Payment> buildPayments() => switch (paymentMode) {
+    InvoicePaymentMode.credit => [],
+    InvoicePaymentMode.cash => [
+      Payment(account: payments.first.account, amount: total),
+    ],
+    InvoicePaymentMode.partial => [
+      for (final payment in payments)
+        Payment(
+          account: payment.account,
+          amount: Numbers.parse(payment.amount),
+        ),
+    ],
+  };
 
   void edit() {
     changed();
@@ -200,6 +244,7 @@ class InvoiceViewModel extends ActionViewModel {
   Map<String, dynamic> get draft => {
     'lines': lines.map((l) => l.toMap()).toList(),
     'payments': payments.map((p) => p.toMap()).toList(),
+    'paymentMode': paymentMode.name,
     'partyId': partyId,
     'discount': discount,
     'shipping': shipping,
@@ -245,14 +290,7 @@ class InvoiceViewModel extends ActionViewModel {
           requestId: id,
           receiptId: receiptId!,
           actualPrices: lines.map((l) => Numbers.parse(l.price)).toList(),
-          payments: payments
-              .map(
-                (p) => Payment(
-                  account: p.account,
-                  amount: Numbers.parse(p.amount),
-                ),
-              )
-              .toList(),
+          payments: buildPayments(),
           shipping: Numbers.parse(shipping),
           date: date,
           notes: notes,
@@ -262,10 +300,7 @@ class InvoiceViewModel extends ActionViewModel {
           requestId: id,
           sale: sale,
           lines: buildLines(),
-          payments: [
-            for (final p in payments)
-              Payment(account: p.account, amount: Numbers.parse(p.amount)),
-          ],
+          payments: buildPayments(),
           partyId: partyId,
           discount: Numbers.parse(discount),
           shipping: sale ? 0 : Numbers.parse(shipping),
