@@ -70,17 +70,21 @@ class _ProfilePageState extends State<ProfilePage> {
                         user.displayName,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      Text(
-                        '${user.username} · ${user.roleLabel}',
-                        style: const TextStyle(
-                          color: DeptAccountingColors.muted,
-                        ),
-                      ),
-                      Text(
-                        vm.store.shop!.name,
-                        style: const TextStyle(
-                          color: DeptAccountingColors.muted,
-                        ),
+                      const SizedBox(height: DeptAccountingSpace.xs),
+                      Row(
+                        children: [
+                          DeptAccountingStatusTag(
+                            user.roleLabel,
+                            compact: true,
+                          ),
+                          const SizedBox(width: DeptAccountingSpace.sm),
+                          Flexible(
+                            child: DeptAccountingStatusTag(
+                              vm.store.shop!.name,
+                              compact: true,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
