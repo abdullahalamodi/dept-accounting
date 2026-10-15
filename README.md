@@ -1,17 +1,43 @@
-# dukan_app
+# دكّان
 
-A new Flutter project.
+تطبيق Flutter عربي لإدارة محل واحد دون إنترنت. هذه نسخة تطوير محلية، وليست إصدارًا معتمدًا للاستخدام التجاري.
 
-## Getting Started
+يشمل الإعداد والمستخدمين المحليين، المنتجات والخدمات والوحدات، المخزون والافتتاح والجرد، العملاء والموردين، البيع والشراء والمسودات والمرتجعات، الاستلام السريع وتسوية التكلفة، الدفعات وتخصيص الأرصدة، المصروفات والتحويلات والمطابقة، المحاسبة التلقائية والتقارير والتصدير والنسخ المشفرة.
 
-This project is a starting point for a Flutter application.
+## التشغيل
 
-A few resources to get you started if this is your first Flutter project:
+Flutter 3.47.7 / Dart 3.13.5 استُخدما محليًا.
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+```bash
+flutter pub get
+dart run build_runner build
+flutter run -d macos
+```
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+على Windows استخدم `flutter run -d windows`. لبناء حزمة Windows نفّذ `./tool/build_windows.ps1` في PowerShell؛ أضف `-Installer` إذا كان Inno Setup 6 مثبتًا و`ISCC.exe` في PATH. يوجد أيضًا إجراء GitHub يدوي لبناء Windows؛ لم يُشغّل من هذه الجلسة.
+
+`./tool/build_macos.sh` يبني حزمة تطوير macOS. التوقيع والتوثيق والتوزيع التجاري خطوات مستقلة. Android ما زال يستخدم إعداد توقيع التطوير الافتراضي؛ لا توزّع حزمة release قبل تجهيز توقيع خاص.
+
+## الاستخدام والمرجع
+
+- [دليل البدء والاستعادة](docs/getting-started.md)
+- [ملاحظات التنفيذ وحدود القبول](docs/implementation-notes.md)
+- [المتطلبات المعتمدة](docs/functional-requirements-v1.md)
+- [القرارات المعتمدة](docs/approved-decisions-v1.md)
+- [خطة التطوير](docs/development-plan-v1.md)
+- [سجل التنفيذ](docs/implementation-progress.md)
+
+## بنية المشروع
+
+`lib/features/` يفصل الميزات إلى بيانات وعرض وViewModels. `lib/core/` يضم قاعدة البيانات والجلسة والحساب الدقيق ومكونات تركيب الصفحات. `lib/design_system/` مرجع الواجهات المشترك؛ يمكن فتح معرضه من الإعدادات. التنقل بـ go_router، والحالة بـ ChangeNotifier، والنماذج بـ dart_mappable. ملفات `*.mapper.dart` مولدة؛ عدّل المصدر ثم أعد التوليد.
+
+الاعتماد معاملة SQLite واحدة تحفظ المستند وحركات المخزون والقيود والتخصيص وسجل العملية. تستخدم المبالغ أعدادًا صحيحة بمنزلتين، والكميات بثلاث منازل، وتكلفة الوحدة بست. تغيير بطاقة الصنف لا يعيد كتابة المستندات المعتمدة.
+
+## التحقق المحدود
+
+```bash
+flutter analyze
+flutter test --no-pub
+```
+
+توجد اختبارات قليلة للترحيل المالي، وعدم تكرار الاعتماد، والتراجع عند الفشل، والمرتجع والخدمة، وتسوية الاستلام، وإعادة استخدام العربون، والنسخ والاستعادة والتصدير، واختبار تنقل/تخطيط للشاشات. تبقى تجربة Windows والطابعات الفعلية ومراجعة المحاسب والقبول الميداني مطلوبة.

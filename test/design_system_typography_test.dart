@@ -1,0 +1,25 @@
+import 'package:dukan_app/design_system/dukan_design_system.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+
+void main() {
+  test('Every text role uses the Arabic family and shared ink, with quiet section headings', () {
+    final theme = DukanTheme.light();
+    final roles = {
+      'headlineLarge': theme.textTheme.headlineLarge!,
+      'headlineMedium': theme.textTheme.headlineMedium!,
+      'titleLarge': theme.textTheme.titleLarge!,
+      'titleMedium': theme.textTheme.titleMedium!,
+      'bodyLarge': theme.textTheme.bodyLarge!,
+      'bodyMedium': theme.textTheme.bodyMedium!,
+      'bodySmall': theme.textTheme.bodySmall!,
+      'labelLarge': theme.textTheme.labelLarge!,
+    };
+    for (final role in roles.entries) {
+      expect(role.value.fontFamily, 'IBMPlexSansArabic', reason: role.key);
+      expect(role.value.color, DukanColors.ink, reason: role.key);
+    }
+    expect(theme.textTheme.titleMedium!.fontWeight, FontWeight.w400);
+    expect(theme.textTheme.titleMedium!.fontSize, 16);
+  });
+}
