@@ -1,20 +1,55 @@
-name: Windows build
+name: Build Windows
+
 on:
+  push:
+  pull_request:
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  windows:
-    runs-on: windows-latest
+  build:
+    name: Windows x64 release
+    runs-on: windows-2022
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
+      - name: Check out repository
+        uses: actions/checkout@v6
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.47.7'
           channel: stable
+          flutter-version-file: .fvmrc
           cache: true
-      - name: Build distributable
-        shell: pwsh
-        run: ./tool/build_windows.ps1
-      - uses: actions/upload-artifact@v4
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Generate models
+        run: dart run build_runner build
+
+      - name: Analyze
+        run: flutter analyze --no-pub
+
+      - name: Run tests
+        run: flutter test --no-pub --concurrency=1
+
+      - name: Build Windows release
+        run: flutter build windows --release --no-pub
+
+      - name: Upload Windows release bundle
+        uses: actions/upload-artifact@v7
         with:
-          name: دبت للحسابات-windows-development
-          path: build/distribution/*.zip
+          name: dept-accounting-windows-x64-${{ github.run_number }}
+          path: build/windows/x64/runner/Release/
+          if-no-files-found: error
+          retention-days: 14
