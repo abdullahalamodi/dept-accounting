@@ -39,6 +39,11 @@ class DeptAccountingWorkspace extends StatelessWidget {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, size) {
       final expanded = size.maxWidth >= DeptAccountingLayout.expanded;
+      final scrollNotice =
+          size.maxWidth < DeptAccountingLayout.compact && notice != null;
+      final body = scrollBody
+          ? DeptAccountingPageBody(key: ValueKey(selectedIndex), child: child)
+          : child;
       final sidebar = _Sidebar(
         destinations: destinations,
         selectedIndex: selectedIndex,
@@ -108,14 +113,14 @@ class DeptAccountingWorkspace extends StatelessWidget {
                         ],
                       ),
                     ),
-                    ?notice,
+                    if (!scrollNotice) ?notice,
                     Expanded(
-                      child: scrollBody
-                          ? DeptAccountingPageBody(
-                              key: ValueKey(selectedIndex),
-                              child: child,
+                      child: scrollNotice
+                          ? _ScrollingWorkspaceNotice(
+                              notice: notice!,
+                              child: body,
                             )
-                          : child,
+                          : body,
                     ),
                   ],
                 ),
@@ -128,24 +133,49 @@ class DeptAccountingWorkspace extends StatelessWidget {
   );
 }
 
+class _ScrollingWorkspaceNotice extends InheritedWidget {
+  const _ScrollingWorkspaceNotice({required this.notice, required super.child});
+
+  final Widget notice;
+
+  @override
+  bool updateShouldNotify(_ScrollingWorkspaceNotice oldWidget) =>
+      notice != oldWidget.notice;
+}
+
 class DeptAccountingPageBody extends StatelessWidget {
   const DeptAccountingPageBody({super.key, required this.child});
   final Widget child;
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, size) => SingleChildScrollView(
-      padding: EdgeInsets.all(size.maxWidth < 600 ? 16 : 32),
-      child: Align(
-        alignment: AlignmentDirectional.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(
-            maxWidth: DeptAccountingLayout.maxContent,
-          ),
-          child: child,
+  Widget build(BuildContext context) {
+    final notice = context
+        .dependOnInheritedWidgetOfExactType<_ScrollingWorkspaceNotice>()
+        ?.notice;
+    return LayoutBuilder(
+      builder: (context, size) => SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ?notice,
+            Padding(
+              padding: EdgeInsets.all(
+                size.maxWidth < DeptAccountingLayout.compact ? 16 : 32,
+              ),
+              child: Align(
+                alignment: AlignmentDirectional.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(
+                    maxWidth: DeptAccountingLayout.maxContent,
+                  ),
+                  child: child,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _Sidebar extends StatelessWidget {

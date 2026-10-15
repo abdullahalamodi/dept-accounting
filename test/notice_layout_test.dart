@@ -8,6 +8,68 @@ import 'support/load_app_fonts.dart';
 void main() {
   setUpAll(loadAppFonts);
 
+  testWidgets('Mobile workspace notices scroll away with the page', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+
+    for (final width in [390.0, 1200.0]) {
+      tester.view.physicalSize = Size(width, 800);
+      for (final scrollBody in [true, false]) {
+        final content = Column(
+          children: [
+            const Text('محتوى الصفحة'),
+            const SizedBox(height: 1000),
+            DeptAccountingButton(label: 'متابعة العمل', onPressed: () {}),
+          ],
+        );
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: DeptAccountingTheme.light(),
+            locale: const Locale('ar'),
+            supportedLocales: const [Locale('ar')],
+            localizationsDelegates: GlobalMaterialLocalizations.delegates,
+            home: DeptAccountingWorkspace(
+              key: ValueKey('$width-$scrollBody'),
+              destinations: const [(label: 'الرئيسية', icon: Icons.home)],
+              selectedIndex: 0,
+              onSelected: (_) {},
+              scrollBody: scrollBody,
+              notice: const Padding(
+                padding: EdgeInsets.all(12),
+                child: DeptAccountingNotice(title: 'احفظ نسخة خارج الجهاز'),
+              ),
+              child: scrollBody
+                  ? content
+                  : Navigator(
+                      onGenerateRoute: (_) => MaterialPageRoute<void>(
+                        builder: (_) => DeptAccountingPageBody(child: content),
+                      ),
+                    ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final notice = find.byType(DeptAccountingNotice);
+        expect(notice.hitTestable(), findsOneWidget);
+        final initialTop = tester.getTopLeft(notice).dy;
+        await tester.drag(find.text('محتوى الصفحة'), const Offset(0, -1400));
+        await tester.pumpAndSettle();
+
+        if (width < DeptAccountingLayout.compact) {
+          expect(notice.hitTestable(), findsNothing);
+        } else {
+          expect(tester.getTopLeft(notice).dy, initialTop);
+        }
+        expect(find.text('متابعة العمل').hitTestable(), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      }
+    }
+  });
+
   testWidgets('Mobile notices stay compact and their full text can scroll', (
     tester,
   ) async {
