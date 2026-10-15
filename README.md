@@ -16,7 +16,7 @@ flutter run -d macos
 
 على Windows استخدم `flutter run -d windows`. لبناء حزمة Windows نفّذ `./tool/build_windows.ps1` في PowerShell؛ أضف `-Installer` إذا كان Inno Setup 6 مثبتًا و`ISCC.exe` في PATH.
 
-إجراء GitHub باسم **Build Windows** يعمل عند push وpull request، ويمكن تشغيله يدويًا عبر **Run workflow**. يستخدم إصدار Flutter المثبت في `.fvmrc`، ويتحقق من التبعيات المقفلة ويولّد النماذج ويشغّل التحليل والاختبارات قبل بناء Windows x64 بوضع release. لتنزيل الحزمة افتح **Actions → Build Windows → التشغيل الناجح → Artifacts** واختر `dept-accounting-windows-x64-<run number>`؛ تُحفظ لمدة 14 يومًا. فك ضغط الحزمة كاملة واحتفظ بملفات DLL ومجلد `data` بجانب `dept_accounting.exe`. هذه حزمة تطوير غير موقعة وليست مثبتًا. لم يُشغّل البناء على GitHub أو Windows من هذه الجلسة.
+إجراء GitHub باسم **Build Windows** يعمل عند push وpull request، ويمكن تشغيله يدويًا عبر **Run workflow**. يستخدم إصدار Flutter المثبت في `.fvmrc`، ويتحقق من التبعيات المقفلة ويولّد النماذج ويشغّل التحليل والاختبارات قبل بناء Windows x64 بوضع release، ثم يجمع التطبيق وملفات DLL ومجلد `data` داخل مثبت EXE واحد باستخدام Inno Setup. لتنزيل المثبت افتح **Actions → Build Windows → التشغيل الناجح → Artifacts** واختر `دبت للحسابات-<version>-windows-setup.exe`؛ يُحفظ لمدة 14 يومًا ويُرفع مباشرة دون تغليفه داخل ZIP باستخدام `archive: false`. شغّل الملف على Windows لتثبيت التطبيق. المثبت يستخرج الملفات المطلوبة تلقائيًا وينشئ اختصارًا في قائمة ابدأ، مع خيار إضافة اختصار لسطح المكتب. هذا مثبت تطوير غير موقع. لم يُشغّل بناء المثبت على GitHub أو Windows من هذه الجلسة.
 
 `./tool/build_macos.sh` يبني حزمة تطوير macOS. التوقيع والتوثيق والتوزيع التجاري خطوات مستقلة. Android ما زال يستخدم إعداد توقيع التطوير الافتراضي؛ لا توزّع حزمة release قبل تجهيز توقيع خاص.
 

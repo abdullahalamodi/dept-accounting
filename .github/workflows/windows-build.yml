@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build:
-    name: Windows x64 release
+    name: Windows x64 installer
     runs-on: windows-2022
     timeout-minutes: 30
     steps:
@@ -46,10 +46,28 @@ jobs:
       - name: Build Windows release
         run: flutter build windows --release --no-pub
 
-      - name: Upload Windows release bundle
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { throw 'Inno Setup installation failed.' }
+
+      - name: Package Windows installer
+        shell: pwsh
+        run: |
+          $pubspec = Get-Content 'pubspec.yaml' -Raw -Encoding utf8
+          $versionMatch = [regex]::Match($pubspec, '(?m)^version:\s*([^+\s]+)')
+          if (-not $versionMatch.Success) { throw 'App version is missing from pubspec.yaml.' }
+          $env:DEPT_ACCOUNTING_VERSION = $versionMatch.Groups[1].Value
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) { throw 'Inno Setup compiler was not found.' }
+          & $iscc 'installer/dept_accounting.iss'
+          if ($LASTEXITCODE -ne 0) { throw 'Installer build failed.' }
+
+      - name: Upload Windows installer
         uses: actions/upload-artifact@v7
         with:
-          name: dept-accounting-windows-x64-${{ github.run_number }}
-          path: build/windows/x64/runner/Release/
+          path: build/distribution/*-windows-setup.exe
+          archive: false
           if-no-files-found: error
           retention-days: 14

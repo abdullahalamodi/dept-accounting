@@ -16,6 +16,7 @@ OutputDir=..\build\distribution
 OutputBaseFilename=دبت للحسابات-{#MyAppVersion}-windows-setup
 Compression=lzma2
 SolidCompression=yes
+DiskSpanning=no
 PrivilegesRequired=lowest
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
