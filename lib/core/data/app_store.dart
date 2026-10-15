@@ -160,6 +160,76 @@ class AppStore extends ChangeNotifier {
         .toList();
   }
 
+  void updateProfile({required String name, required String username}) {
+    require();
+    final actor = user!;
+    if (name.trim().isEmpty || username.trim().isEmpty) {
+      throw const BusinessException('أدخل الاسم واسم المستخدم.');
+    }
+    final duplicate = database.handle.select(
+      'SELECT id FROM users WHERE username = ? COLLATE NOCASE AND id != ?',
+      [username.trim(), actor.id],
+    );
+    if (duplicate.isNotEmpty) {
+      throw const BusinessException(
+        'اسم المستخدم مستخدم بالفعل. اختر اسمًا آخر.',
+      );
+    }
+    final row = database.handle.select('SELECT data FROM users WHERE id = ?', [
+      actor.id,
+    ]);
+    if (row.isEmpty) {
+      throw const BusinessException(
+        'تعذر العثور على الحساب. سجل الدخول مجددًا.',
+      );
+    }
+    final next = AppUserMapper.fromJson(row.first['data'] as String)
+        .copyWith(name: name.trim(), username: username.trim());
+    write(() {
+      database.handle.execute(
+        'UPDATE users SET username = ?, data = ? WHERE id = ?',
+        [next.username, next.toJson(), next.id],
+      );
+      audit('تحديث الملف الشخصي', next.id);
+    }, notify: false);
+    user = next;
+    notifyListeners();
+  }
+
+  Future<void> changePassword(
+    String currentPassword,
+    String newPassword,
+  ) async {
+    require();
+    final actorId = user!.id;
+    if (newPassword.length < 8) {
+      throw const BusinessException('كلمة المرور 8 أحرف على الأقل.');
+    }
+    final row = database.handle.select(
+      'SELECT password FROM users WHERE id = ?',
+      [actorId],
+    );
+    if (row.isEmpty ||
+        !await Passwords.verify(
+          currentPassword,
+          row.first['password'] as String,
+        )) {
+      throw const BusinessException('كلمة المرور الحالية غير صحيحة.');
+    }
+    final hash = await Passwords.hash(newPassword);
+    require();
+    if (user!.id != actorId) {
+      throw const BusinessException('تغيرت الجلسة. سجل الدخول مجددًا.');
+    }
+    write(() {
+      database.handle.execute('UPDATE users SET password = ? WHERE id = ?', [
+        hash,
+        actorId,
+      ]);
+      audit('تغيير كلمة المرور', actorId);
+    });
+  }
+
   Future<void> saveUser(AppUser next, String password) async {
     require(owner: true);
     if (next.name.trim().isEmpty ||
@@ -206,7 +276,9 @@ class AppStore extends ChangeNotifier {
         }
       }
       audit('حفظ مستخدم', next.id);
-    });
+    }, notify: false);
+    if (user?.id == next.id) user = next;
+    notifyListeners();
   }
 
   void updateShop(Shop next) {

@@ -4,7 +4,8 @@ import '../../design_system/dukan_design_system.dart';
 import '../numbers.dart';
 
 class SectionStack extends StatelessWidget {
-  const SectionStack({super.key, required this.children}) : spacing = DukanSpace.xl;
+  const SectionStack({super.key, required this.children})
+    : spacing = DukanSpace.xl;
   const SectionStack.form({super.key, required this.children})
     : spacing = DukanSpace.formGap;
   final List<Widget> children;
@@ -36,7 +37,7 @@ class FieldGrid extends StatelessWidget {
     builder: (context, c) {
       final count = ((c.maxWidth + DukanSpace.lg) / (minWidth + DukanSpace.lg))
           .floor()
-          .clamp(1, 3);
+          .clamp(1, children.length.clamp(1, 3));
       final width = (c.maxWidth - DukanSpace.lg * (count - 1)) / count;
       return Wrap(
         spacing: DukanSpace.lg,

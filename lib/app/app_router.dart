@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 
 import '../design_system/dukan_design_system.dart';
-import '../design_system/gallery/design_system_gallery.dart';
 import '../features/auth/presentation/auth_page.dart';
 import '../features/backup/presentation/backup_status_notice.dart';
 import '../features/catalog/presentation/catalog_page.dart';
@@ -15,6 +14,7 @@ import '../features/parties/presentation/parties_page.dart';
 import '../features/reports/presentation/reports_page.dart';
 import '../features/overview/presentation/overview_page.dart';
 import '../features/settings/presentation/settings_page.dart';
+import '../features/profile/presentation/profile_page.dart';
 import 'dependencies.dart';
 import '../features/returns/presentation/return_page.dart';
 import '../features/receiving/presentation/receiving_page.dart';
@@ -200,11 +200,11 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
           path: '/settings',
           builder: (context, state) => SettingsPage(dependencies: d),
         ),
+        _featureRoute(
+          path: '/profile',
+          builder: (context, state) => ProfilePage(dependencies: d),
+        ),
       ],
-    ),
-    GoRoute(
-      path: '/design-system',
-      builder: (context, state) => const DesignSystemGallery(),
     ),
   ],
 );
@@ -267,7 +267,7 @@ class _AppWorkspace extends StatelessWidget {
           label: 'الإعدادات والنسخ',
           icon: Icons.settings_outlined,
         ),
-      (path: '/logout', label: 'قفل الجلسة', icon: Icons.lock_outline),
+      (path: '/profile', label: 'الملف الشخصي', icon: Icons.person_outline),
     ];
     final selected = items.indexWhere(
       (item) => item.path == '/' ? path == '/' : path.startsWith(item.path),
@@ -299,16 +299,14 @@ class _AppWorkspace extends StatelessWidget {
         selectedIndex: selected < 0 ? 0 : selected,
         title: items[selected < 0 ? 0 : selected].label,
         footer: '${d.store.shop!.name} · ${d.store.user!.roleLabel}',
+        profileName: d.store.user!.name,
+        onProfilePressed: () => context.go('/profile'),
         onSelected: (index) {
-          if (items[index].path == '/logout') {
-            d.store.logout();
-          } else {
-            context.go(
-              items[index].path == '/pos'
-                  ? '/pos/${d.store.id()}'
-                  : items[index].path,
-            );
-          }
+          context.go(
+            items[index].path == '/pos'
+                ? '/pos/${d.store.id()}'
+                : items[index].path,
+          );
         },
         child: child,
       ),

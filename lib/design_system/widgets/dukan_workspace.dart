@@ -16,6 +16,8 @@ class DukanWorkspace extends StatelessWidget {
     this.scrollBody = true,
     this.notice,
     this.libraryMode = true,
+    this.profileName,
+    this.onProfilePressed,
   });
   final List<DukanDestination> destinations;
   final int selectedIndex;
@@ -26,6 +28,8 @@ class DukanWorkspace extends StatelessWidget {
   final bool scrollBody;
   final Widget? notice;
   final bool libraryMode;
+  final String? profileName;
+  final VoidCallback? onProfilePressed;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -86,14 +90,32 @@ class DukanWorkspace extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const CircleAvatar(
-                            radius: 18,
-                            backgroundColor: DukanColors.primarySoft,
-                            child: Text(
-                              'د',
-                              style: TextStyle(color: DukanColors.primary),
+                          if (onProfilePressed != null)
+                            IconButton(
+                              tooltip: 'الملف الشخصي',
+                              onPressed: onProfilePressed,
+                              icon: CircleAvatar(
+                                radius: 18,
+                                backgroundColor: DukanColors.primarySoft,
+                                child: Text(
+                                  profileName?.isNotEmpty == true
+                                      ? profileName!.characters.first
+                                      : 'د',
+                                  style: const TextStyle(
+                                    color: DukanColors.primary,
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            const CircleAvatar(
+                              radius: 18,
+                              backgroundColor: DukanColors.primarySoft,
+                              child: Text(
+                                'د',
+                                style: TextStyle(color: DukanColors.primary),
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),

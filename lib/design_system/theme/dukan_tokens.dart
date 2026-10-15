@@ -38,6 +38,7 @@ abstract final class DukanLayout {
   static const maxContent = 1440.0;
   static const minTarget = 48.0;
   static const controlHeight = 52.0;
+  static const compactNoticeMaxHeight = 160.0;
   static const badgeRadius = 4.0;
   static const smallRadius = 6.0;
   static const radius = 8.0;
@@ -46,24 +47,58 @@ abstract final class DukanLayout {
 }
 
 abstract final class DukanTypography {
+  static const family = 'IBMPlexSansArabic';
+  static const regular = FontWeight.w400;
+  static const emphasis = FontWeight.w500;
   static const controlFontSize = 14.0;
   static const controlLineHeight = 24.0;
   static const controlVerticalPadding = 14.0;
   static const control = TextStyle(
-    fontFamily: 'IBMPlexSansArabic',
+    fontFamily: family,
     fontSize: controlFontSize,
-    fontWeight: FontWeight.w400,
+    fontWeight: regular,
     height: controlLineHeight / controlFontSize,
     color: DukanColors.ink,
   );
   static const label = TextStyle(
-    fontFamily: 'IBMPlexSansArabic',
+    fontFamily: family,
     fontSize: 13,
-    fontWeight: FontWeight.w400,
+    fontWeight: regular,
     height: 1.5,
     color: DukanColors.muted,
   );
-  static final action = control.copyWith(fontWeight: FontWeight.w500);
+  static const action = control;
+  static const caption = TextStyle(
+    fontFamily: family,
+    fontSize: 12,
+    fontWeight: regular,
+    height: 1.7,
+    color: DukanColors.ink,
+  );
+  static const sectionTitle = TextStyle(
+    fontFamily: family,
+    fontSize: 16,
+    fontWeight: regular,
+    height: 1.6,
+    color: DukanColors.ink,
+  );
+  static final textTheme = TextTheme(
+    displayLarge: sectionTitle.copyWith(fontSize: 40, fontWeight: emphasis),
+    displayMedium: sectionTitle.copyWith(fontSize: 36, fontWeight: emphasis),
+    displaySmall: sectionTitle.copyWith(fontSize: 32, fontWeight: emphasis),
+    headlineLarge: sectionTitle.copyWith(fontSize: 32, fontWeight: emphasis),
+    headlineMedium: sectionTitle.copyWith(fontSize: 26, fontWeight: emphasis),
+    headlineSmall: sectionTitle.copyWith(fontSize: 22, fontWeight: emphasis),
+    titleLarge: sectionTitle.copyWith(fontSize: 20),
+    titleMedium: sectionTitle,
+    titleSmall: control,
+    bodyLarge: control,
+    bodyMedium: control,
+    bodySmall: caption,
+    labelLarge: control.copyWith(height: 1.5),
+    labelMedium: label.copyWith(color: DukanColors.ink),
+    labelSmall: caption.copyWith(height: 1.5),
+  );
 
   static double controlHeight(BuildContext context) {
     final textHeight =

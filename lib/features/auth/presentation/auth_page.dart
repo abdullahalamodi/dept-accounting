@@ -194,7 +194,7 @@ class _AuthPageState extends State<AuthPage> {
               ),
               FieldGrid(
                 children: [
-                  _PasswordField(
+                  DukanPasswordField(
                     label: 'كلمة المرور',
                     controller: password,
                     helper: '8 أحرف على الأقل',
@@ -202,7 +202,7 @@ class _AuthPageState extends State<AuthPage> {
                         ? 'استخدم كلمة مرور من 8 أحرف على الأقل.'
                         : null,
                   ),
-                  _PasswordField(
+                  DukanPasswordField(
                     label: 'تأكيد كلمة المرور',
                     controller: confirm,
                     validator: (value) =>
@@ -223,12 +223,12 @@ class _AuthPageState extends State<AuthPage> {
               const Text(
                 'احتفظ بالمفتاحين لاسترداد الدخول واستعادة بيانات محلك عند الحاجة.',
               ),
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Text(
                     'رمز استرداد الدخول',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
                   Text(
                     'لإعادة تعيين كلمة مرور المالك إذا نسيتها.',
@@ -237,7 +237,7 @@ class _AuthPageState extends State<AuthPage> {
                   SizedBox(height: DukanSpace.md),
                   Text(
                     'مفتاح استعادة النسخ الاحتياطية',
-                    style: TextStyle(fontWeight: FontWeight.w600),
+                    style: Theme.of(context).textTheme.labelLarge,
                   ),
                   Text(
                     'لاستعادة بيانات محلك من نسخة احتياطية مشفرة.',
@@ -340,7 +340,7 @@ class _AuthPageState extends State<AuthPage> {
           DukanField(label: 'اسم المستخدم', controller: username)
         else
           DukanField(label: 'رمز استرداد دخول المالك', controller: code),
-        _PasswordField(
+        DukanPasswordField(
           label: recovery ? 'كلمة المرور الجديدة' : 'كلمة المرور',
           controller: password,
           helper: recovery ? '8 أحرف على الأقل' : null,
@@ -364,44 +364,4 @@ class _AuthPageState extends State<AuthPage> {
 
   String? _required(String? value, String message) =>
       value == null || value.trim().isEmpty ? message : null;
-}
-
-class _PasswordField extends StatefulWidget {
-  const _PasswordField({
-    required this.label,
-    required this.controller,
-    this.helper,
-    this.validator,
-    this.onSubmitted,
-  });
-  final String label;
-  final TextEditingController controller;
-  final String? helper;
-  final FormFieldValidator<String>? validator;
-  final ValueChanged<String>? onSubmitted;
-
-  @override
-  State<_PasswordField> createState() => _PasswordFieldState();
-}
-
-class _PasswordFieldState extends State<_PasswordField> {
-  bool hidden = true;
-
-  @override
-  Widget build(BuildContext context) => DukanField(
-    label: widget.label,
-    controller: widget.controller,
-    helper: widget.helper,
-    validator: widget.validator,
-    onSubmitted: widget.onSubmitted,
-    obscureText: hidden,
-    autocorrect: false,
-    suffixIcon: IconButton(
-      tooltip: hidden ? 'إظهار ${widget.label}' : 'إخفاء ${widget.label}',
-      onPressed: () => setState(() => hidden = !hidden),
-      icon: Icon(
-        hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
-      ),
-    ),
-  );
 }

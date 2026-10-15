@@ -56,10 +56,29 @@ void main() {
           '/finance/new',
           '/reports',
           '/settings',
+          '/profile',
         ]) {
           router.go(path);
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull, reason: '$path at $width');
+        }
+        router.go('/settings');
+        await tester.pumpAndSettle();
+        for (final section in [
+          'النسخ الاحتياطية',
+          'المستخدمون',
+          'سجل العمليات',
+          'المحل',
+        ]) {
+          final tab = find.widgetWithText(DukanFilterChip, section);
+          await tester.ensureVisible(tab);
+          await tester.tap(tab);
+          await tester.pumpAndSettle();
+          expect(
+            tester.takeException(),
+            isNull,
+            reason: 'settings $section at $width',
+          );
         }
         await tester.pumpWidget(const SizedBox.shrink());
         await tester.pumpAndSettle();

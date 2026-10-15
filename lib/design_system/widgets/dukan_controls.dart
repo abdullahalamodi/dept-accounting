@@ -100,28 +100,35 @@ class DukanPanel extends StatelessWidget {
           if (title != null) ...[
             Padding(
               padding: const EdgeInsets.all(DukanSpace.xl),
-              child: Wrap(
-                spacing: 16,
-                runSpacing: 12,
-                alignment: WrapAlignment.spaceBetween,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        title!,
-                        style: Theme.of(context).textTheme.titleMedium,
+              child: LayoutBuilder(
+                builder: (context, constraints) => Wrap(
+                  spacing: 16,
+                  runSpacing: 12,
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: constraints.maxWidth,
                       ),
-                      if (description != null)
-                        Text(
-                          description!,
-                          style: const TextStyle(color: DukanColors.muted),
-                        ),
-                    ],
-                  ),
-                  ?action,
-                ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title!,
+                            style: Theme.of(context).textTheme.titleMedium,
+                          ),
+                          if (description != null)
+                            Text(
+                              description!,
+                              style: const TextStyle(color: DukanColors.muted),
+                            ),
+                        ],
+                      ),
+                    ),
+                    ?action,
+                  ],
+                ),
               ),
             ),
             if (showHeaderDivider) const Divider(),
@@ -193,8 +200,10 @@ class DukanStatusTag extends StatelessWidget {
     ),
     child: Text(
       label,
-      style: Theme.of(context).textTheme.bodySmall
-          ?.copyWith(color: tone.foreground, fontWeight: FontWeight.w600),
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: tone.foreground,
+        fontWeight: DukanTypography.emphasis,
+      ),
     ),
   );
 }
@@ -348,37 +357,54 @@ class DukanNotice extends StatelessWidget {
   final DukanTone tone;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    liveRegion: tone == DukanTone.danger,
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: tone.background,
-        borderRadius: BorderRadius.circular(DukanLayout.radius),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(tone.icon, color: tone.foreground, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.labelLarge
-                      ?.copyWith(color: tone.foreground),
-                ),
-                if (message != null)
-                  Text(message!, style: TextStyle(color: tone.foreground)),
-              ],
-            ),
+  Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final scrollable =
+        size.width < DukanLayout.compact &&
+        (tone == DukanTone.warning || tone == DukanTone.info);
+    final content = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(tone.icon, color: tone.foreground, size: 22),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                style: Theme.of(context).textTheme.labelLarge
+                    ?.copyWith(color: tone.foreground),
+              ),
+              if (message != null)
+                Text(message!, style: TextStyle(color: tone.foreground)),
+            ],
           ),
-        ],
+        ),
+      ],
+    );
+    return Semantics(
+      liveRegion: tone == DukanTone.danger,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: scrollable
+              ? (size.height * .25).clamp(0, DukanLayout.compactNoticeMaxHeight)
+              : double.infinity,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(DukanSpace.lg),
+          decoration: BoxDecoration(
+            color: tone.background,
+            borderRadius: BorderRadius.circular(DukanLayout.radius),
+          ),
+          child: scrollable
+              ? SingleChildScrollView(primary: false, child: content)
+              : content,
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 enum DukanViewState { empty, error, loading }
@@ -498,7 +524,9 @@ class DukanAmount extends StatelessWidget {
           textDirection: TextDirection.ltr,
           style: TextStyle(
             fontFeatures: const [FontFeature.tabularFigures()],
-            fontWeight: emphasized ? FontWeight.w600 : FontWeight.w400,
+            fontWeight: emphasized
+                ? DukanTypography.emphasis
+                : DukanTypography.regular,
           ),
         ),
         Text(
@@ -563,13 +591,54 @@ class DukanSummaryLine extends StatelessWidget {
             label,
             style: TextStyle(
               color: total ? DukanColors.ink : DukanColors.muted,
-              fontWeight: total ? FontWeight.w600 : null,
+              fontWeight: total ? DukanTypography.emphasis : null,
             ),
           ),
         ),
         const SizedBox(width: 16),
         DukanAmount(value, emphasized: total, currency: currency),
       ],
+    ),
+  );
+}
+
+class DukanPasswordField extends StatefulWidget {
+  const DukanPasswordField({
+    super.key,
+    required this.label,
+    required this.controller,
+    this.helper,
+    this.validator,
+    this.onSubmitted,
+  });
+  final String label;
+  final TextEditingController controller;
+  final String? helper;
+  final FormFieldValidator<String>? validator;
+  final ValueChanged<String>? onSubmitted;
+
+  @override
+  State<DukanPasswordField> createState() => _DukanPasswordFieldState();
+}
+
+class _DukanPasswordFieldState extends State<DukanPasswordField> {
+  bool hidden = true;
+
+  @override
+  Widget build(BuildContext context) => DukanField(
+    label: widget.label,
+    controller: widget.controller,
+    helper: widget.helper,
+    validator: widget.validator,
+    onSubmitted: widget.onSubmitted,
+    obscureText: hidden,
+    autocorrect: false,
+    suffixIcon: IconButton(
+      tooltip: hidden ? 'إظهار ${widget.label}' : 'إخفاء ${widget.label}',
+      onPressed: () => setState(() => hidden = !hidden),
+      icon: Icon(
+        hidden ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+      ),
     ),
   );
 }

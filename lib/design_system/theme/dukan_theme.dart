@@ -28,45 +28,18 @@ abstract final class DukanTheme {
       onError: Colors.white,
       errorContainer: DukanColors.dangerSoft,
     );
-    final text = ThemeData.light().textTheme.apply(
-      fontFamily: 'IBMPlexSansArabic',
-      bodyColor: DukanColors.ink,
-      displayColor: DukanColors.ink,
-    );
+    final text = DukanTypography.textTheme;
     return ThemeData(
       useMaterial3: true,
       colorScheme: scheme,
       scaffoldBackgroundColor: DukanColors.background,
-      fontFamily: 'IBMPlexSansArabic',
-      textTheme: text.copyWith(
-        headlineLarge: const TextStyle(
-          fontSize: 32,
-          fontWeight: FontWeight.w600,
-          height: 1.6,
-        ),
-        headlineMedium: const TextStyle(
-          fontSize: 26,
-          fontWeight: FontWeight.w600,
-          height: 1.6,
-        ),
-        titleLarge: const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          height: 1.6,
-        ),
-        titleMedium: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          height: 1.6,
-        ),
-        bodyLarge: DukanTypography.control,
-        bodyMedium: const TextStyle(fontSize: 14, height: 1.7),
-        bodySmall: const TextStyle(fontSize: 12, height: 1.7),
-        labelLarge: const TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w600,
-          height: 1.5,
-        ),
+      fontFamily: DukanTypography.family,
+      textTheme: text,
+      listTileTheme: ListTileThemeData(
+        titleTextStyle: text.bodyMedium,
+        subtitleTextStyle: text.bodySmall?.copyWith(color: DukanColors.muted),
+        textColor: DukanColors.ink,
+        iconColor: DukanColors.muted,
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
