@@ -117,6 +117,7 @@ class AppStore extends ChangeNotifier {
       setSetting('shop', shop.toJson());
       setSetting('recovery', recoveryHash);
       setSetting('backup_key', backupKey);
+      setSetting('startup_guide_visible', 'true');
       database.handle.execute('INSERT INTO users VALUES (?, ?, ?, ?)', [
         owner.id,
         owner.username,

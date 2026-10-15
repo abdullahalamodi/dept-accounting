@@ -20,8 +20,13 @@ enum _SettingsSection {
 }
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({super.key, required this.dependencies});
+  const SettingsPage({
+    super.key,
+    required this.dependencies,
+    this.initialBackups = false,
+  });
   final AppDependencies dependencies;
+  final bool initialBackups;
   @override
   State<SettingsPage> createState() => _SettingsPageState();
 }
@@ -42,7 +47,9 @@ class _SettingsPageState extends State<SettingsPage> {
       );
   final backupKey = TextEditingController();
   int auditPage = 1;
-  _SettingsSection section = _SettingsSection.shop;
+  late _SettingsSection section = widget.initialBackups
+      ? _SettingsSection.backups
+      : _SettingsSection.shop;
   late String currency = widget.dependencies.store.shop!.currency;
   @override
   void dispose() {

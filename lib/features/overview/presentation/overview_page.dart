@@ -7,6 +7,7 @@ import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/overview_repository.dart';
 import 'overview_view_model.dart';
+import '../../startup/presentation/startup_guide.dart';
 
 class OverviewPage extends StatefulWidget {
   const OverviewPage({super.key, required this.dependencies});
@@ -46,6 +47,7 @@ class _OverviewPageState extends State<OverviewPage> {
               ),
             ],
           ),
+          if (manage) StartupGuide(dependencies: d),
           LayoutBuilder(
             builder: (context, size) {
               final wide =

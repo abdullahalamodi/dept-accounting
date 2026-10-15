@@ -128,9 +128,15 @@ class _PartiesPageState extends State<PartiesPage> {
 }
 
 class PartyPage extends StatefulWidget {
-  const PartyPage({super.key, required this.dependencies, required this.id});
+  const PartyPage({
+    super.key,
+    required this.dependencies,
+    required this.id,
+    this.initialSupplier = false,
+  });
   final AppDependencies dependencies;
   final String id;
+  final bool initialSupplier;
   @override
   State<PartyPage> createState() => _PartyPageState();
 }
@@ -153,8 +159,13 @@ class _PartyPageState extends State<PartyPage> {
       opening = TextEditingController();
   final adjustment = TextEditingController(),
       adjustmentReason = TextEditingController();
-  late bool customer = party?.customer ?? true,
-      supplier = party?.supplier ?? false,
+  late bool customer =
+          party?.customer ??
+          !(widget.initialSupplier &&
+              widget.dependencies.store.user!.canManage),
+      supplier =
+          party?.supplier ??
+          (widget.initialSupplier && widget.dependencies.store.user!.canManage),
       active = party?.active ?? true;
   late bool customerStatement = party?.customer ?? true;
   int page = 1;

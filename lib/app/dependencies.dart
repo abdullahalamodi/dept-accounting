@@ -16,6 +16,7 @@ import '../features/parties/data/party_repository.dart';
 import '../features/reports/data/reports_repository.dart';
 import '../features/reports/data/export_service.dart';
 import '../features/overview/data/overview_repository.dart';
+import '../features/startup/data/startup_guide_repository.dart';
 
 class AppDependencies {
   AppDependencies(LocalDatabase database) {
@@ -30,6 +31,7 @@ class AppDependencies {
     reconciliation = ReconciliationRepository(store, engine);
     reports = ReportsRepository(store, engine);
     overview = OverviewRepository(store, invoices);
+    startupGuide = StartupGuideRepository(store);
     backups = BackupService(store);
     returns = ReturnsRepository(store, engine, invoices, catalog);
     inventory = InventoryRepository(store, engine, catalog);
@@ -47,6 +49,7 @@ class AppDependencies {
   late final ReconciliationRepository reconciliation;
   late final ReportsRepository reports;
   late final OverviewRepository overview;
+  late final StartupGuideRepository startupGuide;
   final exports = ExportService();
   late final BackupService backups;
   late final ReturnsRepository returns;

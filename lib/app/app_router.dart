@@ -120,6 +120,7 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
             key: ValueKey(state.uri),
             dependencies: d,
             id: state.pathParameters['id']!,
+            initialSupplier: state.uri.queryParameters['role'] == 'supplier',
           ),
         ),
         for (final sale in [true, false]) ...[
@@ -225,7 +226,11 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
         ),
         _featureRoute(
           path: '/settings',
-          builder: (context, state) => SettingsPage(dependencies: d),
+          builder: (context, state) => SettingsPage(
+            key: ValueKey(state.uri),
+            dependencies: d,
+            initialBackups: state.uri.queryParameters['section'] == 'backups',
+          ),
         ),
         _featureRoute(
           path: '/profile',
