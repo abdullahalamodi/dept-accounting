@@ -8,7 +8,9 @@ import '../../../design_system/dept_accounting_design_system.dart';
 import '../../invoices/presentation/invoice_view_model.dart';
 import '../../invoices/data/document.dart';
 import 'finance_view_model.dart';
+import 'opening_review_panel.dart';
 import 'reconciliation_panel.dart';
+import 'cash_account_dialog.dart';
 
 class FinancePage extends StatefulWidget {
   const FinancePage({super.key, required this.dependencies});
@@ -19,25 +21,47 @@ class FinancePage extends StatefulWidget {
 
 class _FinancePageState extends State<FinancePage> {
   late final vm = FinanceViewModel(widget.dependencies);
-  final name = TextEditingController(), opening = TextEditingController();
+  final opening = TextEditingController();
+  @override
+  void initState() {
+    super.initState();
+    final d = widget.dependencies;
+    if (d.store.user!.canManage) {
+      final first = d.finance.accounts().first.code;
+      final saved = d.finance
+          .openingBalances()
+          .where((a) => a.code == first)
+          .firstOrNull;
+      opening.text = saved == null ? '' : Numbers.input(saved.amount);
+    }
+  }
+
   String? openingAccount;
   int page = 1;
   @override
   void dispose() {
     vm.dispose();
-    name.dispose();
     opening.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: vm,
+    listenable: Listenable.merge([vm, widget.dependencies.store]),
     builder: (context, _) {
       final d = widget.dependencies,
           currency = d.store.shop!.currencyLabel,
           manage = d.store.user!.canManage;
       final docs = d.finance.documents(), accounts = d.finance.accounts();
+      final closed = d.store.setting('opening_closed') == 'true';
+      final selectedCode = openingAccount ?? accounts.first.code;
+      final existing = manage
+          ? d.finance
+                .openingBalances()
+                .where((a) => a.code == selectedCode)
+                .firstOrNull
+          : null;
+      final editable = manage && d.finance.canEditOpening(selectedCode);
       return SectionStack(
         children: [
           DeptAccountingPageHeader(
@@ -48,6 +72,15 @@ class _FinancePageState extends State<FinancePage> {
                 label: 'عملية مالية جديدة',
                 onPressed: () => context.go('/finance/new'),
               ),
+              if (manage)
+                DeptAccountingButton(
+                  label: 'مطابقة الصندوق',
+                  variant: DeptAccountingButtonVariant.secondary,
+                  onPressed: () => showDialog<void>(
+                    context: context,
+                    builder: (_) => CashReconciliationDialog(d: d),
+                  ),
+                ),
             ],
           ),
           ErrorNotice(vm.error),
@@ -65,58 +98,75 @@ class _FinancePageState extends State<FinancePage> {
           if (manage)
             DeptAccountingPanel(
               title: 'إعداد الحسابات وأرصدة البداية',
+              action: DeptAccountingButton(
+                label: 'إضافة حساب',
+                variant: DeptAccountingButtonVariant.secondary,
+                onPressed: () => showDialog<void>(
+                  context: context,
+                  builder: (_) => CashAccountDialog(d: d),
+                ),
+              ),
               child: SectionStack.form(
                 children: [
-                  FieldGrid(
-                    children: [
-                      DeptAccountingField(
-                        label: 'اسم حساب نقدي أو بنكي جديد',
-                        controller: name,
+                  if (closed)
+                    const DeptAccountingStatusTag(
+                      'تمت مراجعة وإقفال الافتتاح',
+                      tone: DeptAccountingTone.success,
+                    )
+                  else ...[
+                    const Text(
+                      'اختر الحساب لإضافة رصيد البداية أو تعديل المبلغ المسجل. الحساب ذو الرصيد الصفري لا يحتاج إلى إضافة.',
+                    ),
+                    FieldGrid(
+                      children: [
+                        ChoiceField(
+                          label: 'حساب الافتتاح',
+                          value: selectedCode,
+                          items: accounts
+                              .map((a) => (value: a.code, label: a.name))
+                              .toList(),
+                          onChanged: (v) => setState(() {
+                            openingAccount = v;
+                            final saved = d.finance
+                                .openingBalances()
+                                .where((a) => a.code == v)
+                                .firstOrNull;
+                            opening.text = saved == null
+                                ? ''
+                                : Numbers.input(saved.amount);
+                            vm.changed();
+                          }),
+                        ),
+                        DeptAccountingField(
+                          label: 'الرصيد الافتتاحي ($currency)',
+                          controller: opening,
+                          numeric: true,
+                          enabled: editable,
+                        ),
+                        DeptAccountingButton(
+                          label: existing == null
+                              ? 'إضافة رصيد البداية'
+                              : 'حفظ تعديل رصيد البداية',
+                          variant: DeptAccountingButtonVariant.secondary,
+                          onPressed: !editable
+                              ? null
+                              : () {
+                                  if (vm.opening(selectedCode, opening.text)) {
+                                    showMessage(context, 'تم حفظ رصيد البداية');
+                                  }
+                                },
+                        ),
+                      ],
+                    ),
+                    if (!editable)
+                      const Text(
+                        'بدأت حركة هذا الحساب؛ استخدم عملية مالية أو مطابقة موثقة لتصحيح الرصيد.',
                       ),
-                      DeptAccountingButton(
-                        label: 'إضافة الحساب',
-                        variant: DeptAccountingButtonVariant.secondary,
-                        onPressed: () {
-                          if (vm.addAccount(name.text)) name.clear();
-                        },
-                      ),
-                    ],
-                  ),
-                  const Divider(),
-                  FieldGrid(
-                    children: [
-                      ChoiceField(
-                        label: 'حساب الافتتاح',
-                        value: openingAccount ?? accounts.first.code,
-                        items: accounts
-                            .map((a) => (value: a.code, label: a.name))
-                            .toList(),
-                        onChanged: (v) => setState(() => openingAccount = v),
-                      ),
-                      DeptAccountingField(
-                        label: 'الرصيد الافتتاحي',
-                        controller: opening,
-                        numeric: true,
-                      ),
-                      DeptAccountingButton(
-                        label: 'اعتماد رصيد البداية',
-                        variant: DeptAccountingButtonVariant.secondary,
-                        onPressed: () {
-                          if (vm.opening(
-                            openingAccount ?? accounts.first.code,
-                            opening.text,
-                          )) {
-                            opening.clear();
-                            showMessage(context, 'تم اعتماد رصيد البداية');
-                          }
-                        },
-                      ),
-                    ],
-                  ),
+                  ],
                 ],
               ),
             ),
-          if (manage) ReconciliationPanel(d: d),
+          if (manage) OpeningReviewPanel(vm: vm),
           DeptAccountingPanel(
             title: 'الحركات المالية',
             padding: EdgeInsets.zero,

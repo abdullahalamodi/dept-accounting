@@ -6,6 +6,7 @@ import '../../invoices/data/invoice_repository.dart';
 import '../../parties/data/party_repository.dart';
 
 typedef CashAccount = ({String code, String name, int balance});
+typedef OpeningBalance = ({String code, String name, int amount});
 
 class FinanceRepository {
   FinanceRepository(this.store, this.engine, this.invoices, this.parties);
@@ -47,29 +48,124 @@ class FinanceRepository {
 
   void openAccount(String code, int amount) {
     store.require(manage: true);
-    if (store.setting('opening_closed') == 'true') {
-      throw const BusinessException('تم إقفال الافتتاح؛ استخدم تسوية موثقة.');
-    }
     if (amount <= 0) {
       throw const BusinessException('أدخل رصيدًا افتتاحيًا موجبًا.');
     }
     store.write(() {
-      engine.requireCash(code);
-      if (store.database.handle.select(
-        'SELECT id FROM journal WHERE account = ? LIMIT 1',
-        [code],
-      ).isNotEmpty) {
+      _requireOpeningEditable(code);
+      if (_openingDocument(code) != null) {
         throw const BusinessException(
-          'بدأت حركة الحساب؛ استخدم إضافة رأس مال أو تسوية.',
+          'للحساب رصيد افتتاحي؛ عدّله من نموذج الافتتاح.',
         );
       }
-      final doc = engine.create(
-        id: store.id(),
-        kind: 'opening',
-        total: amount,
-        notes: 'افتتاح حساب نقدي',
+      _postOpening(code, amount);
+    });
+  }
+
+  List<OpeningBalance> openingBalances() {
+    store.require(manage: true);
+    return [
+      for (final account in accounts())
+        if (_openingDocument(account.code) case final Document opening)
+          (code: account.code, name: account.name, amount: opening.total),
+    ];
+  }
+
+  Document? _openingDocument(String code) {
+    final rows = store.database.handle.select(
+      '''
+      SELECT d.data FROM documents d JOIN journal j ON j.document_id = d.id
+      WHERE d.kind = 'opening' AND j.account = ?
+      AND NOT EXISTS (SELECT 1 FROM documents r WHERE r.source_id = d.id AND r.kind = 'reversal')
+    ''',
+      [code],
+    );
+    return rows.isEmpty
+        ? null
+        : DocumentMapper.fromJson(rows.first['data'] as String);
+  }
+
+  bool canEditOpening(String code) {
+    store.require(manage: true);
+    return store.setting('opening_closed') != 'true' &&
+        store.database.handle
+            .select(
+              '''
+          SELECT d.id FROM documents d
+          WHERE (EXISTS (SELECT 1 FROM journal j WHERE j.document_id = d.id AND j.account = ?)
+            AND d.kind != 'opening'
+            AND NOT (d.kind = 'reversal' AND EXISTS (
+              SELECT 1 FROM documents original WHERE original.id = d.source_id AND original.kind = 'opening')))
+          OR (d.kind = 'cash_reconciliation' AND json_extract(d.data, '\$.extra.account') = ?)
+          LIMIT 1
+        ''',
+              [code, code],
+            )
+            .isEmpty;
+  }
+
+  void _requireOpeningEditable(String code) {
+    engine.requireCash(code);
+    if (store.setting('opening_closed') == 'true') {
+      throw const BusinessException('تم إقفال الافتتاح؛ استخدم تسوية موثقة.');
+    }
+    if (!canEditOpening(code)) {
+      throw const BusinessException(
+        'بدأت حركة الحساب؛ استخدم إضافة رأس مال أو تسوية.',
       );
-      engine.insert(doc, [debit(code, amount), credit('3900', amount)]);
+    }
+  }
+
+  void _postOpening(String code, int amount) {
+    final doc = engine.create(
+      id: store.id(),
+      kind: 'opening',
+      total: amount,
+      notes: 'افتتاح حساب نقدي',
+    );
+    engine.insert(doc, [debit(code, amount), credit('3900', amount)]);
+  }
+
+  void _reverseOpening(String code, Document original, String reason) {
+    final reversal = engine.create(
+      id: store.id(),
+      kind: 'reversal',
+      sourceId: original.id,
+      total: original.total,
+      reason: reason,
+      notes: '$reason — ${original.number}',
+    );
+    engine.insert(reversal, [
+      credit(code, original.total),
+      debit('3900', original.total),
+    ]);
+  }
+
+  void setOpening(String code, int amount) {
+    store.require(manage: true);
+    if (amount <= 0) {
+      throw const BusinessException('أدخل رصيدًا افتتاحيًا موجبًا.');
+    }
+    store.write(() {
+      _requireOpeningEditable(code);
+      final original = _openingDocument(code);
+      if (original?.total == amount) return;
+      if (original != null) {
+        _reverseOpening(code, original, 'تعديل رصيد البداية');
+      }
+      _postOpening(code, amount);
+    });
+  }
+
+  void removeOpening(String code) {
+    store.require(manage: true);
+    store.write(() {
+      _requireOpeningEditable(code);
+      final original = _openingDocument(code);
+      if (original == null) {
+        throw const BusinessException('لا يوجد رصيد افتتاحي لهذا الحساب.');
+      }
+      _reverseOpening(code, original, 'إزالة رصيد البداية');
     });
   }
 
@@ -80,7 +176,7 @@ class FinanceRepository {
         : "'receipt'";
     return store.database.handle
         .select(
-          'SELECT data FROM documents WHERE kind IN ($kinds) ORDER BY rowid DESC',
+          "SELECT data FROM documents WHERE kind IN ($kinds) ${store.user!.canManage ? "OR (kind = 'reversal' AND source_id IN (SELECT id FROM documents WHERE kind = 'opening'))" : ''} ORDER BY rowid DESC",
         )
         .map((r) => DocumentMapper.fromJson(r['data'] as String))
         .toList();

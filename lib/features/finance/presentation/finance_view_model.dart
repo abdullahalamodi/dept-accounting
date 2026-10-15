@@ -71,6 +71,11 @@ class FinanceViewModel extends ActionViewModel {
   }
 
   bool opening(String code, String amount) =>
-      perform(() => d.finance.openAccount(code, Numbers.parse(amount)));
+      perform(() => d.finance.setOpening(code, Numbers.parse(amount)));
+  bool removeOpening(String code) =>
+      perform(() => d.finance.removeOpening(code));
+  bool closeOpening() => perform(
+    () => d.reconciliation.closeOpening('تمت مراجعة الحسابات وأرصدة البداية'),
+  );
   bool addAccount(String name) => perform(() => d.finance.addAccount(name));
 }
