@@ -4,6 +4,16 @@
 #if MyAppVersion == ""
   #define MyAppVersion "0.1.0"
 #endif
+; Refuse to publish an installer that depends on a preinstalled Visual C++ runtime.
+#if !FileExists(AddBackslash(SourcePath) + "..\build\windows\x64\runner\Release\msvcp140.dll")
+  #error Missing msvcp140.dll. Rebuild Windows with the bundled Visual C++ runtimes.
+#endif
+#if !FileExists(AddBackslash(SourcePath) + "..\build\windows\x64\runner\Release\vcruntime140.dll")
+  #error Missing vcruntime140.dll. Rebuild Windows with the bundled Visual C++ runtimes.
+#endif
+#if !FileExists(AddBackslash(SourcePath) + "..\build\windows\x64\runner\Release\vcruntime140_1.dll")
+  #error Missing vcruntime140_1.dll. Rebuild Windows with the bundled Visual C++ runtimes.
+#endif
 [Setup]
 AppId={{C58B2756-3B3C-4DC9-9913-C58C952D6304}
 AppName=دبت للحسابات
