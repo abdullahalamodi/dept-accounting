@@ -10,6 +10,7 @@ import 'package:dept_accounting/features/auth/presentation/auth_page.dart';
 import 'package:dept_accounting/features/auth/presentation/auth_view_model.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
+import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,24 +19,18 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late AppDependencies dependencies;
   late Directory downloads;
-  bool failDownload = false;
-  const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
+  late PathProviderPlatform originalPathProvider;
+  late _TestPathProvider pathProvider;
   setUp(() async {
     dependencies = AppDependencies(LocalDatabase.memory());
     downloads = await Directory.systemTemp.createTemp('recovery-downloads-');
-    failDownload = false;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(pathChannel, (call) async {
-          if (call.method == 'getDownloadsDirectory') {
-            if (failDownload) throw PlatformException(code: 'unavailable');
-            return downloads.path;
-          }
-          return null;
-        });
+    originalPathProvider = PathProviderPlatform.instance;
+    pathProvider = _TestPathProvider(downloads.path);
+    // Windows uses FFI, so a method-channel mock would not intercept it.
+    PathProviderPlatform.instance = pathProvider;
   });
   tearDown(() async {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(pathChannel, null);
+    PathProviderPlatform.instance = originalPathProvider;
     await downloads.delete(recursive: true);
     dependencies.backups.dispose();
     dependencies.store.dispose();
@@ -130,12 +125,12 @@ void main() {
     expect(await vm.setup(shop, 'المالك', 'owner', 'safe-password'), isFalse);
     expect(dependencies.store.shop, isNull);
 
-    failDownload = true;
+    pathProvider.failDownload = true;
     await vm.downloadRecoveryKeys();
     expect(vm.recoveryDownloadError, isNotNull);
     expect(vm.canSetup, isFalse);
 
-    failDownload = false;
+    pathProvider.failDownload = false;
     await vm.downloadRecoveryKeys();
     expect(vm.recoveryDownloadError, isNull);
     expect(vm.recoveryFileDownloaded, isTrue);
@@ -196,11 +191,11 @@ void main() {
       );
       expect(find.byType(SelectableText), findsNothing);
       await tester.ensureVisible(download);
-      failDownload = true;
+      pathProvider.failDownload = true;
       await tester.tap(download);
       await tester.pumpAndSettle();
       expect(find.text('لم يُحفظ الملف'), findsOneWidget);
-      failDownload = false;
+      pathProvider.failDownload = false;
       await tester.runAsync(() async {
         await tester.tap(download);
         await Future<void>.delayed(const Duration(milliseconds: 100));
@@ -280,4 +275,17 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+}
+
+class _TestPathProvider extends PathProviderPlatform {
+  _TestPathProvider(this.downloadsPath);
+
+  final String downloadsPath;
+  bool failDownload = false;
+
+  @override
+  Future<String?> getDownloadsPath() async {
+    if (failDownload) throw PlatformException(code: 'unavailable');
+    return downloadsPath;
+  }
 }
