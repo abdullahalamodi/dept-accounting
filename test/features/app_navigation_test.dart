@@ -191,7 +191,7 @@ void main() {
     expect(d.catalog.get('p').alternateUnit, 'كرتون');
     expect(d.catalog.get('p').factor, 12000);
 
-    await tester.tap(find.text('عرض وتعديل'));
+    await tester.tap(find.byTooltip('عرض وتعديل'));
     await tester.pumpAndSettle();
     expect(find.text('1 كرتون = 12 حبة'), findsOneWidget);
     await tester.enterText(

@@ -126,16 +126,33 @@ class DeptAccountingIconButton extends StatelessWidget {
     final height = compact
         ? DeptAccountingTypography.compactControlHeight(context)
         : DeptAccountingTypography.controlHeight(context);
-    return IconButton.filled(
+    return IconButton(
       tooltip: tooltip,
       icon: Icon(icon, size: compact ? 16 : 18),
       onPressed: onPressed,
       style: ButtonStyle(
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.disabled)
+              ? DeptAccountingColors.muted
+              : states.contains(WidgetState.hovered)
+              ? DeptAccountingColors.primaryHover
+              : DeptAccountingColors.primary,
+        ),
+        overlayColor: WidgetStatePropertyAll(
+          DeptAccountingColors.primary.withValues(alpha: .08),
+        ),
+        shape: const WidgetStatePropertyAll(
+          RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(
+              Radius.circular(DeptAccountingLayout.radius),
+            ),
+          ),
+        ),
         minimumSize: WidgetStatePropertyAll(Size.square(height)),
         padding: const WidgetStatePropertyAll(EdgeInsets.zero),
         visualDensity: VisualDensity.standard,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-      ).merge(Theme.of(context).filledButtonTheme.style),
+      ),
     );
   }
 }

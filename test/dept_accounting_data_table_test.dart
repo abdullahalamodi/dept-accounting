@@ -3,7 +3,10 @@ import 'package:dept_accounting/core/ui/form_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'support/load_app_fonts.dart';
+
 void main() {
+  setUpAll(loadAppFonts);
   testWidgets('Pagination selects pages, bounds navigation and changes size', (
     tester,
   ) async {
@@ -153,38 +156,57 @@ void main() {
     for (final scale in [1.0, 1.5, 2.0]) {
       await tester.pumpWidget(
         MaterialApp(
-          theme: DeptAccountingTheme.light(),
+          theme: DeptAccountingTheme.light().copyWith(
+            platform: TargetPlatform.macOS,
+            visualDensity: VisualDensity.compact,
+          ),
           home: Scaffold(
             body: MediaQuery(
               data: MediaQueryData(textScaler: TextScaler.linear(scale)),
               child: Directionality(
                 textDirection: TextDirection.rtl,
-                child: Column(
-                  children: [
-                    const DeptAccountingField(label: '', compact: true),
-                    ChoiceField(
-                      label: '',
-                      compact: true,
-                      value: 'unit',
-                      items: const [(value: 'unit', label: 'حبة')],
-                      onChanged: (_) {},
-                    ),
-                    DeptAccountingButton.table(
-                      label: 'تعديل',
-                      icon: Icons.edit_outlined,
-                      onPressed: () {},
-                    ),
-                    const DeptAccountingButton.table(
-                      label: 'حفظ',
-                      loading: true,
-                    ),
-                    DeptAccountingIconButton.table(
-                      tooltip: 'إزالة',
-                      icon: Icons.close,
-                      onPressed: () {},
-                    ),
-                    DeptAccountingButton(label: 'إضافة منتج', onPressed: () {}),
-                  ],
+                child: SingleChildScrollView(
+                  child: Column(
+                    children: [
+                      const DeptAccountingField(label: '', compact: true),
+                      ChoiceField(
+                        label: '',
+                        compact: true,
+                        value: 'unit',
+                        items: const [(value: 'unit', label: 'حبة')],
+                        onChanged: (_) {},
+                      ),
+                      DeptAccountingButton.table(
+                        label: 'تعديل',
+                        icon: Icons.edit_outlined,
+                        onPressed: () {},
+                      ),
+                      const DeptAccountingButton.table(
+                        label: 'حفظ',
+                        loading: true,
+                      ),
+                      DeptAccountingIconButton.table(
+                        tooltip: 'إزالة',
+                        icon: Icons.close,
+                        onPressed: () {},
+                      ),
+                      for (final variant in DeptAccountingButtonVariant.values)
+                        DeptAccountingButton(
+                          label: 'normal-${variant.name}',
+                          variant: variant,
+                          onPressed: () {},
+                        ),
+                      FilledButton(
+                        onPressed: () {},
+                        child: const Text('filled'),
+                      ),
+                      OutlinedButton(
+                        onPressed: () {},
+                        child: const Text('outlined'),
+                      ),
+                      TextButton(onPressed: () {}, child: const Text('text')),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -202,19 +224,40 @@ void main() {
         find.byType(IconButton),
       ]) {
         expect(
-          tester.getSize(action).height,
+          tester
+              .getSize(
+                find
+                    .descendant(of: action, matching: find.byType(Material))
+                    .first,
+              )
+              .height,
           closeTo(fieldHeight, .01),
           reason: "scale=$scale action=$action",
         );
       }
       if (scale == 1) {
-        expect(fieldHeight, DeptAccountingLayout.compactControlHeight);
+        expect(fieldHeight, 36);
+        final icon = tester.widget<IconButton>(find.byType(IconButton));
+        expect(find.byTooltip('إزالة'), findsOneWidget);
         expect(
-          tester
-              .getSize(find.widgetWithText(FilledButton, 'إضافة منتج'))
-              .height,
-          DeptAccountingLayout.controlHeight,
+          icon.style?.backgroundColor?.resolve({}) ?? Colors.transparent,
+          Colors.transparent,
         );
+        expect(
+          icon.style!.foregroundColor!.resolve({}),
+          DeptAccountingColors.primary,
+        );
+        for (final label in [
+          ...DeptAccountingButtonVariant.values.map((v) => 'normal-${v.name}'),
+          'filled',
+          'outlined',
+          'text',
+        ]) {
+          final material = find
+              .ancestor(of: find.text(label), matching: find.byType(Material))
+              .first;
+          expect(tester.getSize(material).height, 48, reason: label);
+        }
       }
       expect(tester.takeException(), isNull);
     }

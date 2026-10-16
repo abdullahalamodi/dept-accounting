@@ -49,6 +49,8 @@ abstract final class DeptAccountingTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: ButtonStyle(
+          visualDensity: VisualDensity.standard,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           minimumSize: const WidgetStatePropertyAll(
             Size(48, DeptAccountingLayout.controlHeight),
           ),
@@ -81,6 +83,8 @@ abstract final class DeptAccountingTheme {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
+          visualDensity: VisualDensity.standard,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           minimumSize: const Size(48, DeptAccountingLayout.controlHeight),
           textStyle: DeptAccountingTypography.action,
           shape: rounded,
@@ -90,6 +94,8 @@ abstract final class DeptAccountingTheme {
       ),
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
+          visualDensity: VisualDensity.standard,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           minimumSize: const Size(48, DeptAccountingLayout.controlHeight),
           textStyle: DeptAccountingTypography.action,
           shape: rounded,
@@ -97,9 +103,14 @@ abstract final class DeptAccountingTheme {
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
-        style: IconButton.styleFrom(minimumSize: const Size(48, 48)),
+        style: IconButton.styleFrom(
+          minimumSize: const Size.square(DeptAccountingLayout.controlHeight),
+          visualDensity: VisualDensity.standard,
+          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
+        visualDensity: VisualDensity.standard,
         isDense: true,
         constraints: const BoxConstraints(
           minHeight: DeptAccountingLayout.controlHeight,

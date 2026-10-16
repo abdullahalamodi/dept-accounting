@@ -425,10 +425,11 @@ class _RecentInvoices extends StatelessWidget {
                   ),
                 ),
                 DataCell(
-                  DeptAccountingButton.table(
+                  DeptAccountingIconButton.table(
                     onPressed: () =>
                         context.go('/sales/view/${row.document.id}'),
-                    label: 'عرض',
+                    tooltip: 'عرض',
+                    icon: Icons.visibility_outlined,
                   ),
                 ),
               ],

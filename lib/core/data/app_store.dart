@@ -6,6 +6,7 @@ import '../../app/app_data.dart';
 import 'package:flutter/foundation.dart';
 
 import '../../features/auth/data/auth_models.dart';
+import '../../features/auth/data/device_session.dart';
 import '../../features/auth/data/passwords.dart';
 import '../../features/auth/data/username.dart';
 import '../numbers.dart';
@@ -95,15 +96,48 @@ class AppStore extends ChangeNotifier {
         ],
       );
   String id() => Passwords.token(18);
+  DeviceSession get _deviceSession => DeviceSession(database.path);
+
+  Future<void> restoreSession() async {
+    final epoch = sessionEpoch;
+    final saved = _deviceSession.read();
+    if (saved == null) return;
+    final rows = database.handle.select(
+      'SELECT data, password FROM users WHERE id = ?',
+      [saved['userId'] is String ? saved['userId'] : ''],
+    );
+    if (rows.isNotEmpty) {
+      final candidate = AppUserMapper.fromJson(rows.first['data'] as String);
+      final fingerprint = await DeviceSession.fingerprint(
+        rows.first['password'] as String,
+      );
+      if (epoch != sessionEpoch) return;
+      if (candidate.active && saved['fingerprint'] == fingerprint) {
+        user = candidate;
+        notifyListeners();
+        return;
+      }
+    }
+    _deviceSession.clear();
+  }
+
   void logout() {
+    _deviceSession.clear();
     sessionEpoch++;
     user = null;
     notifyListeners();
   }
 
-  Future<void> login(String username, String password) async {
+  Future<void> login(
+    String username,
+    String password, {
+    bool rememberMe = false,
+  }) async {
+    final epoch = sessionEpoch;
     if (executor?.isRemote == true) {
-      return run(StoreTasks.login(username, password));
+      await run(StoreTasks.login(username, password));
+      if (epoch == sessionEpoch) await _rememberSession(rememberMe, epoch);
+      return;
     }
     final rows = database.handle.select(
       'SELECT * FROM users WHERE username = ? COLLATE NOCASE',
@@ -119,6 +153,27 @@ class AppStore extends ChangeNotifier {
     }
     user = result;
     write(() => audit('تسجيل الدخول', result.id));
+    if (epoch == sessionEpoch) await _rememberSession(rememberMe, epoch);
+  }
+
+  Future<void> _rememberSession(bool rememberMe, int epoch) async {
+    if (!rememberMe) {
+      _deviceSession.clear();
+      return;
+    }
+    final actor = user;
+    if (actor == null) return;
+    final rows = database.handle.select(
+      'SELECT password FROM users WHERE id = ?',
+      [actor.id],
+    );
+    if (rows.isEmpty) return;
+    final fingerprint = await DeviceSession.fingerprint(
+      rows.first['password'] as String,
+    );
+    if (epoch == sessionEpoch && user?.id == actor.id) {
+      _deviceSession.save(actor.id, fingerprint);
+    }
   }
 
   Future<void> setup({

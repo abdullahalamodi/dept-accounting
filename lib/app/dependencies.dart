@@ -20,10 +20,12 @@ class AppDependencies extends AppData {
     final resolved = path ?? await LocalDatabase.resolvePath();
     final executor = await DatabaseExecutor.open(resolved);
     try {
-      return AppDependencies._remote(
+      final dependencies = AppDependencies._remote(
         LocalDatabase.readOnly(resolved),
         executor,
       );
+      await dependencies.store.restoreSession();
+      return dependencies;
     } catch (_) {
       await executor.close();
       rethrow;

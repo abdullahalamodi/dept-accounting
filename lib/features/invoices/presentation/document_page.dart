@@ -112,8 +112,9 @@ class _DocumentPageState extends State<DocumentPage> {
                                 allocationsOnly: true,
                               ),
                             );
-                            if (reason != null)
+                            if (reason != null) {
                               await vm.clearAllocations(reason);
+                            }
                           },
                         ),
                       if (d.store.user!.canManage &&

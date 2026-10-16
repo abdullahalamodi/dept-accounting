@@ -15,6 +15,13 @@ class AuthViewModel extends ActionViewModel {
   bool recoveryFileDownloaded = false;
   bool recoveryStorageConfirmed = false;
   bool downloadingRecoveryKeys = false;
+  bool rememberMe = false;
+
+  void setRememberMe(bool value) {
+    rememberMe = value;
+    notifyListeners();
+  }
+
   String? recoveryDownloadError;
   String? get recoveryFileLocation => _recoveryKeyExport.savedLocation;
 
@@ -49,7 +56,7 @@ class AuthViewModel extends ActionViewModel {
   }
 
   Future<bool> login(String username, String password) =>
-      run(() => store.login(username, password));
+      run(() => store.login(username, password, rememberMe: rememberMe));
   Future<bool> setup(
     Shop shop,
     String name,

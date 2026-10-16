@@ -182,10 +182,13 @@ class _CatalogPageState extends State<CatalogPage> {
                             ),
                           ),
                           DataCell(
-                            DeptAccountingButton.table(
+                            DeptAccountingIconButton.table(
                               onPressed: () =>
                                   context.go('/catalog/${row.product.id}'),
-                              label: manage ? 'عرض وتعديل' : 'عرض',
+                              tooltip: manage ? 'عرض وتعديل' : 'عرض',
+                              icon: manage
+                                  ? Icons.edit_outlined
+                                  : Icons.visibility_outlined,
                             ),
                           ),
                         ],

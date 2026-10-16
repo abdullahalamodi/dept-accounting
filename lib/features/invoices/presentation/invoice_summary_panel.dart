@@ -80,8 +80,10 @@ class InvoiceSummaryPanel extends StatelessWidget {
                         ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 4,
-                          vertical: 10,
+                          vertical: 6,
                         ),
+                        visualDensity: VisualDensity.standard,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         textStyle: DeptAccountingTypography.compactControl,
                         backgroundColor: vm.paymentMode == mode
                             ? DeptAccountingColors.primarySoft

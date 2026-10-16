@@ -99,9 +99,8 @@ class _FinancePageState extends State<FinancePage> {
               if (manage)
                 DeptAccountingPanel(
                   title: 'إعداد الحسابات وأرصدة البداية',
-                  action: DeptAccountingButton(
+                  action: DeptAccountingButton.table(
                     label: 'إضافة حساب',
-                    variant: DeptAccountingButtonVariant.secondary,
                     onPressed: () => showDialog<void>(
                       context: context,
                       builder: (_) => CashAccountDialog(d: d),
@@ -374,9 +373,8 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                       ),
                       DeptAccountingPanel(
                         title: 'الحسابات والمبالغ',
-                        action: DeptAccountingButton(
+                        action: DeptAccountingButton.table(
                           label: 'إضافة حساب للدفع',
-                          variant: DeptAccountingButtonVariant.secondary,
                           onPressed: () async {
                             vm.payments.add(
                               PaymentInput(account: accounts.first.code),
@@ -393,6 +391,7 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                                 children: [
                                   ChoiceField(
                                     label: 'الحساب',
+                                    compact: true,
                                     value: p.account,
                                     items: accounts
                                         .map(
@@ -410,6 +409,7 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                                   ),
                                   DeptAccountingField(
                                     label: 'المبلغ ($currency)',
+                                    compact: true,
                                     initialValue: p.amount,
                                     numeric: true,
                                     onChanged: (v) {
@@ -418,12 +418,13 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                                     },
                                   ),
                                   if (vm.payments.length > 1)
-                                    TextButton(
+                                    DeptAccountingIconButton.table(
                                       onPressed: () async {
                                         vm.payments.remove(p);
                                         vm.changed();
                                       },
-                                      child: const Text('إزالة'),
+                                      tooltip: 'إزالة الدفعة',
+                                      icon: Icons.close,
                                     ),
                                 ],
                               ),

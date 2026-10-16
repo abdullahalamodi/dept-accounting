@@ -235,7 +235,7 @@ void main() {
       await tester.tap(find.text('حفظ تعديل رصيد البداية'));
       await tester.pumpAndSettle();
       expect(d.finance.openingBalances().single.amount, 25000);
-      await tester.tap(find.text('إزالة'));
+      await tester.tap(find.byTooltip('إزالة'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('إزالة الرصيد'));
       await tester.pumpAndSettle();
@@ -250,7 +250,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(d.store.setting('opening_closed'), 'true');
       expect(find.byType(TextFormField), findsNothing);
-      expect(find.text('إزالة'), findsNothing);
+      expect(find.byTooltip('إزالة'), findsNothing);
       expect(find.text('مطابقة الصندوق'), findsOneWidget);
       expect(d.engine.balance('1100'), 15000);
       expect(d.engine.balance('3900'), 0);

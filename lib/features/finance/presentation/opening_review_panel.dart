@@ -46,8 +46,9 @@ class OpeningReviewPanel extends StatelessWidget {
                   ),
                   if (!closed) ...[
                     const SizedBox(width: DeptAccountingSpace.lg),
-                    DeptAccountingButton.table(
-                      label: 'إزالة',
+                    DeptAccountingIconButton.table(
+                      tooltip: 'إزالة',
+                      icon: Icons.close,
                       onPressed: !editable.contains(balance.code)
                           ? null
                           : () async {

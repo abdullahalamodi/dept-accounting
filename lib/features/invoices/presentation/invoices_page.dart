@@ -106,9 +106,10 @@ class _InvoicesPageState extends State<InvoicesPage> {
                           ),
                         ),
                         DataCell(
-                          DeptAccountingButton.table(
+                          DeptAccountingIconButton.table(
                             onPressed: () => context.go('$path/view/${doc.id}'),
-                            label: 'التفاصيل',
+                            tooltip: 'التفاصيل',
+                            icon: Icons.visibility_outlined,
                           ),
                         ),
                       ],

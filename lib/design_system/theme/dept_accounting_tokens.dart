@@ -37,11 +37,11 @@ abstract final class DeptAccountingLayout {
   static const sidebar = 244.0;
   static const maxContent = 1440.0;
   static const minTarget = 48.0;
-  static const controlHeight = 52.0;
-  static const compactControlHeight = 44.0;
+  static const controlHeight = 48.0;
+  static const compactControlHeight = 36.0;
   static const compactControlPadding = EdgeInsets.symmetric(
     horizontal: 10,
-    vertical: 10,
+    vertical: 6,
   );
   static const paginationControlHeight = 36.0;
   static const compactNoticeMaxHeight = 160.0;
@@ -58,7 +58,7 @@ abstract final class DeptAccountingTypography {
   static const emphasis = FontWeight.w500;
   static const controlFontSize = 14.0;
   static const controlLineHeight = 24.0;
-  static const controlVerticalPadding = 14.0;
+  static const controlVerticalPadding = 12.0;
   static const control = TextStyle(
     fontFamily: family,
     fontSize: controlFontSize,

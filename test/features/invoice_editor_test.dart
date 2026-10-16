@@ -323,7 +323,7 @@ void main() {
         matching: find.byType(DropdownButtonFormField<String>),
       );
       final paidInput = find.widgetWithText(TextFormField, 'المدفوع (ر.س)');
-      expect(tester.getSize(discount).height, 44);
+      expect(tester.getSize(discount).height, 36);
       expect(
         tester.getSize(paidInput).height,
         tester.getSize(summaryAccount).height,

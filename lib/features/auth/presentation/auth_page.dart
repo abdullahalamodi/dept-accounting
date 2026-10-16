@@ -357,6 +357,16 @@ class _AuthPageState extends State<AuthPage> {
           helper: recovery ? '8 أحرف على الأقل' : null,
           onSubmitted: (_) => submit(),
         ),
+        if (!recovery)
+          CheckboxListTile(
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+            value: vm.rememberMe,
+            title: const Text('إبقائي مسجل الدخول'),
+            onChanged: vm.busy
+                ? null
+                : (value) => vm.setRememberMe(value ?? false),
+          ),
         DeptAccountingButton(
           label: recovery ? 'تعيين كلمة المرور' : 'دخول',
           loading: vm.busy,

@@ -50,6 +50,31 @@ void main() {
     home: AuthPage(dependencies: dependencies, setup: true),
   );
 
+  testWidgets('login remember checkbox toggles and is hidden during recovery', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: DeptAccountingTheme.light(),
+        home: AuthPage(dependencies: dependencies, setup: false),
+      ),
+    );
+    expect(
+      tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+      false,
+    );
+    await tester.tap(find.text('إبقائي مسجل الدخول'));
+    await tester.pump();
+    expect(
+      tester.widget<CheckboxListTile>(find.byType(CheckboxListTile)).value,
+      true,
+    );
+    await tester.tap(find.text('نسيت كلمة مرور المالك؟'));
+    await tester.pump();
+    expect(find.text('إبقائي مسجل الدخول'), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   test(
     'Account writes reject non-English usernames at every entry point',
     () async {

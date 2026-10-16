@@ -108,9 +108,10 @@ class _PartiesPageState extends State<PartiesPage> {
                                   : const Text('—'),
                             ),
                           DataCell(
-                            DeptAccountingButton.table(
+                            DeptAccountingIconButton.table(
                               onPressed: () => context.go('/parties/${p.id}'),
-                              label: 'كشف وبيانات',
+                              tooltip: 'كشف وبيانات',
+                              icon: Icons.visibility_outlined,
                             ),
                           ),
                         ],

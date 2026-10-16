@@ -96,7 +96,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('1'), findsWidgets);
-      await tester.tap(find.text('تعديل'));
+      await tester.tap(find.byTooltip('تعديل'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.widgetWithText(TextFormField, 'اسم التصنيف'),

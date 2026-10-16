@@ -41,8 +41,8 @@ void main() {
           StatefulBuilder(
             builder: (context, setState) => DeptAccountingExportToolbar(
               onPrint: () async => printedThermal = thermal,
-              onSavePdf: () async {},
-              onShare: () async {},
+              onSavePdf: () async => null,
+              onShare: () async => null,
               printOptions: SizedBox(
                 width: 180,
                 child: ChoiceField<bool>(
@@ -108,7 +108,7 @@ void main() {
         DeptAccountingExportToolbar(
           onPrint: () async => printed = true,
           onSavePdf: () => saving.future,
-          onExcel: () async {},
+          onExcel: () async => null,
         ),
       ),
     );

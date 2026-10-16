@@ -364,9 +364,8 @@ class _SettingsPageState extends State<SettingsPage> {
               if (section == _SettingsSection.users)
                 DeptAccountingPanel(
                   title: 'المستخدمون والصلاحيات',
-                  action: DeptAccountingButton(
+                  action: DeptAccountingButton.table(
                     label: 'مستخدم جديد',
-                    variant: DeptAccountingButtonVariant.secondary,
                     onPressed: () => showDialog<void>(
                       context: context,
                       builder: (context) => _UserDialog(d: d),
@@ -381,13 +380,14 @@ class _SettingsPageState extends State<SettingsPage> {
                           subtitle: Text(
                             '${user.username} · ${user.roleLabel}${user.active ? '' : ' · موقوف'}',
                           ),
-                          trailing: TextButton(
+                          trailing: DeptAccountingIconButton.table(
                             onPressed: () => showDialog<void>(
                               context: context,
                               builder: (context) =>
                                   _UserDialog(d: d, user: user),
                             ),
-                            child: const Text('تعديل'),
+                            tooltip: 'تعديل',
+                            icon: Icons.edit_outlined,
                           ),
                         ),
                     ],
