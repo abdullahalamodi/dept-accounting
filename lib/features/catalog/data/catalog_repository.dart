@@ -1,26 +1,102 @@
 import '../../../core/data/app_store.dart';
+import '../../../core/data/query_page.dart';
 import '../../../core/numbers.dart';
 import '../../accounting/data/posting_engine.dart';
 import 'product.dart';
 import 'catalog_reference.dart';
 import 'catalog_references_repository.dart';
 
+typedef CatalogRow = ({Product product, int quantity});
+
 class CatalogRepository {
   CatalogRepository(this.store, this.engine, this.references);
   final AppStore store;
   final PostingEngine engine;
   final CatalogReferencesRepository references;
+
+  QueryPage<CatalogRow> page({
+    String search = '',
+    String category = '',
+    bool lowOnly = false,
+    bool servicesOnly = false,
+    bool activeOnly = false,
+    bool excludeServices = false,
+    int page = 1,
+    int pageSize = 10,
+  }) {
+    store.require();
+    final conditions = <String>[
+      if (search.isNotEmpty) "instr(app_lower(json_extract(p.data, '\$.name') || ' ' || json_extract(p.data, '\$.barcode')), ?) > 0",
+      if (category.isNotEmpty) 'p.category_id = ?',
+      if (servicesOnly) "json_extract(p.data, '\$.service') = 1",
+      if (activeOnly && !lowOnly) "json_extract(p.data, '\$.active') = 1",
+      if (excludeServices && !lowOnly) "json_extract(p.data, '\$.service') = 0",
+      if (lowOnly)
+        """json_extract(p.data, '\$.active') = 1
+        AND json_extract(p.data, '\$.service') = 0
+        AND COALESCE(s.quantity, 0) <= json_extract(p.data, '\$.minStock')""",
+    ];
+    final parameters = <Object?>[
+      if (search.isNotEmpty) search.toLowerCase(),
+      if (category.isNotEmpty) category,
+    ];
+    final from = '''FROM products p LEFT JOIN stock s ON s.product_id = p.id
+      ${conditions.isEmpty ? '' : 'WHERE ${conditions.join(' AND ')}'}''';
+    final db = store.database.handle;
+    return QueryPage.read(
+      total:
+          db.select('SELECT COUNT(*) AS n $from', parameters).first['n'] as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) => db
+          .select(
+            '''SELECT p.data, COALESCE(s.quantity, 0) AS quantity $from
+            ORDER BY json_extract(p.data, '\$.name'), p.id LIMIT ? OFFSET ?''',
+            [...parameters, limit, offset],
+          )
+          .map(
+            (row) => (
+              product: _visibleProduct(row['data'] as String),
+              quantity: row['quantity'] as int,
+            ),
+          )
+          .toList(),
+    );
+  }
+
   List<Product> all() {
     store.require();
     return store.database.handle
         .select(
           'SELECT data FROM products ORDER BY json_extract(data, \'\$.name\')',
         )
-        .map((r) {
-          final p = ProductMapper.fromJson(r['data'] as String);
-          return store.user!.canManage ? p : p.copyWith(purchasePrice: 0);
-        })
+        .map((r) => _visibleProduct(r['data'] as String))
         .toList();
+  }
+
+  Product? findBarcode(String barcode) {
+    store.require();
+    final value = barcode.trim();
+    if (value.isEmpty) return null;
+    final rows = store.database.handle.select(
+      'SELECT data FROM products WHERE barcode = ?',
+      [value],
+    );
+    return rows.isEmpty ? null : _visibleProduct(rows.first['data'] as String);
+  }
+
+  Product? find(String id) {
+    store.require();
+    final rows = store.database.handle.select(
+      'SELECT data FROM products WHERE id = ?',
+      [id],
+    );
+    return rows.isEmpty ? null : _visibleProduct(rows.first['data'] as String);
+  }
+
+  Product _visibleProduct(String data) {
+    final product = ProductMapper.fromJson(data);
+    return store.user!.canManage ? product : product.copyWith(purchasePrice: 0);
   }
 
   Product get(String id) {

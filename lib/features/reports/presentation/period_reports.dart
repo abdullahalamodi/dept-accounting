@@ -1,3 +1,6 @@
+import '../../../core/ui/database_query.dart';
+import '../data/reports_tasks.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/dependencies.dart';
@@ -16,11 +19,14 @@ class PeriodReportViewModel extends ActionViewModel {
         DateTime.now().day,
       );
   int page = 1;
-  ReportTable get report => d.reports.table(kind, from, through);
-  Future<bool> pdf() => run(() => d.exports.savePdf(d.store.shop!, report));
-  Future<bool> excel() => run(() => d.exports.saveExcel(d.store.shop!, report));
+  Future<ReportTable> get report =>
+      d.store.run(ReportTasks.table(kind, from, through));
+  Future<bool> pdf() =>
+      run(() async => d.exports.savePdf(d.store.shop!, await report));
+  Future<bool> excel() =>
+      run(() async => d.exports.saveExcel(d.store.shop!, await report));
   Future<bool> printReport() =>
-      run(() => d.exports.printReport(d.store.shop!, report));
+      run(() async => d.exports.printReport(d.store.shop!, await report));
 }
 
 class PeriodReports extends StatefulWidget {
@@ -42,105 +48,114 @@ class _PeriodReportsState extends State<PeriodReports> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: vm,
     builder: (context, _) {
-      final report = vm.report;
-      return DeptAccountingPanel(
-        title: 'تقارير الفترة والتصدير',
-        child: SectionStack(
-          children: [
-            ErrorNotice(vm.error),
-            FieldGrid(
+      return DatabaseQuery(
+        store: vm.d.store,
+        task: ReportTasks.page(vm.kind, vm.from, vm.through, page: vm.page),
+        queryKey: (vm.kind, vm.from, vm.through, vm.page),
+        builder: (context, results) {
+          final report = results.report;
+          return DeptAccountingPanel(
+            title: 'تقارير الفترة والتصدير',
+            child: SectionStack(
               children: [
-                ChoiceField(
-                  label: 'التقرير',
-                  value: vm.kind,
-                  items: const [
-                    (value: 'profit', label: 'الأرباح والخسائر'),
-                    (value: 'sales', label: 'المبيعات'),
-                    (value: 'purchases', label: 'المشتريات'),
-                    (value: 'returns', label: 'المرتجعات'),
-                    (value: 'expenses', label: 'المصروفات'),
-                    (value: 'stock', label: 'المخزون وقيمته'),
-                    (value: 'parties', label: 'أرصدة العملاء والموردين'),
-                    (value: 'cash', label: 'حركة النقدية'),
-                    (value: 'trial', label: 'ميزان المراجعة'),
+                ErrorNotice(vm.error),
+                FieldGrid(
+                  children: [
+                    ChoiceField(
+                      label: 'التقرير',
+                      value: vm.kind,
+                      items: const [
+                        (value: 'profit', label: 'الأرباح والخسائر'),
+                        (value: 'sales', label: 'المبيعات'),
+                        (value: 'purchases', label: 'المشتريات'),
+                        (value: 'returns', label: 'المرتجعات'),
+                        (value: 'expenses', label: 'المصروفات'),
+                        (value: 'stock', label: 'المخزون وقيمته'),
+                        (value: 'parties', label: 'أرصدة العملاء والموردين'),
+                        (value: 'cash', label: 'حركة النقدية'),
+                        (value: 'trial', label: 'ميزان المراجعة'),
+                      ],
+                      onChanged: (v) {
+                        vm.kind = v!;
+                        vm.page = 1;
+                        vm.changed();
+                      },
+                    ),
+                    DeptAccountingButton(
+                      label:
+                          '${vm.from.toIso8601String().substring(0, 10)} — ${vm.through.toIso8601String().substring(0, 10)}',
+                      variant: DeptAccountingButtonVariant.secondary,
+                      onPressed: () async {
+                        final range = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(1900),
+                          lastDate: DateTime.now(),
+                          initialDateRange: DateTimeRange(
+                            start: vm.from,
+                            end: vm.through,
+                          ),
+                        );
+                        if (range != null) {
+                          vm.from = range.start;
+                          vm.through = range.end;
+                          vm.page = 1;
+                          vm.changed();
+                        }
+                      },
+                    ),
                   ],
-                  onChanged: (v) {
-                    vm.kind = v!;
-                    vm.page = 1;
+                ),
+                Text(report.subtitle),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    DeptAccountingButton(
+                      label: 'تصدير PDF',
+                      loading: vm.busy,
+                      onPressed: vm.pdf,
+                    ),
+                    DeptAccountingButton(
+                      label: 'تصدير Excel',
+                      variant: DeptAccountingButtonVariant.secondary,
+                      onPressed: vm.excel,
+                    ),
+                    DeptAccountingButton(
+                      label: 'طباعة',
+                      variant: DeptAccountingButtonVariant.secondary,
+                      onPressed: vm.printReport,
+                    ),
+                  ],
+                ),
+                DeptAccountingDataTable(
+                  columns: report.columns
+                      .map((c) => DataColumn(label: Text(c)))
+                      .toList(),
+                  rows: [
+                    for (final row in report.rows)
+                      DataRow(
+                        cells: row.map((v) => DataCell(Text(v))).toList(),
+                      ),
+                  ],
+                  totalRows: results.total,
+                  page: results.page,
+                  pageSize: 10,
+                  onPageChanged: (v) {
+                    vm.page = v;
                     vm.changed();
                   },
                 ),
-                DeptAccountingButton(
-                  label:
-                      '${vm.from.toIso8601String().substring(0, 10)} — ${vm.through.toIso8601String().substring(0, 10)}',
-                  variant: DeptAccountingButtonVariant.secondary,
-                  onPressed: () async {
-                    final range = await showDateRangePicker(
-                      context: context,
-                      firstDate: DateTime(1900),
-                      lastDate: DateTime.now(),
-                      initialDateRange: DateTimeRange(
-                        start: vm.from,
-                        end: vm.through,
-                      ),
-                    );
-                    if (range != null) {
-                      vm.from = range.start;
-                      vm.through = range.end;
-                      vm.page = 1;
-                      vm.changed();
-                    }
-                  },
-                ),
+                for (final entry in report.summary.entries)
+                  DeptAccountingSummaryLine(
+                    label: entry.key,
+                    value: entry.value,
+                    currency: widget.dependencies.store.shop!.currencyLabel,
+                    total: true,
+                  ),
               ],
             ),
-            Text(report.subtitle),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                DeptAccountingButton(
-                  label: 'تصدير PDF',
-                  loading: vm.busy,
-                  onPressed: vm.pdf,
-                ),
-                DeptAccountingButton(
-                  label: 'تصدير Excel',
-                  variant: DeptAccountingButtonVariant.secondary,
-                  onPressed: vm.excel,
-                ),
-                DeptAccountingButton(
-                  label: 'طباعة',
-                  variant: DeptAccountingButtonVariant.secondary,
-                  onPressed: vm.printReport,
-                ),
-              ],
-            ),
-            DeptAccountingDataTable(
-              columns: report.columns
-                  .map((c) => DataColumn(label: Text(c)))
-                  .toList(),
-              rows: [
-                for (final row in report.rows.skip((vm.page - 1) * 10).take(10))
-                  DataRow(cells: row.map((v) => DataCell(Text(v))).toList()),
-              ],
-              totalRows: report.rows.length,
-              page: vm.page,
-              pageSize: 10,
-              onPageChanged: (v) {
-                vm.page = v;
-                vm.changed();
-              },
-            ),
-            for (final entry in report.summary.entries)
-              DeptAccountingSummaryLine(
-                label: entry.key,
-                value: entry.value,
-                currency: widget.dependencies.store.shop!.currencyLabel,
-                total: true,
-              ),
-          ],
-        ),
+          );
+        },
       );
     },
   );

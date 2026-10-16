@@ -39,7 +39,7 @@ void main() {
   setUpAll(loadAppFonts);
   test(
     'Guide tracks actual setup, persists skipped steps and respects roles',
-    () {
+    () async {
       final d = newShop();
       final vm = StartupGuideViewModel(
         d.startupGuide,
@@ -51,18 +51,27 @@ void main() {
         d.store.dispose();
         d.store.database.close();
       });
+      await vm.refresh();
+      expect(vm.query.error, isNull);
+      expect(vm.query.value, isNotNull);
       expect(vm.visible, isTrue);
+      await vm.refresh();
       expect(vm.next!.task, StartupTask.cash);
       // Seeded lists and the default cash account do not mean the shop reviewed them.
+      await vm.refresh();
       expect(vm.resolvedCount, 0);
-      vm.review(StartupTask.cash, skip: true);
+      await vm.review(StartupTask.cash, skip: true);
+      await vm.refresh();
       expect(vm.visible, isTrue);
+      await vm.refresh();
       expect(vm.steps.first.skipped, isTrue);
-      vm.revisit(StartupTask.cash);
+      await vm.revisit(StartupTask.cash);
+      await vm.refresh();
       expect(vm.next!.task, StartupTask.cash);
-      vm.review(StartupTask.cash);
-      vm.review(StartupTask.categories);
-      vm.review(StartupTask.units);
+      await vm.review(StartupTask.cash);
+      await vm.review(StartupTask.categories);
+      await vm.review(StartupTask.units);
+      await vm.refresh();
       expect(vm.next!.task, StartupTask.products);
       d.catalog.save(
         const Product(id: 'a', name: 'أول منتج', purchasePrice: 100),
@@ -70,11 +79,15 @@ void main() {
       d.catalog.save(
         const Product(id: 'b', name: 'ثاني منتج', purchasePrice: 100),
       );
+      await vm.refresh();
       expect(vm.next!.task, StartupTask.stock);
       d.catalog.opening('a', 1000);
+      await vm.refresh();
       expect(vm.next!.task, StartupTask.stock);
+      await vm.refresh();
       expect(vm.next!.path, '/catalog/b/opening');
       d.catalog.opening('b', 1000);
+      await vm.refresh();
       expect(vm.next!.task, StartupTask.suppliers);
       d.parties.save(
         const Party(
@@ -84,8 +97,10 @@ void main() {
           supplier: true,
         ),
       );
+      await vm.refresh();
       expect(vm.next!.task, StartupTask.customers);
-      vm.review(StartupTask.customers, skip: true);
+      await vm.review(StartupTask.customers, skip: true);
+      await vm.refresh();
       expect(vm.next!.task, StartupTask.backup);
       // A local backup alone does not complete protection against device loss.
       d.store.setSetting('backup_at', '2026-10-16T10:00:00Z');
@@ -93,6 +108,7 @@ void main() {
         title: 'نسخة محلية',
         message: '',
       );
+      await vm.refresh();
       expect(vm.next!.task, StartupTask.backup);
       d.store.setSetting('external_backup_directory', '/usb');
       d.store.setSetting('external_backup_at', '2026-10-16T10:00:00Z');
@@ -100,7 +116,9 @@ void main() {
         title: 'نسخة خارجية',
         message: '',
       );
+      await vm.refresh();
       expect(vm.next, isNull);
+      await vm.refresh();
       expect(vm.visible, isTrue);
       final reopened = StartupGuideRepository(d.store);
       expect(
@@ -111,10 +129,12 @@ void main() {
         isTrue,
       );
       d.store.user = d.store.user!.copyWith(role: 'accountant');
-      vm.refresh();
+      await vm.refresh();
+      await vm.refresh();
       expect(vm.steps.any((s) => s.task == StartupTask.backup), isFalse);
       d.store.user = d.store.user!.copyWith(role: 'seller');
-      vm.refresh();
+      await vm.refresh();
+      await vm.refresh();
       expect(vm.available, isFalse);
       expect(() => reopened.review(StartupTask.cash), throwsException);
     },

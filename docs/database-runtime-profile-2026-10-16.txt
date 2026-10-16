@@ -1,0 +1,36 @@
+Native macOS profile-mode synthetic acceptance, 2026-10-16
+Apple M2 Max, arm64; Flutter profile build; SQLite 3.53.4; app-owned temporary file.
+Automatic backups active. Round-trip timings include queueing and overlapping UI work.
+Each route waits a fixed 900 ms; renderedMs is the harness wait, not measured render latency.
+Barcode timing is repository/view-model input, not physical scanner latency.
+Frame timings cover the route/scan/backup/restore exercise after initial home warm-up.
+Process RSS includes seeding, native caches, UI/fonts, SQLite and backup workers; not a heap attribution.
+All fixture files were deleted by the probe. The default shop path was never opened.
+
+PROBE fixture=/Users/alamodi/Library/Containers/com.amdi.deptAccounting/Data/tmp/dept-native-growth-mJaGwH
+PROBE connected
+PROBE seed complete
+PROBE seededMs=4383 health={documents: 100001, journal: 400002, integrity: ok, foreignKeyErrors: 0, sqlite: 3.53.4, journalMode: wal, cash: 100000000} fileBytes=107741184
+PROBE route=/catalog renderedMs=902 queryReplies=1 errors=0
+PROBE route=/sales renderedMs=902 queryReplies=2 errors=0
+PROBE route=/finance renderedMs=902 queryReplies=1 errors=0
+PROBE route=/reports renderedMs=902 queryReplies=2 errors=0
+PROBE route=/parties renderedMs=901 queryReplies=1 errors=0
+PROBE route=/inventory/p0 renderedMs=902 queryReplies=1 errors=0
+PROBE route=/receiving renderedMs=901 queryReplies=4 errors=0
+PROBE route=/settings renderedMs=901 queryReplies=1 errors=0
+PROBE route=/ renderedMs=901 queryReplies=2 errors=0
+PROBE barcode20 medianUs=46 maxUs=814 postingMs=160 total=20000 draftDeleted=true
+PROBE operation=invoices.page roundTripMs=132.525
+PROBE operation=invoices.page roundTripMs=106.609
+PROBE operation=reports.page roundTripMs=1.236
+PROBE operation=reports.accounting roundTripMs=168.088
+PROBE operation=overview.snapshot roundTripMs=116.967
+PROBE backupMs=8452 archiveBytes=107749412
+PROBE existingRestoreMs=13888 health={documents: 100002, journal: 400006, integrity: ok, foreignKeyErrors: 0, sqlite: 3.53.4, journalMode: wal, cash: 100020000}
+PROBE freshRestoreMs=5716 health={documents: 100002, journal: 400006, integrity: ok, foreignKeyErrors: 0, sqlite: 3.53.4, journalMode: wal, cash: 100020000}
+PROBE durationMs=52868 ticks=2114 maxTimerGapMs=35.614 rssBaseline=159137792 peakRss=308215808 rssDelta=149078016 frames=778 buildP95Ms=1.278 buildMaxMs=7.744 rasterP95Ms=1.609 errors=0
+PROBE ready-for-hot-reload; cleaning disposable fixture in 60 seconds
+PROBE CLEANED
+
+Final code smoke (separate fresh temporary store, debug mode): cash opening 100.00 + service sale 10.00 = 110.00 SAR; draft removed. Finance, sales, document details, reports, and home rendered with zero captured errors. Hot reload succeeded; runtime-error tool reported none. Final smoke fixture cleaned.

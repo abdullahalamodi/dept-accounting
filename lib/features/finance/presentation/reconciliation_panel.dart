@@ -1,3 +1,6 @@
+import '../data/finance_tasks.dart';
+import '../../../core/ui/database_query.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/dependencies.dart';
@@ -30,77 +33,85 @@ class _CashReconciliationDialogState extends State<CashReconciliationDialog> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: vm,
     builder: (context, _) {
-      final d = widget.d,
-          accounts = d.finance.accounts(),
-          selected = accounts.firstWhere(
-            (a) => a.code == (account ?? accounts.first.code),
-          );
-      return AlertDialog(
-        title: const Text('مطابقة الصندوق'),
-        content: SizedBox(
-          width: 720,
-          child: SingleChildScrollView(
-            child: SectionStack.form(
-              children: [
-                ErrorNotice(vm.error),
-                FieldGrid(
+      return DatabaseQuery(
+        dialog: true,
+        store: widget.d.store,
+        task: FinanceTasks.accounts(),
+        queryKey: 'cash-balances',
+        builder: (context, accounts) {
+          final d = widget.d,
+              selected = accounts.firstWhere(
+                (a) => a.code == (account ?? accounts.first.code),
+              );
+          return AlertDialog(
+            title: const Text('مطابقة الصندوق'),
+            content: SizedBox(
+              width: 720,
+              child: SingleChildScrollView(
+                child: SectionStack.form(
                   children: [
-                    ChoiceField(
-                      label: 'الحساب',
-                      value: selected.code,
-                      items: accounts
-                          .map((a) => (value: a.code, label: a.name))
-                          .toList(),
-                      onChanged: (v) => setState(() => account = v),
+                    ErrorNotice(vm.error),
+                    FieldGrid(
+                      children: [
+                        ChoiceField(
+                          label: 'الحساب',
+                          value: selected.code,
+                          items: accounts
+                              .map((a) => (value: a.code, label: a.name))
+                              .toList(),
+                          onChanged: (v) => setState(() => account = v),
+                        ),
+                        DeptAccountingField(
+                          label: 'الرصيد الفعلي',
+                          controller: counted,
+                          numeric: true,
+                        ),
+                        DeptAccountingField(
+                          label: 'سبب الفرق / ملاحظة المراجعة',
+                          controller: reason,
+                        ),
+                      ],
                     ),
-                    DeptAccountingField(
-                      label: 'الرصيد الفعلي',
-                      controller: counted,
-                      numeric: true,
+                    Text(
+                      'الرصيد الدفتري: ${Numbers.format(selected.balance)} ${d.store.shop!.currencyLabel}',
                     ),
-                    DeptAccountingField(
-                      label: 'سبب الفرق / ملاحظة المراجعة',
-                      controller: reason,
+                    DeptAccountingButton(
+                      label: 'اعتماد المطابقة',
+                      variant: DeptAccountingButtonVariant.secondary,
+                      onPressed: () async {
+                        if (!await showDeptAccountingConfirmation(
+                          context,
+                          title: 'اعتماد مطابقة الحساب؟',
+                          message: 'سيُسجل فرق الرصيد الفعلي كمصروف أو زيادة موثقة. يبقى الحساب متاحًا للعمل بعد المطابقة.',
+                          confirmLabel: 'اعتماد',
+                        )) {
+                          return;
+                        }
+                        if (!context.mounted) return;
+                        if (await vm.reconcile(
+                              selected.code,
+                              counted.text,
+                              reason.text,
+                            ) &&
+                            context.mounted) {
+                          showMessage(context, 'تم اعتماد مطابقة الحساب');
+                          Navigator.pop(context);
+                        }
+                      },
                     ),
                   ],
                 ),
-                Text(
-                  'الرصيد الدفتري: ${Numbers.format(selected.balance)} ${d.store.shop!.currencyLabel}',
-                ),
-                DeptAccountingButton(
-                  label: 'اعتماد المطابقة',
-                  variant: DeptAccountingButtonVariant.secondary,
-                  onPressed: () async {
-                    if (!await showDeptAccountingConfirmation(
-                      context,
-                      title: 'اعتماد مطابقة الحساب؟',
-                      message: 'سيُسجل فرق الرصيد الفعلي كمصروف أو زيادة موثقة. يبقى الحساب متاحًا للعمل بعد المطابقة.',
-                      confirmLabel: 'اعتماد',
-                    )) {
-                      return;
-                    }
-                    if (!context.mounted) return;
-                    if (vm.reconcile(
-                      selected.code,
-                      counted.text,
-                      reason.text,
-                    )) {
-                      showMessage(context, 'تم اعتماد مطابقة الحساب');
-                      Navigator.pop(context);
-                    }
-                  },
-                ),
-              ],
+              ),
             ),
-          ),
-        ),
-        actions: [
-          DeptAccountingButton(
-            label: 'إغلاق',
-            variant: DeptAccountingButtonVariant.quiet,
-            onPressed: () => Navigator.pop(context),
-          ),
-        ],
+            actions: [
+              DeptAccountingButton(
+                label: 'إغلاق',
+                variant: DeptAccountingButtonVariant.quiet,
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          );
+        },
       );
     },
   );

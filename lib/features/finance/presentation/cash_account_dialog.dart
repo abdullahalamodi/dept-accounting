@@ -17,8 +17,10 @@ class _CashAccountDialogState extends State<CashAccountDialog> {
   late final vm = FinanceViewModel(widget.d);
   final name = TextEditingController();
 
-  void save() {
-    if (vm.addAccount(name.text)) Navigator.pop(context);
+  Future<void> save() async {
+    if (await vm.addAccount(name.text) && mounted) {
+      Navigator.pop(context);
+    }
   }
 
   @override

@@ -6,6 +6,7 @@ import '../../../core/app_identity.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dept_accounting_design_system.dart';
 import '../../backup/data/backup_codec.dart';
+import '../../backup/presentation/backup_file_selection.dart';
 import '../data/auth_models.dart';
 import 'auth_view_model.dart';
 
@@ -84,21 +85,25 @@ class _AuthPageState extends State<AuthPage> {
       allowedExtensions: BackupCodec.supportedExtensions,
     );
     if (file == null) return;
-    final bytes = await file.readAsBytes();
-    final info = await widget.dependencies.backups.inspect(
-      bytes,
-      restoreKey.text,
-    );
-    if (!mounted) return;
-    if (await showDeptAccountingConfirmation(
-      context,
-      title: 'استعادة ${info.shop.name}؟',
-      message:
-          'سيُنقل المحل بعملته ${info.shop.currency} وبياناته المسجلة في ${info.date}. استخدم بيانات دخوله الأصلية بعد الاستعادة.',
-      confirmLabel: 'استعادة',
-    )) {
-      await widget.dependencies.backups.restoreFresh(bytes, restoreKey.text);
-    }
+    await withSelectedBackup(file, (backupFile) async {
+      final info = await widget.dependencies.backups.inspectFile(
+        backupFile,
+        restoreKey.text,
+      );
+      if (!mounted) return;
+      if (await showDeptAccountingConfirmation(
+        context,
+        title: 'استعادة ${info.shop.name}؟',
+        message:
+            'سيُنقل المحل بعملته ${info.shop.currency} وبياناته المسجلة في ${info.date}. استخدم بيانات دخوله الأصلية بعد الاستعادة.',
+        confirmLabel: 'استعادة',
+      )) {
+        await widget.dependencies.backups.restoreFreshFile(
+          backupFile,
+          restoreKey.text,
+        );
+      }
+    });
   });
 
   @override

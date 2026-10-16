@@ -24,12 +24,7 @@ class ProductUnitsSection extends StatelessWidget {
   final TextEditingController unit, alternateUnit, factor;
 
   String unitName(String id) =>
-      repository
-          .all(CatalogReferenceKind.unit)
-          .where((r) => r.id == id)
-          .firstOrNull
-          ?.name ??
-      '';
+      repository.find(CatalogReferenceKind.unit, id)?.name ?? '';
   final bool fractional, service, enabled;
   final ValueChanged<bool> onFractionalChanged;
 

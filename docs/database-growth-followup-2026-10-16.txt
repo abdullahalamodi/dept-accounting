@@ -1,0 +1,42 @@
+00:00 +0: loading /Users/alamodi/development/dept_accounting/dept_accounting_app/test/features/database_paging_test.dart
+00:00 +0: /Users/alamodi/development/dept_accounting/dept_accounting_app/test/_database_scale_followup_test.dart: temporary database growth follow-up
+00:00 +1: /Users/alamodi/development/dept_accounting/dept_accounting_app/test/_database_scale_followup_test.dart: temporary database growth follow-up
+00:00 +2: /Users/alamodi/development/dept_accounting/dept_accounting_app/test/_database_scale_followup_test.dart: temporary database growth follow-up
+AUDIT fixture documents=10000 products=1000 journal=40000 allocations=10000 SQLite=3.53.4
+AUDIT fk_errors=0 integrity=ok
+AUDIT invoice_page_10 0.294 ms
+AUDIT invoice_search_page_10 9.643 ms
+AUDIT catalog_page_10 0.576 ms
+AUDIT barcode_one_product 0.044 ms
+AUDIT due_one 0.077 ms
+AUDIT dashboard_latest_five 0.603 ms
+AUDIT allocation_preview 0.565 ms
+AUDIT sales_report_900_rows 5.163 ms
+AUDIT fixture documents=50000 products=5000 journal=200000 allocations=50000 SQLite=3.53.4
+AUDIT fk_errors=0 integrity=ok
+AUDIT invoice_page_10 0.800 ms
+AUDIT invoice_search_page_10 89.053 ms
+AUDIT catalog_page_10 0.427 ms
+AUDIT barcode_one_product 0.026 ms
+AUDIT due_one 0.066 ms
+AUDIT dashboard_latest_five 0.544 ms
+AUDIT allocation_preview 1.828 ms
+AUDIT sales_report_900_rows 2.987 ms
+AUDIT fixture documents=100000 products=10000 journal=400000 allocations=100000 SQLite=3.53.4
+AUDIT fk_errors=0 integrity=ok
+AUDIT PLAN baseline invoice_list ["SEARCH documents USING INDEX documents_kind (kind=?)"]
+AUDIT PLAN baseline due_returns ["SEARCH documents USING INDEX documents_source (source_id=? AND kind=?)"]
+AUDIT PLAN baseline credit_used ["SEARCH allocations USING INDEX allocations_payment (payment_id=?)"]
+AUDIT PLAN baseline stock_history ["SEARCH s USING INDEX stock_product (product_id=?)","SEARCH d USING INDEX sqlite_autoindex_documents_1 (id=?)"]
+AUDIT PLAN baseline latest_five ["SEARCH d USING INDEX documents_kind_posted (kind=?)"]
+AUDIT PLAN baseline product_sort ["SCAN products USING INDEX products_name"]
+AUDIT PLAN baseline barcode_direct ["SEARCH products USING INDEX sqlite_autoindex_products_2 (barcode=?)"]
+AUDIT invoice_page_10 1.497 ms
+AUDIT invoice_search_page_10 94.982 ms
+AUDIT catalog_page_10 0.620 ms
+AUDIT barcode_one_product 0.026 ms
+AUDIT due_one 0.062 ms
+AUDIT dashboard_latest_five 0.521 ms
+AUDIT allocation_preview 3.451 ms
+AUDIT sales_report_900_rows 2.711 ms
+00:07 +3: All tests passed!

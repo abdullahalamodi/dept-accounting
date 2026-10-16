@@ -51,7 +51,7 @@ class CorrectionRepository {
         );
       }
       if (db.select(
-        r"SELECT d.id FROM documents d, json_each(d.data, '$.extra.costAdjustments') c WHERE d.kind = 'purchase' AND c.key = ? LIMIT 1",
+        'SELECT 1 FROM cost_adjustments WHERE invoice_id = ? LIMIT 1',
         [id],
       ).isNotEmpty) {
         throw const BusinessException(

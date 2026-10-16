@@ -1,0 +1,5 @@
+File-backed Flutter-test benchmark on the development Mac, SQLite 3.53.4.
+100,000 synthetic documents, 400,002 journal rows. Median of three warmed runs inside one worker task.
+Previous activity timing is the previous SQL fetch alone; replacement includes repository mapping.
+The displayed recent window contains 1,000 documents. Raw result and plans:
+SCALE {fileBytes: 107741184, cashBalance100kMs: 18.727, outgoingCashValidationMs: 18.695, previousActivitySqlMs: 99.615, aggregatedActivityRepositoryMs: 1.788, previousRows: 2000, groupedRows: 1, previousPlan: [SEARCH j USING INDEX journal_account (account=?), SEARCH d USING INDEX sqlite_autoindex_documents_1 (id=?)], groupedPlan: [SEARCH d USING INDEX documents_posted (posted_at>? AND posted_at<?), SEARCH j USING INDEX journal_document (document_id=?), USE TEMP B-TREE FOR GROUP BY], optimizedActivityMs: 1.683}

@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
+import '../../../core/ui/paged_selection_dialog.dart';
+import '../../catalog/data/catalog_repository.dart';
+import '../../parties/presentation/party_field.dart';
 import '../../../design_system/dept_accounting_design_system.dart';
-import '../../catalog/data/product.dart';
 import 'invoice_view_model.dart';
 import 'invoice_items_table.dart';
 import 'invoice_summary_panel.dart';
@@ -49,12 +51,7 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
   Future<void> picker() async {
     await showDialog<void>(
       context: context,
-      builder: (context) => _ProductPicker(
-        products: vm.products,
-        currency: vm.d.store.shop!.currencyLabel,
-        onAdd: vm.add,
-        sale: vm.sale,
-      ),
+      builder: (context) => _ProductPicker(vm: vm),
     );
   }
 
@@ -83,10 +80,8 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
               : vm.sale
               ? '/sales'
               : '/purchases';
-      final parties = d.parties.all().where(
-        (p) => p.active && (vm.sale ? p.customer : p.supplier),
-      );
       return WorkPage(
+        busy: vm.busy,
         title: widget.pos
             ? 'نقطة البيع'
             : vm.quick
@@ -96,17 +91,22 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
             : vm.sale
             ? 'فاتورة بيع جديدة'
             : 'فاتورة شراء جديدة',
-        onBack: () {
-          vm.saveDraft();
-          context.go(path);
+        onBack: () async {
+          await vm.saveDraft();
+          if (context.mounted) context.go(path);
         },
         actions: [
           DeptAccountingButton(
             label: 'حفظ مسودة',
             variant: DeptAccountingButtonVariant.secondary,
-            onPressed: () {
-              vm.saveDraft();
-              showMessage(context, vm.draftError ?? 'حُفظت المسودة على الجهاز');
+            onPressed: () async {
+              await vm.saveDraft();
+              if (context.mounted) {
+                showMessage(
+                  context,
+                  vm.draftError ?? 'حُفظت المسودة على الجهاز',
+                );
+              }
             },
           ),
         ],
@@ -135,30 +135,24 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
                     title: 'بيانات الفاتورة',
                     child: FieldGrid(
                       children: [
-                        ChoiceField(
+                        PartyField(
+                          repository: d.parties,
+                          customer: vm.sale,
                           label: vm.sale ? 'العميل' : 'المورد',
+                          emptyLabel: vm.sale
+                              ? 'بدون عميل — نقدي فقط'
+                              : 'اختر المورد',
                           enabled: vm.receiptId == null,
-                          value: vm.partyId ?? '',
-                          items: [
-                            (
-                              value: '',
-                              label: vm.sale
-                                  ? 'بدون عميل — نقدي فقط'
-                                  : 'اختر المورد',
-                            ),
-                            ...parties.map((p) => (value: p.id, label: p.name)),
-                          ],
-                          onChanged: (v) {
-                            vm.partyId = v == '' ? null : v;
+                          value: vm.partyId,
+                          onChanged: (value) {
+                            vm.partyId = value;
                             vm.edit();
                           },
                         ),
-                        DeptAccountingField(
-                          label: 'تاريخ الورقة',
-                          initialValue: vm.date,
-                          hint: 'YYYY-MM-DD',
+                        DeptAccountingDateTimeField(
+                          value: DateTime.tryParse(vm.date) ?? DateTime.now(),
                           onChanged: (v) {
-                            vm.date = v;
+                            vm.date = v.toIso8601String();
                             vm.edit();
                           },
                         ),
@@ -187,96 +181,37 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
   );
 }
 
-class _ProductPicker extends StatefulWidget {
-  const _ProductPicker({
-    required this.products,
-    required this.currency,
-    required this.onAdd,
-    required this.sale,
-  });
-  final List<Product> products;
-  final String currency;
-  final ValueChanged<Product> onAdd;
-  final bool sale;
+class _ProductPicker extends StatelessWidget {
+  const _ProductPicker({required this.vm});
+  final InvoiceViewModel vm;
   @override
-  State<_ProductPicker> createState() => _ProductPickerState();
-}
-
-class _ProductPickerState extends State<_ProductPicker> {
-  String search = '';
-  int page = 1;
-  @override
-  Widget build(BuildContext context) {
-    final products = widget.products
-        .where(
-          (p) => '${p.name} ${p.barcode}'.toLowerCase().contains(
-            search.toLowerCase(),
+  Widget build(BuildContext context) => PagedSelectionDialog<CatalogRow>(
+    title: 'اختيار المنتجات',
+    searchLabel: 'الاسم أو الباركود',
+    selectLabel: 'إضافة',
+    width: 820,
+    minWidth: 600,
+    load: (search, page) => vm.searchProducts(search, page),
+    columns: const [
+      DataColumn(label: Text('المنتج')),
+      DataColumn(label: Text('الباركود')),
+      DataColumn(label: Text('السعر')),
+    ],
+    cells: (row) => [
+      DataCell(Text(row.product.name)),
+      DataCell(Text(row.product.barcode)),
+      DataCell(
+        DeptAccountingAmount(
+          Numbers.format(
+            vm.sale ? row.product.salePrice : row.product.purchasePrice,
           ),
-        )
-        .toList();
-    return AlertDialog(
-      title: const Text('اختيار المنتجات'),
-      content: SizedBox(
-        width: 820,
-        child: SingleChildScrollView(
-          child: SectionStack(
-            children: [
-              DeptAccountingField(
-                label: 'الاسم أو الباركود',
-                onChanged: (v) => setState(() {
-                  search = v;
-                  page = 1;
-                }),
-              ),
-              DeptAccountingDataTable(
-                minWidth: 600,
-                columns: const [
-                  DataColumn(label: Text('المنتج')),
-                  DataColumn(label: Text('الباركود')),
-                  DataColumn(label: Text('السعر')),
-                  DataColumn(label: Text('الإجراء')),
-                ],
-                rows: [
-                  for (final p in products.skip((page - 1) * 5).take(5))
-                    DataRow(
-                      cells: [
-                        DataCell(Text(p.name)),
-                        DataCell(Text(p.barcode)),
-                        DataCell(
-                          DeptAccountingAmount(
-                            Numbers.format(
-                              widget.sale ? p.salePrice : p.purchasePrice,
-                            ),
-                            currency: widget.currency,
-                          ),
-                        ),
-                        DataCell(
-                          TextButton(
-                            onPressed: () {
-                              widget.onAdd(p);
-                              Navigator.pop(context);
-                            },
-                            child: const Text('إضافة'),
-                          ),
-                        ),
-                      ],
-                    ),
-                ],
-                totalRows: products.length,
-                page: page,
-                pageSize: 5,
-                onPageChanged: (v) => setState(() => page = v),
-              ),
-            ],
-          ),
+          currency: vm.d.store.shop!.currencyLabel,
         ),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('إغلاق'),
-        ),
-      ],
-    );
-  }
+    ],
+    onSelected: (row) {
+      vm.add(row.product);
+      Navigator.pop(context);
+    },
+  );
 }

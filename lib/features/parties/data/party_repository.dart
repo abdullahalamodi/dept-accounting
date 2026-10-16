@@ -1,4 +1,5 @@
 import '../../../core/data/app_store.dart';
+import '../../../core/data/query_page.dart';
 import '../../../core/numbers.dart';
 import '../../accounting/data/posting_engine.dart';
 import 'party.dart';
@@ -8,6 +9,45 @@ class PartyRepository {
   PartyRepository(this.store, this.engine);
   final AppStore store;
   final PostingEngine engine;
+
+  QueryPage<Party> page({
+    String search = '',
+    int page = 1,
+    int pageSize = 10,
+    bool activeOnly = false,
+    bool? customer,
+  }) {
+    store.require();
+    final conditions = [
+      if (activeOnly) "json_extract(data, '\$.active') = 1",
+      if (customer != null)
+        "json_extract(data, '\$.${customer ? 'customer' : 'supplier'}') = 1",
+      if (search.isNotEmpty) "instr(app_lower(json_extract(data, '\$.name') || ' ' || json_extract(data, '\$.phone')), ?) > 0",
+    ];
+    final where = conditions.isEmpty ? '' : 'WHERE ${conditions.join(' AND ')}';
+    final parameters = <Object?>[if (search.isNotEmpty) search.toLowerCase()];
+    final db = store.database.handle;
+    return QueryPage.read(
+      total:
+          db
+                  .select(
+                    'SELECT COUNT(*) AS n FROM parties $where',
+                    parameters,
+                  )
+                  .first['n']
+              as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) => db
+          .select(
+            "SELECT data FROM parties $where ORDER BY json_extract(data, '\$.name'), id LIMIT ? OFFSET ?",
+            [...parameters, limit, offset],
+          )
+          .map((row) => PartyMapper.fromJson(row['data'] as String))
+          .toList(),
+    );
+  }
+
   List<Party> all() {
     store.require();
     return store.database.handle
@@ -19,12 +59,20 @@ class PartyRepository {
   }
 
   Party get(String id) {
+    final party = find(id);
+    if (party == null) throw const BusinessException('الطرف غير موجود.');
+    return party;
+  }
+
+  Party? find(String id) {
+    store.require();
     final rows = store.database.handle.select(
       'SELECT data FROM parties WHERE id = ?',
       [id],
     );
-    if (rows.isEmpty) throw const BusinessException('الطرف غير موجود.');
-    return PartyMapper.fromJson(rows.first['data'] as String);
+    return rows.isEmpty
+        ? null
+        : PartyMapper.fromJson(rows.first['data'] as String);
   }
 
   void save(Party party) {
@@ -163,5 +211,43 @@ class PartyRepository {
         )
         .map((r) => Map<String, Object?>.from(r))
         .toList();
+  }
+
+  QueryPage<Map<String, Object?>> statementPage(
+    String id,
+    bool customer, {
+    int page = 1,
+    int pageSize = 10,
+  }) {
+    store.require(manage: !customer);
+    final parameters = [customer ? '1200' : '2100', id];
+    final db = store.database.handle;
+    return QueryPage.read(
+      total:
+          db
+                  .select(
+                    'SELECT COUNT(DISTINCT document_id) AS n FROM journal WHERE account = ? AND party_id = ?',
+                    parameters,
+                  )
+                  .first['n']
+              as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) => db
+          .select(
+            '''
+        SELECT d.id,d.number,d.kind,d.posted_at,SUM(j.debit) AS debit,SUM(j.credit) AS credit,
+          SUM(SUM(j.debit-j.credit)) OVER (
+            ORDER BY d.posted_at,d.rowid ROWS UNBOUNDED PRECEDING
+          ) * ${customer ? 1 : -1} AS balance
+        FROM journal j JOIN documents d ON d.id = j.document_id
+        WHERE j.account = ? AND j.party_id = ?
+        GROUP BY d.id ORDER BY d.posted_at,d.rowid LIMIT ? OFFSET ?
+      ''',
+            [...parameters, limit, offset],
+          )
+          .map((r) => Map<String, Object?>.from(r))
+          .toList(),
+    );
   }
 }

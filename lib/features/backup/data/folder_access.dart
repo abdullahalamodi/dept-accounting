@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/services.dart';
 
 import '../../../core/data/app_store.dart';
+import '../../../core/data/store_tasks.dart';
 
 class FolderAccess {
   FolderAccess(this.store);
@@ -13,10 +14,7 @@ class FolderAccess {
     final bookmark = Platform.isMacOS
         ? await _channel.invokeMethod<String>('bookmark', {'path': path})
         : null;
-    store.write(() {
-      store.setSetting(setting, path);
-      if (bookmark != null) store.setSetting('${setting}_bookmark', bookmark);
-    });
+    await store.run(StoreTasks.rememberFolder(setting, path, bookmark));
   }
 
   Future<void> restore() async {
@@ -30,8 +28,10 @@ class FolderAccess {
           {'bookmark': bookmark},
         );
         if (result != null) {
-          store.setSetting(key, result['path'] as String);
-          store.setSetting('${key}_bookmark', result['bookmark'] as String);
+          await store.setSettings({
+            key: result['path'] as String,
+            '${key}_bookmark': result['bookmark'] as String,
+          });
         }
       } on PlatformException {
         /* Keep the missing folder visible and retry after reconnect. */

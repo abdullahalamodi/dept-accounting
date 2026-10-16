@@ -1,7 +1,8 @@
 import '../../../core/data/app_store.dart';
+import '../../../core/data/query_page.dart';
 import '../../accounting/data/posting_engine.dart';
 import '../../../core/numbers.dart';
-import '../../invoices/data/document.dart';
+import 'period_report_query.dart';
 import 'export_service.dart';
 
 class ReportsRepository {
@@ -10,24 +11,30 @@ class ReportsRepository {
   final PostingEngine engine;
   Map<String, int> overview() {
     store.require();
-    final cash = store.database.handle
-        .select('SELECT code FROM accounts WHERE cash = 1')
-        .fold<int>(0, (a, r) => a + engine.balance(r['code'] as String));
-    final result = <String, int>{
-      'cash': cash,
-      'receivables': engine.balance('1200'),
+    final codes = store.user!.canManage
+        ? "'1200','1300','2100','4100','4200','5100','6100','6200','6900'"
+        : "'1200'";
+    final rows = store.database.handle.select('''
+      SELECT a.code,a.cash,COALESCE(SUM(j.debit-j.credit),0) AS balance
+      FROM accounts a LEFT JOIN journal j ON j.account = a.code
+      WHERE a.cash = 1 OR a.code IN ($codes) GROUP BY a.code
+    ''');
+    final balances = {
+      for (final row in rows) row['code'] as String: row['balance'] as int,
     };
+    int balance(String code) => balances[code] ?? 0;
+    final cash = rows
+        .where((r) => r['cash'] == 1)
+        .fold<int>(0, (sum, r) => sum + (r['balance'] as int));
+    final result = <String, int>{'cash': cash, 'receivables': balance('1200')};
     if (store.user!.canManage) {
       result.addAll({
-        'stock': engine.balance('1300'),
-        'payables': -engine.balance('2100'),
-        'sales': -engine.balance('4100') - engine.balance('4200'),
-        'services': -engine.balance('4200'),
-        'cost': engine.balance('5100'),
-        'expenses':
-            engine.balance('6100') +
-            engine.balance('6200') +
-            engine.balance('6900'),
+        'stock': balance('1300'),
+        'payables': -balance('2100'),
+        'sales': -balance('4100') - balance('4200'),
+        'services': -balance('4200'),
+        'cost': balance('5100'),
+        'expenses': balance('6100') + balance('6200') + balance('6900'),
       });
       result['profit'] =
           result['sales']! - result['cost']! - result['expenses']!;
@@ -47,16 +54,30 @@ class ReportsRepository {
         .toList();
   }
 
-  List<Map<String, Object?>> ledger(String code) {
+  QueryPage<Map<String, Object?>> ledger(
+    String code, {
+    int page = 1,
+    int pageSize = 10,
+  }) {
     store.require(manage: true);
-    return store.database.handle
-        .select(
-          '''SELECT d.id,d.number,d.posted_at,d.data,j.debit,j.credit
-      FROM journal j JOIN documents d ON d.id = j.document_id WHERE j.account = ? ORDER BY d.posted_at,j.id''',
-          [code],
-        )
-        .map((r) => Map<String, Object?>.from(r))
-        .toList();
+    return QueryPage.read(
+      total:
+          store.database.handle.select(
+                'SELECT COUNT(*) AS n FROM journal WHERE account = ?',
+                [code],
+              ).first['n']
+              as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) => store.database.handle
+          .select(
+            '''SELECT d.id,d.number,d.posted_at,j.debit,j.credit
+      FROM journal j JOIN documents d ON d.id = j.document_id WHERE j.account = ? ORDER BY d.posted_at,j.id LIMIT ? OFFSET ?''',
+            [code, limit, offset],
+          )
+          .map((r) => Map<String, Object?>.from(r))
+          .toList(),
+    );
   }
 
   List<Map<String, Object?>> audit() {
@@ -69,7 +90,27 @@ class ReportsRepository {
         .toList();
   }
 
-  ReportTable table(String kind, DateTime from, DateTime through) {
+  Object? _aggregateKey;
+  ({int total, Map<String, String> summary})? _aggregate;
+
+  ReportTable table(String kind, DateTime from, DateTime through) =>
+      _period(kind, from, through).report;
+
+  ({ReportTable report, int total, int page}) page(
+    String kind,
+    DateTime from,
+    DateTime through, {
+    int page = 1,
+    int pageSize = 10,
+  }) => _period(kind, from, through, page: page, pageSize: pageSize);
+
+  ({ReportTable report, int total, int page}) _period(
+    String kind,
+    DateTime from,
+    DateTime through, {
+    int? page,
+    int pageSize = 10,
+  }) {
     store.require(manage: true);
     final first = DateTime(from.year, from.month, from.day),
         last = DateTime(through.year, through.month, through.day + 1);
@@ -80,203 +121,59 @@ class ReportsRepository {
     }
     final start = first.toUtc().toIso8601String(),
         end = last.toUtc().toIso8601String();
-    final db = store.database.handle, currency = store.shop!.currencyLabel;
-    final subtitle =
-        '${first.toIso8601String().substring(0, 10)} — ${through.toIso8601String().substring(0, 10)} · $currency · حسب وقت الاعتماد';
-    if (kind == 'profit') {
-      final rows = db.select(
-        'SELECT a.code,a.name,a.kind,COALESCE(SUM(j.debit-j.credit),0) AS amount FROM accounts a LEFT JOIN (SELECT j.* FROM journal j JOIN documents d ON d.id = j.document_id WHERE d.posted_at >= ? AND d.posted_at < ?) j ON j.account = a.code WHERE a.kind IN (\'income\',\'expense\') GROUP BY a.code ORDER BY a.code',
-        [start, end],
-      );
-      var income = 0, expense = 0;
-      for (final r in rows) {
-        if (r['kind'] == 'income') {
-          income -= r['amount'] as int;
-        } else {
-          expense += r['amount'] as int;
-        }
-      }
-      return ReportTable(
-        title: 'الأرباح والخسائر',
-        subtitle: subtitle,
-        columns: ['الحساب', 'الاسم', 'القيمة'],
-        rows: [
-          for (final r in rows)
-            [
-              r['code'] as String,
-              r['name'] as String,
-              Numbers.format(
-                (r['amount'] as int) * (r['kind'] == 'income' ? -1 : 1),
-              ),
-            ],
-        ],
+    final query = periodReportQuery(kind, start, end),
+        db = store.database.handle;
+    final key = (store.revision, kind, start, end);
+    if (_aggregate == null || _aggregateKey != key) {
+      final fields = [
+        'COUNT(*) AS n',
+        for (final (index, entry) in query.totals.entries.indexed)
+          '${entry.value} AS total_$index',
+      ];
+      final totals = db
+          .select(
+            'WITH result AS (${query.sql}) SELECT ${fields.join(',')} FROM result',
+            query.arguments,
+          )
+          .first;
+      _aggregate = (
+        total: totals['n'] as int,
         summary: {
-          'الإيرادات': Numbers.format(income),
-          'المصروفات والتكلفة': Numbers.format(expense),
-          'صافي النتيجة': Numbers.format(income - expense),
+          for (final (index, entry) in query.totals.entries.indexed)
+            entry.key: Numbers.format(totals['total_$index'] as int),
         },
       );
+      _aggregateKey = key;
     }
-    if (kind == 'stock') {
-      final rows = db.select(
-        'SELECT p.data,COALESCE(SUM(m.quantity),0) AS quantity,COALESCE(SUM(m.value),0) AS value FROM products p LEFT JOIN (SELECT m.* FROM stock_moves m JOIN documents d ON d.id = m.document_id WHERE d.posted_at < ?) m ON m.product_id = p.id WHERE json_extract(p.data,\'\$.service\') = 0 GROUP BY p.id',
-        [end],
-      );
-      return ReportTable(
-        title: 'المخزون وقيمته في نهاية الفترة',
-        subtitle: subtitle,
-        columns: ['المنتج', 'الكمية الأساسية', 'القيمة'],
-        rows: [
-          for (final r in rows)
-            [
-              store.decode(r['data'] as String)['name'] as String,
-              Numbers.format(r['quantity'] as int, decimals: 3),
-              Numbers.format(r['value'] as int),
-            ],
-        ],
-        summary: {
-          'قيمة المخزون': Numbers.format(
-            rows.fold<int>(0, (n, r) => n + (r['value'] as int)),
-          ),
-        },
-      );
-    }
-    if (kind == 'parties') {
-      final rows = db.select(
-        'SELECT p.data,j.account,COALESCE(SUM(j.debit-j.credit),0) AS balance FROM parties p JOIN journal j ON j.party_id = p.id JOIN documents d ON d.id = j.document_id WHERE d.posted_at < ? AND j.account IN (\'1200\',\'2100\') GROUP BY p.id,j.account',
-        [end],
-      );
-      return ReportTable(
-        title: 'أرصدة العملاء والموردين في نهاية الفترة',
-        subtitle: subtitle,
-        columns: ['الطرف', 'الحساب', 'المستحق / السالب لصالح الطرف'],
-        rows: [
-          for (final r in rows)
-            [
-              store.decode(r['data'] as String)['name'] as String,
-              r['account'] == '1200' ? 'عميل' : 'مورد',
-              Numbers.format(
-                (r['balance'] as int) * (r['account'] == '1200' ? 1 : -1),
-              ),
-            ],
-        ],
-      );
-    }
-    if (kind == 'cash') {
-      final rows = db.select(
-        'SELECT d.number,d.posted_at,a.name,j.debit,j.credit FROM journal j JOIN accounts a ON a.code = j.account JOIN documents d ON d.id = j.document_id WHERE a.cash = 1 AND d.posted_at >= ? AND d.posted_at < ? ORDER BY d.posted_at,j.id',
-        [start, end],
-      );
-      return ReportTable(
-        title: 'حركة الصناديق والبنوك',
-        subtitle: subtitle,
-        columns: ['المرجع', 'التاريخ', 'الحساب', 'وارد', 'صادر'],
-        rows: [
-          for (final r in rows)
-            [
-              r['number'] as String,
-              (r['posted_at'] as String).substring(0, 10),
-              r['name'] as String,
-              Numbers.format(r['debit'] as int),
-              Numbers.format(r['credit'] as int),
-            ],
-        ],
-      );
-    }
-    if (kind == 'trial') {
-      final rows = db.select(
-        'SELECT a.code,a.name,COALESCE(SUM(j.debit),0) AS debit,COALESCE(SUM(j.credit),0) AS credit FROM accounts a LEFT JOIN (SELECT j.* FROM journal j JOIN documents d ON d.id=j.document_id WHERE d.posted_at < ?) j ON j.account=a.code GROUP BY a.code ORDER BY a.code',
-        [end],
-      );
-      return ReportTable(
-        title: 'ميزان المراجعة في نهاية الفترة',
-        subtitle: subtitle,
-        columns: ['الرمز', 'الحساب', 'مدين', 'دائن', 'صافي الرصيد'],
-        rows: [
-          for (final r in rows)
-            [
-              r['code'] as String,
-              r['name'] as String,
-              Numbers.format(r['debit'] as int),
-              Numbers.format(r['credit'] as int),
-              Numbers.format((r['debit'] as int) - (r['credit'] as int)),
-            ],
-        ],
-        summary: {
-          'إجمالي المدين': Numbers.format(
-            rows.fold<int>(0, (n, r) => n + (r['debit'] as int)),
-          ),
-          'إجمالي الدائن': Numbers.format(
-            rows.fold<int>(0, (n, r) => n + (r['credit'] as int)),
-          ),
-        },
-      );
-    }
-    final kinds = switch (kind) {
-      'sales' => ['sale'],
-      'purchases' => ['purchase'],
-      'returns' => ['sale_return', 'purchase_return'],
-      'expenses' => ['expense'],
-      _ => ['sale', 'purchase'],
-    };
-    final rows = db.select(
-      'SELECT data FROM documents WHERE posted_at >= ? AND posted_at < ? AND kind IN (${List.filled(kinds.length, '?').join(',')}) ORDER BY posted_at',
-      [start, end, ...kinds],
-    );
-    final docs = rows
-        .map((r) => DocumentMapper.fromJson(r['data'] as String))
-        .toList();
-    return ReportTable(
-      title: switch (kind) {
-        'sales' => 'المبيعات',
-        'purchases' => 'المشتريات',
-        'returns' => 'المرتجعات',
-        'expenses' => 'المصروفات',
-        _ => 'المستندات',
-      },
-      subtitle: subtitle,
-      columns: [
-        'المرجع',
-        'النوع',
-        'تاريخ الورقة',
-        'الطرف / التصنيف',
-        'القيمة',
-        'الحالة',
-      ],
-      rows: [
-        for (final d in docs)
+    List<List<String>> rows([int? limit, int offset = 0]) => db
+        .select(
+          'WITH result AS (${query.sql}) SELECT * FROM result ORDER BY ${query.order} ${limit == null ? '' : 'LIMIT ? OFFSET ?'}',
           [
-            d.number,
-            d.label,
-            d.date,
-            d.partyId == null
-                ? d.extra['category'] as String? ?? ''
-                : db.select(
-                        'SELECT json_extract(data,\'\$.name\') AS name FROM parties WHERE id = ?',
-                        [d.partyId],
-                      ).first['name']
-                      as String,
-            Numbers.format(d.total),
-            db.select(
-                  "SELECT id FROM documents WHERE source_id = ? AND kind = 'reversal'",
-                  [d.id],
-                ).isEmpty
-                ? 'معتمد'
-                : 'ملغى',
+            ...query.arguments,
+            if (limit != null) ...[limit, offset],
           ],
-      ],
-      summary: {
-        'إجمالي المستندات المعتمدة': Numbers.format(
-          docs
-              .where(
-                (d) => db.select(
-                  "SELECT id FROM documents WHERE source_id = ? AND kind = 'reversal'",
-                  [d.id],
-                ).isEmpty,
-              )
-              .fold<int>(0, (n, d) => n + d.total),
-        ),
-      },
+        )
+        .map(query.format)
+        .toList();
+    final result = page == null
+        ? QueryPage(items: rows(), total: _aggregate!.total, page: 1)
+        : QueryPage.read(
+            total: _aggregate!.total,
+            page: page,
+            pageSize: pageSize,
+            read: rows,
+          );
+    return (
+      report: ReportTable(
+        title: query.title,
+        subtitle:
+            '${first.toIso8601String().substring(0, 10)} — ${through.toIso8601String().substring(0, 10)} · ${store.shop!.currencyLabel} · حسب وقت الاعتماد',
+        columns: query.columns,
+        rows: result.items,
+        summary: _aggregate!.summary,
+      ),
+      total: result.total,
+      page: result.page,
     );
   }
 }

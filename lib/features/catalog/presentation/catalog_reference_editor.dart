@@ -34,9 +34,9 @@ class _ReferenceEditorState extends State<_ReferenceEditor> {
   late final vm = CatalogReferencesViewModel(widget.repository, widget.kind);
   late final name = TextEditingController(text: widget.entry?.name);
 
-  void save() {
-    final saved = vm.save(id: widget.entry?.id, name: name.text);
-    if (saved != null) Navigator.pop(context, saved);
+  Future<void> save() async {
+    final saved = await vm.save(id: widget.entry?.id, name: name.text);
+    if (saved != null && mounted) Navigator.pop(context, saved);
   }
 
   @override

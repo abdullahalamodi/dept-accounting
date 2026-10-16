@@ -5,6 +5,8 @@ import 'package:dept_accounting/design_system/dept_accounting_design_system.dart
 import 'package:dept_accounting/features/auth/data/auth_models.dart';
 import 'package:dept_accounting/features/finance/presentation/finance_page.dart';
 import 'package:dept_accounting/features/invoices/data/document.dart';
+import 'package:dept_accounting/features/catalog/data/product.dart';
+import 'package:dept_accounting/features/parties/data/party.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -28,6 +30,87 @@ void main() {
     d.backups.dispose();
     d.store.dispose();
     d.store.database.close();
+  });
+
+  testWidgets('Manual invoice allocations survive moving between pages', (
+    tester,
+  ) async {
+    d.parties.save(const Party(id: 'party', name: 'طرف الاختبار'));
+    d.catalog.save(const Product(id: 'service', name: 'خدمة', service: true));
+    for (var i = 0; i < 8; i++) {
+      d.invoices.post(
+        requestId: 'sale-$i',
+        sale: true,
+        partyId: 'party',
+        payments: [],
+        lines: const [
+          InvoiceLine(
+            productId: 'service',
+            name: 'خدمة',
+            unit: 'حبة',
+            quantity: 1000,
+            price: 1000,
+          ),
+        ],
+      );
+    }
+    tester.view.physicalSize = const Size(1800, 1600);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: DeptAccountingTheme.light(),
+        locale: const Locale('ar'),
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
+        supportedLocales: const [Locale('ar')],
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: FinanceEditorPage(dependencies: d),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextFormField, 'الطرف'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, 'اختيار'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('تلقائي — الأقدم أولًا'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('اختيار يدوي').last);
+    await tester.pumpAndSettle();
+    final allocations = find.widgetWithText(TextFormField, 'تخصيص للفاتورة');
+    expect(allocations, findsNWidgets(5));
+    await tester.enterText(allocations.first, '1');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('التالي'));
+    await tester.tap(find.text('التالي'));
+    await tester.pumpAndSettle();
+    expect(allocations, findsNWidgets(3));
+    await tester.enterText(allocations.first, '2');
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('السابق'));
+    await tester.tap(find.text('السابق'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<EditableText>(
+            find.descendant(
+              of: allocations.first,
+              matching: find.byType(EditableText),
+            ),
+          )
+          .controller
+          .text,
+      '1',
+    );
+    final summary = tester.widget<DeptAccountingSummaryLine>(
+      find.widgetWithText(DeptAccountingSummaryLine, 'المخصص للفواتير'),
+    );
+    expect(summary.value, Numbers.format(300));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
   });
 
   test(

@@ -1,3 +1,4 @@
+import '../data/returns_tasks.dart';
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
@@ -21,6 +22,14 @@ class ReturnViewModel extends ActionViewModel {
   final String invoiceId, requestId;
   late final Document original;
   late final List<ReturnInput> inputs;
+  ReturnHistory? _history;
+  int due = 0;
+  ReturnHistory get history => _history!;
+  void accept(ReturnSnapshot snapshot) {
+    _history = snapshot.history;
+    due = snapshot.due;
+  }
+
   String reason = '', refund = '0';
   String? account;
   List<ReturnSelection> get selections => [
@@ -40,24 +49,26 @@ class ReturnViewModel extends ActionViewModel {
   int get total {
     try {
       return d.returns
-          .calculate(original, selections)
+          .calculate(original, selections, previousHistory: history)
           .fold<int>(0, (n, r) => n + r.value);
     } catch (_) {
       return 0;
     }
   }
 
-  int get excess => (total - d.invoices.due(invoiceId)).clamp(0, total);
+  int get excess => (total - due).clamp(0, total);
   Future<Document?> post() async {
     Document? result;
     await run(() async {
-      result = d.returns.post(
-        requestId: requestId,
-        invoiceId: invoiceId,
-        selected: selections,
-        reason: reason,
-        cashAccount: account,
-        refund: Numbers.parse(refund),
+      result = await d.store.run(
+        ReturnTasks.post(
+          requestId: requestId,
+          invoiceId: invoiceId,
+          selected: selections,
+          reason: reason,
+          cashAccount: account,
+          refund: Numbers.parse(refund),
+        ),
       );
     });
     return result;

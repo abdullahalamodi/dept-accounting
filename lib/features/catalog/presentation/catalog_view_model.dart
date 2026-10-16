@@ -1,3 +1,4 @@
+import '../data/catalog_tasks.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../../core/numbers.dart';
 import '../data/catalog_repository.dart';
@@ -9,25 +10,6 @@ class CatalogViewModel extends ActionViewModel {
   String search = '', category = '';
   bool lowOnly = false, servicesOnly = false;
   int page = 1, pageSize = 10;
-  List<Product> get products => repository.all();
-  List<Product> get filtered => products
-      .where(
-        (p) =>
-            ('${p.name} ${p.barcode}'.toLowerCase().contains(
-              search.toLowerCase(),
-            )) &&
-            (category.isEmpty || p.categoryId == category) &&
-            (!servicesOnly || p.service) &&
-            (!lowOnly ||
-                (p.active &&
-                    !p.service &&
-                    repository.engine.stock(p.id).quantity <= p.minStock)),
-      )
-      .toList();
-  List<Product> get visible {
-    final items = filtered;
-    return items.skip((page - 1) * pageSize).take(pageSize).toList();
-  }
 
   void filter(String value) {
     search = value;
@@ -40,30 +22,32 @@ class CatalogViewModel extends ActionViewModel {
     changed();
   }
 
-  bool save({
+  Future<bool> save({
     required String id,
     required Map<String, String> values,
     required bool service,
     required bool fractional,
     required bool active,
-  }) => perform(
-    () => repository.save(
-      Product(
-        id: id,
-        name: values['name']!.trim(),
-        barcode: values['barcode']!.trim(),
-        categoryId: values['category']!.trim(),
-        unitId: values['unit']!.trim(),
-        alternateUnitId: service ? '' : values['alternateUnit']!.trim(),
-        factor: service || values['alternateUnit']!.trim().isEmpty
-            ? 1000
-            : Numbers.parse(values['factor']!, decimals: 3),
-        fractional: fractional,
-        service: service,
-        salePrice: Numbers.parse(values['salePrice']!),
-        purchasePrice: Numbers.parse(values['purchasePrice']!),
-        minStock: Numbers.parse(values['minStock']!, decimals: 3),
-        active: active,
+  }) => run(
+    () async => await repository.store.run(
+      CatalogTasks.save(
+        Product(
+          id: id,
+          name: values['name']!.trim(),
+          barcode: values['barcode']!.trim(),
+          categoryId: values['category']!.trim(),
+          unitId: values['unit']!.trim(),
+          alternateUnitId: service ? '' : values['alternateUnit']!.trim(),
+          factor: service || values['alternateUnit']!.trim().isEmpty
+              ? 1000
+              : Numbers.parse(values['factor']!, decimals: 3),
+          fractional: fractional,
+          service: service,
+          salePrice: Numbers.parse(values['salePrice']!),
+          purchasePrice: Numbers.parse(values['purchasePrice']!),
+          minStock: Numbers.parse(values['minStock']!, decimals: 3),
+          active: active,
+        ),
       ),
     ),
   );

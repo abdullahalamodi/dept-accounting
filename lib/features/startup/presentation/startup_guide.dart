@@ -21,9 +21,8 @@ class _StartupGuideState extends State<StartupGuide> {
     backupStatus: widget.dependencies.backups.status,
   );
 
-  void open(StartupGuideStep step) {
-    vm.start();
-    context.go(step.path);
+  Future<void> open(StartupGuideStep step) async {
+    if (await vm.start() && mounted) context.go(step.path);
   }
 
   @override
@@ -34,8 +33,17 @@ class _StartupGuideState extends State<StartupGuide> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: vm,
+    listenable: Listenable.merge([vm, vm.query]),
     builder: (context, _) {
+      if (vm.query.error != null) {
+        return DeptAccountingStateView(
+          state: DeptAccountingViewState.error,
+          title: 'تعذر تحميل دليل البداية',
+          message: vm.query.error!,
+          actionLabel: 'إعادة المحاولة',
+          onAction: vm.refresh,
+        );
+      }
       if (!vm.available) return const SizedBox.shrink();
       if (!vm.visible) {
         return Align(

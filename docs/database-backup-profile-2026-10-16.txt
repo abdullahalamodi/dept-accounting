@@ -1,0 +1,7 @@
+00:00 +0: loading /Users/alamodi/development/dept_accounting/dept_accounting_app/test/features/backup_codec_test.dart
+00:00 +0: /Users/alamodi/development/dept_accounting/dept_accounting_app/test/_backup_scale_test.dart: temporary file-backed streaming backup profile
+00:00 +1: /Users/alamodi/development/dept_accounting/dept_accounting_app/test/_backup_scale_test.dart: temporary file-backed streaming backup profile
+00:00 +2: /Users/alamodi/development/dept_accounting/dept_accounting_app/test/_backup_scale_test.dart: temporary file-backed streaming backup profile
+PROFILE payloadMiB=16 dbBytes=17018880 archiveBytes=17018916 elapsedMs=1089 rssStart=161447936 rssPeak=171819008 rssDelta=10371072 eventLoopTicks=43 maximumGapMs=29.491
+PROFILE payloadMiB=64 dbBytes=67416064 archiveBytes=67416100 elapsedMs=4093 rssStart=172261376 rssPeak=182583296 rssDelta=10321920 eventLoopTicks=163 maximumGapMs=27.128
+00:05 +3: All tests passed!

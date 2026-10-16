@@ -11,6 +11,8 @@ typedef ReturnSelection = ({
   int serviceAmount,
   bool damaged,
 });
+typedef ReturnedLine = ({int quantity, int value, int cost});
+typedef ReturnHistory = ({List<int> corrections, List<ReturnedLine> returned});
 
 class ReturnsRepository {
   ReturnsRepository(this.store, this.engine, this.invoices, this.catalog);
@@ -29,46 +31,51 @@ class ReturnsRepository {
         .toList();
   }
 
-  int costCorrection(Document invoice, int index) {
-    final product = invoice.lines[index].productId;
-    var correction = 0;
+  ReturnHistory history(Document invoice) {
+    store.require(manage: true);
+    final corrections = List<int>.filled(invoice.lines.length, 0);
     for (final row in store.database.handle.select(
-      "SELECT data FROM documents WHERE kind = 'purchase' AND json_type(data, '\$.extra.costAdjustments') = 'object'",
+      'SELECT product_id,SUM(amount) AS amount FROM cost_adjustments WHERE invoice_id = ? GROUP BY product_id',
+      [invoice.id],
     )) {
-      final doc = DocumentMapper.fromJson(row['data'] as String);
-      correction +=
-          (doc.extra['costAdjustments']?[invoice.id]?[product] as int?) ?? 0;
-    }
-    final matching = [
-      for (var i = 0; i < invoice.lines.length; i++)
-        if (invoice.lines[i].productId == product) i,
-    ];
-    final shares = invoices.distribute(
-      correction.abs(),
-      matching.map((i) => invoice.lines[i].baseQuantity).toList(),
-    );
-    return shares[matching.indexOf(index)] * (correction < 0 ? -1 : 1);
-  }
-
-  ({int quantity, int value, int cost}) alreadyReturned(String id, int index) {
-    var quantity = 0, value = 0, cost = 0;
-    for (final doc in forInvoice(id)) {
-      for (final entry in (doc.extra['returns'] as List? ?? [])) {
-        if (entry['index'] == index) {
-          quantity += entry['quantity'] as int;
-          value += entry['value'] as int;
-          cost +=
-              (entry['cost'] as int) +
-              Numbers.ratio(
-                costCorrection(invoices.get(id), index) -
-                    ((entry['costCorrection'] as int?) ?? 0),
-                entry['quantity'] as int,
-                invoices.get(id).lines[index].quantity,
-              );
-        }
+      final matching = [
+        for (var i = 0; i < invoice.lines.length; i++)
+          if (invoice.lines[i].productId == row['product_id']) i,
+      ];
+      if (matching.isEmpty) continue;
+      final amount = row['amount'] as int;
+      final shares = invoices.distribute(
+        amount.abs(),
+        matching.map((i) => invoice.lines[i].baseQuantity).toList(),
+      );
+      for (var i = 0; i < matching.length; i++) {
+        corrections[matching[i]] = shares[i] * (amount < 0 ? -1 : 1);
       }
     }
-    return (quantity: quantity, value: value, cost: cost);
+    final returned = List<ReturnedLine>.filled(invoice.lines.length, (
+      quantity: 0,
+      value: 0,
+      cost: 0,
+    ));
+    for (final doc in forInvoice(invoice.id)) {
+      for (final entry in (doc.extra['returns'] as List? ?? [])) {
+        final index = entry['index'] as int;
+        final previous = returned[index];
+        returned[index] = (
+          quantity: previous.quantity + (entry['quantity'] as int),
+          value: previous.value + (entry['value'] as int),
+          cost:
+              previous.cost +
+              (entry['cost'] as int) +
+              Numbers.ratio(
+                corrections[index] - ((entry['costCorrection'] as int?) ?? 0),
+                entry['quantity'] as int,
+                invoice.lines[index].quantity,
+              ),
+        );
+      }
+    }
+    return (corrections: corrections, returned: returned);
   }
 
   int lineValue(Document invoice, int index) {
@@ -80,10 +87,12 @@ class ReturnsRepository {
     return values[index] - discount[index] + shipping[index];
   }
 
-  List<({ReturnSelection selection, int value, int cost})> calculate(
+  List<({ReturnSelection selection, int value, int cost, int correction})>
+  calculate(
     Document original,
-    List<ReturnSelection> selected,
-  ) {
+    List<ReturnSelection> selected, {
+    ReturnHistory? previousHistory,
+  }) {
     if (store.database.handle.select(
       "SELECT id FROM documents WHERE source_id = ? AND kind = 'reversal'",
       [original.id],
@@ -94,6 +103,7 @@ class ReturnsRepository {
       throw const BusinessException('المرتجع يتطلب فاتورة بيع أو شراء أصلية.');
     }
     final seen = <int>{};
+    final availability = previousHistory ?? history(original);
     return [
       for (final s in selected)
         (() {
@@ -103,7 +113,7 @@ class ReturnsRepository {
             throw const BusinessException('بنود المرتجع غير صالحة.');
           }
           final line = original.lines[s.index],
-              previous = alreadyReturned(original.id, s.index),
+              previous = availability.returned[s.index],
               fullValue = lineValue(original, s.index);
           final remainingValue = fullValue - previous.value;
           if (line.service) {
@@ -112,7 +122,12 @@ class ReturnsRepository {
                 'المبلغ يتجاوز قيمة الخدمة القابلة للرد.',
               );
             }
-            return (selection: s, value: s.serviceAmount, cost: 0);
+            return (
+              selection: s,
+              value: s.serviceAmount,
+              cost: 0,
+              correction: 0,
+            );
           }
           final remainingQuantity = line.quantity - previous.quantity;
           if (s.quantity <= 0 || s.quantity > remainingQuantity) {
@@ -123,7 +138,9 @@ class ReturnsRepository {
           final base = Numbers.baseQuantity(s.quantity, line.factor),
               product = catalog.get(line.productId);
           if (!product.fractional && base % 1000 != 0) {
-            throw const BusinessException('المنتج لا يقبل كسر الوحدة الأساسية.');
+            throw const BusinessException(
+              'المنتج لا يقبل كسر الوحدة الأساسية.',
+            );
           }
           final value = s.quantity == remainingQuantity
               ? remainingValue
@@ -132,7 +149,8 @@ class ReturnsRepository {
                   s.quantity,
                   line.quantity,
                 ).clamp(0, remainingValue);
-          final correctedCost = line.cost + costCorrection(original, s.index);
+          final correction = availability.corrections[s.index];
+          final correctedCost = line.cost + correction;
           final cost = s.quantity == remainingQuantity
               ? correctedCost - previous.cost
               : Numbers.ratio(
@@ -140,7 +158,12 @@ class ReturnsRepository {
                   s.quantity,
                   line.quantity,
                 ).clamp(0, correctedCost - previous.cost);
-          return (selection: s, value: value, cost: cost);
+          return (
+            selection: s,
+            value: value,
+            cost: cost,
+            correction: correction,
+          );
         })(),
     ];
   }
@@ -296,10 +319,7 @@ class ReturnsRepository {
                 'quantity': item.selection.quantity,
                 'value': item.value,
                 'cost': item.cost,
-                'costCorrection': costCorrection(
-                  original,
-                  item.selection.index,
-                ),
+                'costCorrection': item.correction,
                 'damaged': item.selection.damaged,
               },
           ],

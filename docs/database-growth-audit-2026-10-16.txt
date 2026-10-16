@@ -1,0 +1,80 @@
+00:00 +0: loading /Users/alamodi/development/dept_accounting/dept_accounting_app/test/_database_scale_audit_test.dart
+00:00 +0: temporary database growth audit
+AUDIT fixture documents=10000 products=1000 journal=40000 allocations=10000 SQLite=3.53.4
+AUDIT fk_errors=0 integrity=ok
+AUDIT invoice_list_all 70.689 ms
+AUDIT invoice_screen_load_plus_10_dues 73.089 ms
+AUDIT due_one 0.331 ms
+AUDIT dashboard_latest_five 341.443 ms
+AUDIT dashboard_7day_activity 11.336 ms
+AUDIT cash_validation 1.316 ms
+AUDIT allocation_preview 95.890 ms
+AUDIT credit_sources 6.189 ms
+AUDIT sales_report_900_rows 564.629 ms
+AUDIT barcode_current_full_catalog 7.876 ms
+AUDIT barcode_indexed_query 0.005 ms
+AUDIT stock_history_one_product 0.284 ms
+AUDIT indexed_invoice_screen_load_plus_10_dues 72.642 ms
+AUDIT indexed_due_one 0.023 ms
+AUDIT indexed_dashboard_latest_five 0.162 ms
+AUDIT indexed_allocation_preview 70.565 ms
+AUDIT indexed_credit_sources 0.101 ms
+AUDIT indexed_sales_report_900_rows 16.183 ms
+AUDIT indexed_stock_history_one_product 0.028 ms
+AUDIT fixture documents=50000 products=5000 journal=200000 allocations=50000 SQLite=3.53.4
+AUDIT fk_errors=0 integrity=ok
+AUDIT invoice_list_all 335.382 ms
+AUDIT invoice_screen_load_plus_10_dues 362.345 ms
+AUDIT due_one 2.283 ms
+AUDIT dashboard_latest_five 3453.560 ms
+AUDIT dashboard_7day_activity 40.155 ms
+AUDIT cash_validation 7.963 ms
+AUDIT allocation_preview 578.039 ms
+AUDIT credit_sources 192.001 ms
+AUDIT sales_report_900_rows 4326.182 ms
+AUDIT barcode_current_full_catalog 31.509 ms
+AUDIT barcode_indexed_query 0.003 ms
+AUDIT stock_history_one_product 1.301 ms
+AUDIT indexed_invoice_screen_load_plus_10_dues 344.963 ms
+AUDIT indexed_due_one 0.027 ms
+AUDIT indexed_dashboard_latest_five 0.157 ms
+AUDIT indexed_allocation_preview 356.394 ms
+AUDIT indexed_credit_sources 0.390 ms
+AUDIT indexed_sales_report_900_rows 14.687 ms
+AUDIT indexed_stock_history_one_product 0.028 ms
+AUDIT fixture documents=100000 products=10000 journal=400000 allocations=100000 SQLite=3.53.4
+AUDIT fk_errors=0 integrity=ok
+AUDIT PLAN baseline invoice_list ["SCAN documents"]
+AUDIT PLAN baseline due_returns ["SCAN documents"]
+AUDIT PLAN baseline credit_used ["SCAN allocations"]
+AUDIT PLAN baseline stock_history ["SCAN s","SEARCH d USING INDEX sqlite_autoindex_documents_1 (id=?)"]
+AUDIT PLAN baseline latest_five ["SCAN d","USE TEMP B-TREE FOR ORDER BY"]
+AUDIT PLAN baseline product_sort ["SCAN products","USE TEMP B-TREE FOR ORDER BY"]
+AUDIT PLAN baseline barcode_direct ["SEARCH products USING INDEX sqlite_autoindex_products_2 (barcode=?)"]
+AUDIT invoice_list_all 665.463 ms
+AUDIT invoice_screen_load_plus_10_dues 736.732 ms
+AUDIT due_one 6.395 ms
+AUDIT dashboard_latest_five 12424.844 ms
+AUDIT dashboard_7day_activity 81.508 ms
+AUDIT cash_validation 16.286 ms
+AUDIT allocation_preview 1321.081 ms
+AUDIT credit_sources 959.472 ms
+AUDIT sales_report_900_rows 11924.272 ms
+AUDIT barcode_current_full_catalog 65.181 ms
+AUDIT barcode_indexed_query 0.005 ms
+AUDIT stock_history_one_product 2.586 ms
+AUDIT PLAN candidate_indexes invoice_list ["SEARCH documents USING INDEX audit_documents_kind_date (kind=?)","USE TEMP B-TREE FOR ORDER BY"]
+AUDIT PLAN candidate_indexes due_returns ["SEARCH documents USING INDEX audit_documents_source (source_id=? AND kind=?)"]
+AUDIT PLAN candidate_indexes credit_used ["SEARCH allocations USING INDEX audit_allocations_payment (payment_id=?)"]
+AUDIT PLAN candidate_indexes stock_history ["SEARCH s USING INDEX audit_stock_product (product_id=?)","SEARCH d USING INDEX sqlite_autoindex_documents_1 (id=?)"]
+AUDIT PLAN candidate_indexes latest_five ["SEARCH d USING INDEX audit_documents_kind_date (kind=?)"]
+AUDIT PLAN candidate_indexes product_sort ["SCAN products","USE TEMP B-TREE FOR ORDER BY"]
+AUDIT PLAN candidate_indexes barcode_direct ["SEARCH products USING INDEX sqlite_autoindex_products_2 (barcode=?)"]
+AUDIT indexed_invoice_screen_load_plus_10_dues 693.418 ms
+AUDIT indexed_due_one 0.022 ms
+AUDIT indexed_dashboard_latest_five 0.160 ms
+AUDIT indexed_allocation_preview 689.943 ms
+AUDIT indexed_credit_sources 0.883 ms
+AUDIT indexed_sales_report_900_rows 15.921 ms
+AUDIT indexed_stock_history_one_product 0.032 ms
+02:16 +1: All tests passed!

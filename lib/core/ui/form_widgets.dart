@@ -181,28 +181,36 @@ class WorkPage extends StatelessWidget {
     required this.child,
     required this.onBack,
     this.actions = const [],
+    this.busy = false,
   });
+  final bool busy;
   final String title;
   final Widget child;
   final VoidCallback onBack;
   final List<Widget> actions;
   @override
-  Widget build(BuildContext context) => SectionStack(
-    children: [
-      DeptAccountingPageHeader(
-        title: title,
-        description:
-            '$appName · ${DateTime.now().toIso8601String().substring(0, 10)}',
-        actions: [
-          DeptAccountingButton(
-            label: 'العودة',
-            variant: DeptAccountingButtonVariant.secondary,
-            onPressed: onBack,
+  Widget build(BuildContext context) => ExcludeFocus(
+    excluding: busy,
+    child: AbsorbPointer(
+      absorbing: busy,
+      child: SectionStack(
+        children: [
+          DeptAccountingPageHeader(
+            title: title,
+            description:
+                '$appName · ${DateTime.now().toIso8601String().substring(0, 10)}',
+            actions: [
+              DeptAccountingButton(
+                label: 'العودة',
+                variant: DeptAccountingButtonVariant.secondary,
+                onPressed: onBack,
+              ),
+              ...actions,
+            ],
           ),
-          ...actions,
+          child,
         ],
       ),
-      child,
-    ],
+    ),
   );
 }

@@ -1,11 +1,15 @@
 import 'dart:convert';
 
 import '../../../core/data/app_store.dart';
+import '../../../core/data/query_page.dart';
 import '../../../core/numbers.dart';
 import '../../accounting/data/posting_engine.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../parties/data/party_repository.dart';
 import 'document.dart';
+import 'invoice_summary.dart';
+
+typedef InvoiceDraft = ({String id, String updatedAt, String? receiptId});
 
 class InvoiceRepository {
   InvoiceRepository(this.store, this.engine, this.catalog, this.parties);
@@ -14,15 +18,149 @@ class InvoiceRepository {
   final CatalogRepository catalog;
   final PartyRepository parties;
 
-  List<Document> list(String kind) {
+  QueryPage<InvoiceSummary> page(
+    String kind, {
+    String search = '',
+    int page = 1,
+    int pageSize = 10,
+  }) {
     store.require(manage: kind != 'sale');
-    return store.database.handle
-        .select(
-          'SELECT data FROM documents WHERE kind = ? ORDER BY rowid DESC',
-          [kind],
-        )
-        .map((r) => DocumentMapper.fromJson(r['data'] as String))
-        .toList();
+    final where =
+        '''kind = ? ${search.isEmpty ? '' : "AND instr(app_lower(number || ' ' || json_extract(data, '\$.notes')), ?) > 0"}''';
+    final parameters = <Object?>[
+      kind,
+      if (search.isNotEmpty) search.toLowerCase(),
+    ];
+    return QueryPage.read(
+      total:
+          store.database.handle
+                  .select(
+                    'SELECT COUNT(*) AS n FROM documents WHERE $where',
+                    parameters,
+                  )
+                  .first['n']
+              as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) => _summaries(
+        'SELECT rowid AS position,* FROM documents WHERE $where ORDER BY rowid DESC LIMIT ? OFFSET ?',
+        [...parameters, limit, offset],
+        order: 'position DESC',
+      ),
+    );
+  }
+
+  List<InvoiceSummary> outstanding(String partyId, bool customer) {
+    store.require(manage: !customer);
+    return _summaries(
+      'SELECT rowid AS position,* FROM documents WHERE party_id = ? AND kind = ?',
+      [partyId, customer ? 'sale' : 'purchase'],
+      order: 'date, posted_at, position DESC',
+      onlyOutstanding: true,
+    );
+  }
+
+  String _summaryCte(String selected) =>
+      '''
+    WITH selected AS ($selected), balances AS (
+    SELECT d.id,d.number,d.posted_at,d.party_id,d.position,
+      json_extract(d.data, '\$.date') AS date,
+      json_extract(d.data, '\$.total') AS total,
+      COALESCE(json_extract(p.data, '\$.name'), '') AS party_name,
+      COALESCE((SELECT SUM(amount) FROM allocations WHERE invoice_id = d.id), 0) AS allocated,
+      COALESCE((SELECT SUM(json_extract(r.data, '\$.total')) FROM documents r
+        WHERE r.source_id = d.id AND r.kind IN ('sale_return','purchase_return','reversal')), 0) AS returned
+    FROM selected d LEFT JOIN parties p ON p.id = d.party_id)
+  ''';
+
+  List<InvoiceSummary> _summaries(
+    String selected,
+    List<Object?> parameters, {
+    required String order,
+    bool onlyOutstanding = false,
+    int? limit,
+    int offset = 0,
+  }) => store.database.handle
+      .select(
+        '''
+    ${_summaryCte(selected)}
+    SELECT * FROM balances ${onlyOutstanding ? 'WHERE total > allocated + returned' : ''}
+    ORDER BY $order ${limit == null ? '' : 'LIMIT ? OFFSET ?'}
+  ''',
+        [
+          ...parameters,
+          if (limit != null) ...[limit, offset],
+        ],
+      )
+      .map((row) {
+        final total = row['total'] as int;
+        return (
+          id: row['id'] as String,
+          number: row['number'] as String,
+          date: row['date'] as String,
+          postedAt: row['posted_at'] as String,
+          partyId: row['party_id'] as String?,
+          partyName: row['party_name'] as String,
+          total: total,
+          due: (total - (row['allocated'] as int) - (row['returned'] as int))
+              .clamp(0, total),
+        );
+      })
+      .toList();
+
+  QueryPage<InvoiceSummary> outstandingPage(
+    String partyId,
+    bool customer, {
+    int page = 1,
+    int pageSize = 5,
+  }) {
+    store.require(manage: !customer);
+    const selected =
+        'SELECT rowid AS position,* FROM documents WHERE party_id = ? AND kind = ?';
+    final parameters = <Object?>[partyId, customer ? 'sale' : 'purchase'];
+    return QueryPage.read(
+      total:
+          store.database.handle
+                  .select(
+                    '${_summaryCte(selected)} SELECT COUNT(*) AS n FROM balances WHERE total > allocated + returned',
+                    parameters,
+                  )
+                  .first['n']
+              as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) => _summaries(
+        selected,
+        parameters,
+        order: 'date,posted_at,position DESC',
+        onlyOutstanding: true,
+        limit: limit,
+        offset: offset,
+      ),
+    );
+  }
+
+  Map<String, int> allocationPreview(
+    String partyId,
+    bool customer,
+    int amount,
+  ) {
+    store.require(manage: !customer);
+    if (amount <= 0) return {};
+    final cte = _summaryCte(
+      'SELECT rowid AS position,* FROM documents WHERE party_id = ? AND kind = ?',
+    );
+    final rows = store.database.handle.select(
+      '''
+      $cte, open_invoices AS (
+        SELECT *,total-allocated-returned AS due FROM balances WHERE total > allocated + returned
+      ), ordered AS (
+        SELECT *, SUM(due) OVER (ORDER BY date,posted_at,position DESC ROWS UNBOUNDED PRECEDING) AS cumulative FROM open_invoices
+      ) SELECT id,MIN(due,?-cumulative+due) AS amount FROM ordered WHERE cumulative-due < ? ORDER BY date,posted_at,position DESC
+    ''',
+      [partyId, customer ? 'sale' : 'purchase', amount, amount],
+    );
+    return {for (final row in rows) row['id'] as String: row['amount'] as int};
   }
 
   Document get(String id) {
@@ -332,7 +470,7 @@ class InvoiceRepository {
       'partyId': original.partyId,
       'discount': Numbers.input(original.discount),
       'shipping': Numbers.input(original.shipping),
-      'date': DateTime.now().toIso8601String().substring(0, 10),
+      'date': DateTime.now().toIso8601String(),
       'notes': 'تصحيح ${original.number}',
       'correctionOf': originalId,
     });
@@ -356,6 +494,11 @@ class InvoiceRepository {
     bool notify = true,
   }) {
     store.require(manage: kind != 'sale');
+    if (store.database.handle.select('SELECT 1 FROM documents WHERE id = ?', [
+      id,
+    ]).isNotEmpty) {
+      return;
+    }
     final owners = store.database.handle.select(
       'SELECT user_id FROM drafts WHERE id = ?',
       [id],
@@ -389,14 +532,37 @@ class InvoiceRepository {
         : jsonDecode(rows.first['data'] as String) as Map<String, dynamic>;
   }
 
-  List<Map<String, Object?>> drafts(String kind) {
+  QueryPage<InvoiceDraft> drafts(
+    String kind, {
+    int page = 1,
+    int pageSize = 5,
+  }) {
     store.require(manage: kind != 'sale');
-    return store.database.handle
-        .select(
-          'SELECT id, updated_at FROM drafts WHERE kind = ? AND user_id = ? ORDER BY updated_at DESC',
-          [kind, store.user!.id],
-        )
-        .map((r) => Map<String, Object?>.from(r))
-        .toList();
+    final db = store.database.handle, parameters = [kind, store.user!.id];
+    return QueryPage.read(
+      total:
+          db
+                  .select(
+                    'SELECT COUNT(*) AS n FROM drafts WHERE kind = ? AND user_id = ?',
+                    parameters,
+                  )
+                  .first['n']
+              as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) => db
+          .select(
+            "SELECT id,updated_at,json_extract(data, '\$.receiptId') AS receipt_id FROM drafts WHERE kind = ? AND user_id = ? ORDER BY updated_at DESC,id DESC LIMIT ? OFFSET ?",
+            [...parameters, limit, offset],
+          )
+          .map(
+            (row) => (
+              id: row['id'] as String,
+              updatedAt: row['updated_at'] as String,
+              receiptId: row['receipt_id'] as String?,
+            ),
+          )
+          .toList(),
+    );
   }
 }

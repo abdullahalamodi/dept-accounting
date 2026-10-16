@@ -1,3 +1,5 @@
+import '../data/finance_repository.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/numbers.dart';
@@ -6,13 +8,21 @@ import '../../../design_system/dept_accounting_design_system.dart';
 import 'finance_view_model.dart';
 
 class OpeningReviewPanel extends StatelessWidget {
-  const OpeningReviewPanel({super.key, required this.vm});
+  const OpeningReviewPanel({
+    super.key,
+    required this.vm,
+    required this.balances,
+    required this.editable,
+    required this.equity,
+  });
   final FinanceViewModel vm;
+  final List<OpeningBalance> balances;
+  final Set<String> editable;
+  final int equity;
 
   @override
   Widget build(BuildContext context) {
     final d = vm.d;
-    final balances = d.finance.openingBalances();
     final currency = d.store.shop!.currencyLabel;
     final closed = d.store.setting('opening_closed') == 'true';
     return DeptAccountingPanel(
@@ -39,7 +49,7 @@ class OpeningReviewPanel extends StatelessWidget {
                     DeptAccountingButton(
                       label: 'إزالة',
                       variant: DeptAccountingButtonVariant.quiet,
-                      onPressed: !d.finance.canEditOpening(balance.code)
+                      onPressed: !editable.contains(balance.code)
                           ? null
                           : () async {
                               final confirmed =
@@ -53,7 +63,8 @@ class OpeningReviewPanel extends StatelessWidget {
                                   );
                               if (confirmed &&
                                   context.mounted &&
-                                  vm.removeOpening(balance.code)) {
+                                  await vm.removeOpening(balance.code) &&
+                                  context.mounted) {
                                 showMessage(context, 'تمت إزالة رصيد البداية');
                               }
                             },
@@ -78,7 +89,7 @@ class OpeningReviewPanel extends StatelessWidget {
             )
           else ...[
             Text(
-              'رصيد التسوية الافتتاحية: ${Numbers.format(d.engine.balance('3900'))} $currency',
+              'رصيد التسوية الافتتاحية: ${Numbers.format(equity)} $currency',
             ),
             const Text(
               'قبل الإقفال، راجع أيضًا المخزون الافتتاحي وأرصدة العملاء والموردين؛ الإقفال يشمل جميع أرصدة البداية.',
@@ -93,7 +104,10 @@ class OpeningReviewPanel extends StatelessWidget {
                   message: 'تأكد من مراجعة أرصدة الحسابات والمخزون والعملاء والموردين. ستُنقل التسوية الافتتاحية إلى رأس المال ويُقفل إدخال أرصدة البداية. التصحيحات اللاحقة تكون بتسويات موثقة.',
                   confirmLabel: 'إقفال الافتتاح',
                 );
-                if (confirmed && context.mounted && vm.closeOpening()) {
+                if (confirmed &&
+                    context.mounted &&
+                    await vm.closeOpening() &&
+                    context.mounted) {
                   showMessage(context, 'تمت مراجعة الأرصدة وإقفال الافتتاح');
                 }
               },

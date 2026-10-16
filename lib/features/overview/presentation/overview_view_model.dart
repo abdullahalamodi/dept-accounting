@@ -1,3 +1,6 @@
+import '../../../core/ui/async_query_view_model.dart';
+import '../data/overview_tasks.dart';
+
 import 'package:flutter/foundation.dart';
 
 import '../data/overview_repository.dart';
@@ -8,28 +11,39 @@ class OverviewViewModel extends ChangeNotifier {
     refresh();
   }
   final OverviewRepository repository;
+  bool _disposed = false;
+  final query = AsyncQueryViewModel<OverviewSnapshot>();
   int days = 7;
   List<OverviewDay> activity = [];
   List<OverviewInvoice> invoices = [];
   List<OverviewStock> lowStock = [];
+  int lowStockCount = 0;
 
-  void refresh() {
+  Future<void> refresh() async {
     if (repository.store.user == null) return;
-    activity = repository.activity(days);
-    invoices = repository.recentInvoices();
-    lowStock = repository.lowStock();
-    notifyListeners();
+    await query.load(() => repository.store.run(OverviewTasks.snapshot(days)));
+    await query.settled;
+    final snapshot = query.value;
+    if (snapshot != null) {
+      activity = snapshot.activity;
+      invoices = snapshot.invoices;
+      lowStock = snapshot.stock.items;
+      lowStockCount = snapshot.stock.total;
+    }
+    if (!_disposed) notifyListeners();
   }
 
-  void changePeriod(int value) {
+  Future<void> changePeriod(int value) async {
     if (days == value) return;
     days = value;
-    refresh();
+    await refresh();
   }
 
   @override
   void dispose() {
+    _disposed = true;
     repository.store.removeListener(refresh);
+    query.dispose();
     super.dispose();
   }
 }

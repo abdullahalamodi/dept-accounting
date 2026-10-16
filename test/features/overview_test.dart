@@ -83,13 +83,14 @@ void seed(AppDependencies d) {
 }
 
 void main() {
-  test('Overview uses posted movement, live allocations and hides profit for sellers', () {
+  test('Overview uses posted movement, live allocations and hides profit for sellers', () async {
     final d = shop();
     expect(d.overview.activity(7).every((day) => day.sales == 0), isTrue);
     expect(d.overview.recentInvoices(), isEmpty);
     expect(d.overview.lowStock(), isEmpty);
     seed(d);
     final vm = OverviewViewModel(d.overview);
+    await vm.refresh();
     expect(vm.activity.length, 7);
     expect(vm.activity.last.sales, 48550);
     expect(vm.activity.last.profit, 38550);
@@ -107,8 +108,10 @@ void main() {
       payments: const [Payment(account: '1100', amount: 45000)],
       allocations: {'sale-5': 45000},
     );
+    await vm.refresh();
     expect(vm.invoices.firstWhere((r) => r.document.id == 'sale-5').due, 0);
     d.corrections.cancel('sale-6', 'cancel-sale', 'تصحيح فاتورة');
+    await vm.refresh();
     expect(vm.invoices.first.cancelled, isTrue);
     expect(vm.activity.last.sales, 0);
     expect(vm.activity.last.profit, 0);
@@ -118,14 +121,15 @@ void main() {
       reason: 'مرتجع عميل',
       selected: [(index: 0, quantity: 1000, serviceAmount: 0, damaged: false)],
     );
+    await vm.refresh();
     expect(vm.invoices.firstWhere((r) => r.document.id == 'sale-3').paid, 0);
     expect(vm.invoices.firstWhere((r) => r.document.id == 'sale-3').due, 0);
     expect(vm.activity.last.sales, -58000);
     expect(vm.activity.last.profit, -48000);
-    vm.changePeriod(30);
+    await vm.changePeriod(30);
     expect(vm.activity.length, 30);
     d.store.user = d.store.user!.copyWith(role: 'seller');
-    vm.refresh();
+    await vm.refresh();
     expect(vm.activity.every((p) => p.profit == null), isTrue);
     vm.dispose();
     d.backups.dispose();

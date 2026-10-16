@@ -46,9 +46,63 @@ void main() {
   });
 
   test(
+    'Barcode scans preserve eligibility, quantity and price visibility',
+    () async {
+      d.catalog.save(
+        d.catalog.get('p').copyWith(barcode: '123', purchasePrice: 700),
+      );
+      d.catalog.save(
+        const Product(
+          id: 'inactive',
+          name: 'موقوف',
+          barcode: '456',
+          active: false,
+        ),
+      );
+      d.catalog.save(
+        const Product(
+          id: 'service',
+          name: 'خدمة',
+          barcode: '789',
+          service: true,
+        ),
+      );
+      final sale = InvoiceViewModel(d, sale: true, id: 'scan-sale');
+      final purchase = InvoiceViewModel(d, sale: false, id: 'scan-purchase');
+      expect(
+        (await purchase.searchProducts('', 1)).items.map((r) => r.product.id),
+        ['p'],
+      );
+      expect(
+        (await sale.searchProducts('', 1)).items.map((r) => r.product.id),
+        contains('service'),
+      );
+      expect(sale.addBarcode(' 123 '), isTrue);
+      expect(sale.addBarcode('123'), isTrue);
+      expect(sale.lines.single.quantity, '2');
+      expect(sale.lines.single.price, '12');
+      expect(purchase.addBarcode('123'), isTrue);
+      expect(purchase.lines.single.price, '7');
+      expect(sale.addBarcode('456'), isFalse);
+      expect(sale.addBarcode('missing'), isFalse);
+      expect(sale.addBarcode(' '), isFalse);
+      expect(sale.addBarcode('789'), isTrue);
+      expect(purchase.addBarcode('789'), isFalse);
+      d.store.user = d.store.user!.copyWith(role: 'seller');
+      expect(d.catalog.findBarcode('123')!.purchasePrice, 0);
+      expect(sale.addBarcode('123'), isTrue);
+      expect(sale.lines.first.quantity, '3');
+      sale.dispose();
+      purchase.dispose();
+    },
+  );
+
+  test(
     'Cash tracks edits, partial splits and credit survive draft restore',
     () async {
       final vm = InvoiceViewModel(d, sale: true, id: 'payment');
+      final selectedDate = DateTime.now().subtract(const Duration(hours: 1));
+      vm.date = selectedDate.toIso8601String();
       vm.add(d.catalog.get('p'));
       vm.lines.single.quantity = '2';
       vm.discount = '4';
@@ -61,7 +115,9 @@ void main() {
       vm.payments.last.amount = '3';
       vm.edit();
       expect(vm.paid, 800);
+      await vm.saveDraft(silent: true);
       final restored = InvoiceViewModel(d, sale: true, id: 'payment');
+      expect(restored.date, selectedDate.toIso8601String());
       expect(restored.paymentMode, InvoicePaymentMode.partial);
       expect(
         restored.buildPayments().fold<int>(0, (sum, p) => sum + p.amount),

@@ -26,8 +26,24 @@ class _OverviewPageState extends State<OverviewPage> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: vm,
+    listenable: Listenable.merge([vm, vm.query]),
     builder: (context, _) {
+      if (vm.query.error != null) {
+        return DeptAccountingStateView(
+          state: DeptAccountingViewState.error,
+          title: 'تعذر تحميل البيانات',
+          message: vm.query.error!,
+          actionLabel: 'إعادة المحاولة',
+          onAction: vm.refresh,
+        );
+      }
+      if (vm.query.value == null) {
+        return const DeptAccountingStateView(
+          state: DeptAccountingViewState.loading,
+          title: 'جارٍ تحميل البيانات',
+          message: '',
+        );
+      }
       final d = widget.dependencies;
       final manage = d.store.user!.canManage;
       return SectionStack(
@@ -65,7 +81,11 @@ class _OverviewPageState extends State<OverviewPage> {
                 invoices: vm.invoices,
                 wide: wide,
               );
-              final stock = _LowStock(items: vm.lowStock, wide: wide);
+              final stock = _LowStock(
+                items: vm.lowStock,
+                total: vm.lowStockCount,
+                wide: wide,
+              );
               if (!wide) {
                 return SectionStack(
                   children: [actions, chart, invoices, stock],
@@ -426,9 +446,14 @@ class _RecentInvoices extends StatelessWidget {
 }
 
 class _LowStock extends StatelessWidget {
-  const _LowStock({required this.items, required this.wide});
+  const _LowStock({
+    required this.items,
+    required this.total,
+    required this.wide,
+  });
   final List<OverviewStock> items;
   final bool wide;
+  final int total;
   @override
   Widget build(BuildContext context) => DeptAccountingPanel(
     title: 'تحتاج إلى إعادة تزويد',
@@ -436,8 +461,8 @@ class _LowStock extends StatelessWidget {
     showHeaderDivider: false,
     padding: EdgeInsets.zero,
     action: DeptAccountingStatusTag(
-      '${items.length} منتجات',
-      tone: items.isEmpty
+      '$total منتجات',
+      tone: total == 0
           ? DeptAccountingTone.success
           : DeptAccountingTone.warning,
     ),

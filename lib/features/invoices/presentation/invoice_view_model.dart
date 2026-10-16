@@ -1,7 +1,15 @@
+import '../../catalog/data/catalog_tasks.dart';
+
+import 'dart:async';
+
+import '../data/invoices_tasks.dart';
+import '../../receiving/data/receiving_tasks.dart';
 import '../../../app/dependencies.dart';
+import '../../../core/data/query_page.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../catalog/data/product.dart';
+import '../../catalog/data/catalog_repository.dart';
 import '../data/document.dart';
 
 class InvoiceItemInput {
@@ -107,16 +115,23 @@ class InvoiceViewModel extends ActionViewModel {
   String discount = '0',
       shipping = '0',
       notes = '',
-      date = DateTime.now().toIso8601String().substring(0, 10);
+      date = DateTime.now().toIso8601String();
   bool _posted = false;
+  Timer? _draftTimer;
   String? draftError;
-  List<Product> get products =>
-      d.catalog.all().where((p) => p.active && (sale || !p.service)).toList();
+  Future<QueryPage<CatalogRow>> searchProducts(String search, int page) =>
+      d.store.run(
+        CatalogTasks.page(
+          search: search,
+          page: page,
+          pageSize: 5,
+          activeOnly: true,
+          excludeServices: !sale,
+        ),
+      );
   bool addBarcode(String barcode) => perform(() {
-    final product = products
-        .where((p) => p.barcode == barcode.trim() && p.barcode.isNotEmpty)
-        .firstOrNull;
-    if (product == null) {
+    final product = d.catalog.findBarcode(barcode);
+    if (product == null || !product.active || (!sale && product.service)) {
       throw const BusinessException(
         'الباركود غير موجود. ابحث عن المنتج أو أضفه أولًا.',
       );
@@ -203,7 +218,9 @@ class InvoiceViewModel extends ActionViewModel {
 
   void _ensurePayment() {
     if (payments.isEmpty) {
-      payments.add(PaymentInput(account: d.finance.accounts().first.code));
+      payments.add(
+        PaymentInput(account: d.finance.accountOptions().first.code),
+      );
     }
   }
 
@@ -218,7 +235,7 @@ class InvoiceViewModel extends ActionViewModel {
   }
 
   void addPayment() {
-    payments.add(PaymentInput(account: d.finance.accounts().first.code));
+    payments.add(PaymentInput(account: d.finance.accountOptions().first.code));
     edit();
   }
 
@@ -238,7 +255,11 @@ class InvoiceViewModel extends ActionViewModel {
 
   void edit() {
     changed();
-    saveDraft(silent: true);
+    _draftTimer?.cancel();
+    _draftTimer = Timer(
+      const Duration(milliseconds: 250),
+      () => saveDraft(silent: true),
+    );
   }
 
   Map<String, dynamic> get draft => {
@@ -253,20 +274,23 @@ class InvoiceViewModel extends ActionViewModel {
     'receiptId': receiptId,
     'correctionOf': correctionOf,
   };
-  void saveDraft({bool silent = false}) {
-    if (_posted || lines.isEmpty || d.store.user == null) return;
+  Future<void> saveDraft({bool silent = false}) async {
+    _draftTimer?.cancel();
+    if (busy || _posted || lines.isEmpty || d.store.user == null) return;
     try {
-      d.invoices.saveDraft(
-        id,
-        quick
-            ? 'quick_receipt'
-            : receiptId != null
-            ? 'receipt_invoice'
-            : sale
-            ? 'sale'
-            : 'purchase',
-        draft,
-        notify: !silent,
+      await d.store.run(
+        InvoiceTasks.saveDraft(
+          id,
+          quick
+              ? 'quick_receipt'
+              : receiptId != null
+              ? 'receipt_invoice'
+              : sale
+              ? 'sale'
+              : 'purchase',
+          draft,
+          notify: !silent,
+        ),
       );
       draftError = null;
     } catch (e) {
@@ -276,40 +300,47 @@ class InvoiceViewModel extends ActionViewModel {
 
   Future<Document?> post() async {
     Document? result;
+    _draftTimer?.cancel();
     await run(() async {
       if (quick) {
         if (partyId == null) throw const BusinessException('اختر المورد.');
-        result = d.receiving.receive(
-          requestId: id,
-          partyId: partyId!,
-          lines: buildLines(),
-          notes: notes,
+        result = await d.store.run(
+          ReceivingTasks.receive(
+            requestId: id,
+            partyId: partyId!,
+            lines: buildLines(),
+            notes: notes,
+            date: date,
+          ),
         );
       } else if (receiptId != null) {
-        result = d.receiving.finalize(
-          requestId: id,
-          receiptId: receiptId!,
-          actualPrices: lines.map((l) => Numbers.parse(l.price)).toList(),
-          payments: buildPayments(),
-          shipping: Numbers.parse(shipping),
-          date: date,
-          notes: notes,
+        result = await d.store.run(
+          ReceivingTasks.finalize(
+            requestId: id,
+            receiptId: receiptId!,
+            actualPrices: lines.map((l) => Numbers.parse(l.price)).toList(),
+            payments: buildPayments(),
+            shipping: Numbers.parse(shipping),
+            date: date,
+            notes: notes,
+          ),
         );
       } else {
-        result = d.invoices.post(
-          requestId: id,
-          sale: sale,
-          lines: buildLines(),
-          payments: buildPayments(),
-          partyId: partyId,
-          discount: Numbers.parse(discount),
-          shipping: sale ? 0 : Numbers.parse(shipping),
-          notes: notes,
-          date: date,
-          correctionOf: correctionOf,
+        result = await d.store.run(
+          InvoiceTasks.post(
+            requestId: id,
+            sale: sale,
+            lines: buildLines(),
+            payments: buildPayments(),
+            partyId: partyId,
+            discount: Numbers.parse(discount),
+            shipping: sale ? 0 : Numbers.parse(shipping),
+            notes: notes,
+            date: date,
+            correctionOf: correctionOf,
+          ),
         );
       }
-      d.invoices.deleteDraft(id);
       _posted = true;
     });
     return result;
@@ -317,7 +348,8 @@ class InvoiceViewModel extends ActionViewModel {
 
   @override
   void dispose() {
-    saveDraft(silent: true);
+    _draftTimer?.cancel();
+    unawaited(saveDraft(silent: true));
     super.dispose();
   }
 }

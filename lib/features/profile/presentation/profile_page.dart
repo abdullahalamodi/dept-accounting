@@ -115,9 +115,10 @@ class _ProfilePageState extends State<ProfilePage> {
                         label: 'حفظ اسم المستخدم',
                         onPressed: vm.busy
                             ? null
-                            : () {
+                            : () async {
                                 if (usernameForm.currentState!.validate() &&
-                                    vm.saveUsername(username.text)) {
+                                    await vm.saveUsername(username.text) &&
+                                    context.mounted) {
                                   showMessage(context, 'تم حفظ اسم المستخدم.');
                                 }
                               },

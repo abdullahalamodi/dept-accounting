@@ -6,7 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 import '../core/numbers.dart';
 import '../core/app_identity.dart';
 import '../core/data/local_database.dart';
-import '../features/backup/data/backup_codec.dart';
+import '../features/backup/data/backup_files.dart';
 
 const applicationVersion = '0.1.0+1';
 Future<void> backupBeforeUpgrade(Database database, String path) async {
@@ -39,29 +39,14 @@ Future<void> backupBeforeUpgrade(Database database, String path) async {
     final snapshot = File(p.join(temporary.path, 'before-upgrade.sqlite')),
         target = sqlite3.open(p.join(temporary.path, 'before-upgrade.sqlite'));
     try {
-      await database.backup(target).drain<void>();
+      await database.backup(target, nPage: -1).drain<void>();
     } finally {
       target.close();
     }
     final secret = key.first['value'] as String;
-    final encrypted = await BackupCodec.encrypt(
-      await snapshot.readAsBytes(),
-      secret,
+    final encrypted = File(
+      await BackupFiles.prepare(snapshot.path, temporary.path, secret),
     );
-    final verified = await BackupCodec.decrypt(encrypted, secret);
-    await File(p.join(temporary.path, 'verified.sqlite'))
-        .writeAsBytes(verified, flush: true);
-    final check = sqlite3.open(
-      p.join(temporary.path, 'verified.sqlite'),
-      mode: OpenMode.readOnly,
-    );
-    try {
-      if (check.select('PRAGMA integrity_check').first.values.first != 'ok') {
-        throw const BusinessException('تعذر التحقق من نسخة ما قبل التحديث.');
-      }
-    } finally {
-      check.close();
-    }
     final directory = await Directory(p.join(p.dirname(path), 'backups'))
         .create(recursive: true);
     final file = File(
@@ -70,9 +55,7 @@ Future<void> backupBeforeUpgrade(Database database, String path) async {
         'dept_accounting-upgrade-${DateTime.now().toUtc().millisecondsSinceEpoch}.dept_accounting',
       ),
     );
-    final partial = File('${file.path}.partial');
-    await partial.writeAsBytes(encrypted, flush: true);
-    await partial.rename(file.path);
+    await BackupFiles.copyTo(encrypted, file);
   } finally {
     await temporary.delete(recursive: true);
   }

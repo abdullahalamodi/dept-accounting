@@ -69,11 +69,18 @@ class PostingEngine {
         ifAbsent: () => line.debit - line.credit,
       );
     }
+    // Incoming and untouched accounts cannot become negative through this post.
+    final outgoing = deltas.entries
+        .where((e) => e.value < 0)
+        .map((e) => e.key)
+        .toList();
+    if (outgoing.isEmpty) return;
     for (final row in store.database.handle.select(
-      'SELECT code FROM accounts WHERE cash = 1',
+      'SELECT code FROM accounts WHERE cash = 1 AND code IN (${List.filled(outgoing.length, '?').join(',')})',
+      outgoing,
     )) {
       final code = row['code'] as String;
-      if (balance(code) + (deltas[code] ?? 0) < 0) {
+      if (balance(code) + deltas[code]! < 0) {
         throw const BusinessException('الرصيد النقدي لا يكفي لاعتماد العملية.');
       }
     }
@@ -172,10 +179,9 @@ class PostingEngine {
     Map<String, dynamic> extra = const {},
   }) {
     final now = DateTime.now();
-    final paper = date ?? now.toIso8601String().substring(0, 10);
+    final paper = date ?? now.toIso8601String();
     final parsed = DateTime.tryParse(paper);
-    if (parsed == null ||
-        parsed.isAfter(DateTime(now.year, now.month, now.day))) {
+    if (parsed == null || parsed.isAfter(now)) {
       throw const BusinessException('تاريخ المستند غير صالح أو في المستقبل.');
     }
     return Document(

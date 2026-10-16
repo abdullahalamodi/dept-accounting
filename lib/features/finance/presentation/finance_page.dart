@@ -1,13 +1,18 @@
+import '../data/finance_tasks.dart';
+import '../../../core/ui/database_query.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../app/dependencies.dart';
+import '../../../core/date_time.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dept_accounting_design_system.dart';
 import '../../invoices/presentation/invoice_view_model.dart';
-import '../../invoices/data/document.dart';
 import 'finance_view_model.dart';
+import 'invoice_allocation_table.dart';
+import '../../parties/presentation/party_field.dart';
 import 'opening_review_panel.dart';
 import 'reconciliation_panel.dart';
 import 'cash_account_dialog.dart';
@@ -22,19 +27,7 @@ class FinancePage extends StatefulWidget {
 class _FinancePageState extends State<FinancePage> {
   late final vm = FinanceViewModel(widget.dependencies);
   final opening = TextEditingController();
-  @override
-  void initState() {
-    super.initState();
-    final d = widget.dependencies;
-    if (d.store.user!.canManage) {
-      final first = d.finance.accounts().first.code;
-      final saved = d.finance
-          .openingBalances()
-          .where((a) => a.code == first)
-          .firstOrNull;
-      opening.text = saved == null ? '' : Numbers.input(saved.amount);
-    }
-  }
+  bool _openingInitialized = false;
 
   String? openingAccount;
   int page = 1;
@@ -52,162 +45,184 @@ class _FinancePageState extends State<FinancePage> {
       final d = widget.dependencies,
           currency = d.store.shop!.currencyLabel,
           manage = d.store.user!.canManage;
-      final docs = d.finance.documents(), accounts = d.finance.accounts();
-      final closed = d.store.setting('opening_closed') == 'true';
-      final selectedCode = openingAccount ?? accounts.first.code;
-      final existing = manage
-          ? d.finance
-                .openingBalances()
-                .where((a) => a.code == selectedCode)
-                .firstOrNull
-          : null;
-      final editable = manage && d.finance.canEditOpening(selectedCode);
-      return SectionStack(
-        children: [
-          DeptAccountingPageHeader(
-            title: 'الصندوق والمالية',
-            description: 'قبض وصرف وتحويلات، بعملة محلك الواحدة',
-            actions: [
-              DeptAccountingButton(
-                label: 'عملية مالية جديدة',
-                onPressed: () => context.go('/finance/new'),
-              ),
-              if (manage)
-                DeptAccountingButton(
-                  label: 'مطابقة الصندوق',
-                  variant: DeptAccountingButtonVariant.secondary,
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (_) => CashReconciliationDialog(d: d),
-                  ),
-                ),
-            ],
-          ),
-          ErrorNotice(vm.error),
-          FieldGrid(
-            runSpacing: DeptAccountingSpace.xl,
+      return DatabaseQuery(
+        store: d.store,
+        task: FinanceTasks.snapshot(page),
+        queryKey: page,
+        builder: (context, data) {
+          final docs = data.documents, accounts = data.accounts;
+          final closed = d.store.setting('opening_closed') == 'true',
+              selectedCode = openingAccount ?? accounts.first.code;
+          final existing = data.opening
+              .where((a) => a.code == selectedCode)
+              .firstOrNull;
+          final editable = manage && data.editable.contains(selectedCode);
+          if (!_openingInitialized) {
+            opening.text = existing == null
+                ? ''
+                : Numbers.input(existing.amount);
+            _openingInitialized = true;
+          }
+          return SectionStack(
             children: [
-              for (final a in accounts)
-                DeptAccountingMetricCard(
-                  label: a.name,
-                  value: '${Numbers.format(a.balance)} $currency',
-                  caption: 'الرصيد المتاح',
-                ),
-            ],
-          ),
-          if (manage)
-            DeptAccountingPanel(
-              title: 'إعداد الحسابات وأرصدة البداية',
-              action: DeptAccountingButton(
-                label: 'إضافة حساب',
-                variant: DeptAccountingButtonVariant.secondary,
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (_) => CashAccountDialog(d: d),
-                ),
-              ),
-              child: SectionStack.form(
-                children: [
-                  if (closed)
-                    const DeptAccountingStatusTag(
-                      'تمت مراجعة وإقفال الافتتاح',
-                      tone: DeptAccountingTone.success,
-                    )
-                  else ...[
-                    const Text(
-                      'اختر الحساب لإضافة رصيد البداية أو تعديل المبلغ المسجل. الحساب ذو الرصيد الصفري لا يحتاج إلى إضافة.',
-                    ),
-                    FieldGrid(
-                      children: [
-                        ChoiceField(
-                          label: 'حساب الافتتاح',
-                          value: selectedCode,
-                          items: accounts
-                              .map((a) => (value: a.code, label: a.name))
-                              .toList(),
-                          onChanged: (v) => setState(() {
-                            openingAccount = v;
-                            final saved = d.finance
-                                .openingBalances()
-                                .where((a) => a.code == v)
-                                .firstOrNull;
-                            opening.text = saved == null
-                                ? ''
-                                : Numbers.input(saved.amount);
-                            vm.changed();
-                          }),
-                        ),
-                        DeptAccountingField(
-                          label: 'الرصيد الافتتاحي ($currency)',
-                          controller: opening,
-                          numeric: true,
-                          enabled: editable,
-                        ),
-                        DeptAccountingButton(
-                          label: existing == null
-                              ? 'إضافة رصيد البداية'
-                              : 'حفظ تعديل رصيد البداية',
-                          variant: DeptAccountingButtonVariant.secondary,
-                          onPressed: !editable
-                              ? null
-                              : () {
-                                  if (vm.opening(selectedCode, opening.text)) {
-                                    showMessage(context, 'تم حفظ رصيد البداية');
-                                  }
-                                },
-                        ),
-                      ],
-                    ),
-                    if (!editable)
-                      const Text(
-                        'بدأت حركة هذا الحساب؛ استخدم عملية مالية أو مطابقة موثقة لتصحيح الرصيد.',
+              DeptAccountingPageHeader(
+                title: 'الصندوق والمالية',
+                description: 'قبض وصرف وتحويلات، بعملة محلك الواحدة',
+                actions: [
+                  DeptAccountingButton(
+                    label: 'عملية مالية جديدة',
+                    onPressed: () => context.go('/finance/new'),
+                  ),
+                  if (manage)
+                    DeptAccountingButton(
+                      label: 'مطابقة الصندوق',
+                      variant: DeptAccountingButtonVariant.secondary,
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) => CashReconciliationDialog(d: d),
                       ),
-                  ],
+                    ),
                 ],
               ),
-            ),
-          if (manage) OpeningReviewPanel(vm: vm),
-          DeptAccountingPanel(
-            title: 'الحركات المالية',
-            padding: EdgeInsets.zero,
-            child: DeptAccountingDataTable(
-              columns: const [
-                DataColumn(label: Text('المرجع')),
-                DataColumn(label: Text('النوع')),
-                DataColumn(label: Text('التاريخ')),
-                DataColumn(label: Text('المبلغ')),
-                DataColumn(label: Text('البيان')),
-              ],
-              rows: [
-                for (final doc in docs.skip((page - 1) * 10).take(10))
-                  DataRow(
-                    cells: [
-                      DataCell(
-                        TextButton(
-                          onPressed: () =>
-                              context.go('/finance/view/${doc.id}'),
-                          child: Text(doc.number),
+              ErrorNotice(vm.error),
+              FieldGrid(
+                runSpacing: DeptAccountingSpace.xl,
+                children: [
+                  for (final a in accounts)
+                    DeptAccountingMetricCard(
+                      label: a.name,
+                      value: '${Numbers.format(a.balance)} $currency',
+                      caption: 'الرصيد المتاح',
+                    ),
+                ],
+              ),
+              if (manage)
+                DeptAccountingPanel(
+                  title: 'إعداد الحسابات وأرصدة البداية',
+                  action: DeptAccountingButton(
+                    label: 'إضافة حساب',
+                    variant: DeptAccountingButtonVariant.secondary,
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (_) => CashAccountDialog(d: d),
+                    ),
+                  ),
+                  child: SectionStack.form(
+                    children: [
+                      if (closed)
+                        const DeptAccountingStatusTag(
+                          'تمت مراجعة وإقفال الافتتاح',
+                          tone: DeptAccountingTone.success,
+                        )
+                      else ...[
+                        const Text(
+                          'اختر الحساب لإضافة رصيد البداية أو تعديل المبلغ المسجل. الحساب ذو الرصيد الصفري لا يحتاج إلى إضافة.',
                         ),
-                      ),
-                      DataCell(Text(doc.label)),
-                      DataCell(Text(doc.date)),
-                      DataCell(
-                        DeptAccountingAmount(
-                          Numbers.format(doc.total),
-                          currency: currency,
+                        FieldGrid(
+                          children: [
+                            ChoiceField(
+                              label: 'حساب الافتتاح',
+                              value: selectedCode,
+                              items: accounts
+                                  .map((a) => (value: a.code, label: a.name))
+                                  .toList(),
+                              onChanged: (v) => setState(() {
+                                openingAccount = v;
+                                final saved = data.opening
+                                    .where((a) => a.code == v)
+                                    .firstOrNull;
+                                opening.text = saved == null
+                                    ? ''
+                                    : Numbers.input(saved.amount);
+                                vm.changed();
+                              }),
+                            ),
+                            DeptAccountingField(
+                              label: 'الرصيد الافتتاحي ($currency)',
+                              controller: opening,
+                              numeric: true,
+                              enabled: editable,
+                            ),
+                            DeptAccountingButton(
+                              label: existing == null
+                                  ? 'إضافة رصيد البداية'
+                                  : 'حفظ تعديل رصيد البداية',
+                              variant: DeptAccountingButtonVariant.secondary,
+                              onPressed: !editable
+                                  ? null
+                                  : () async {
+                                      if (await vm.opening(
+                                            selectedCode,
+                                            opening.text,
+                                          ) &&
+                                          context.mounted) {
+                                        showMessage(
+                                          context,
+                                          'تم حفظ رصيد البداية',
+                                        );
+                                      }
+                                    },
+                            ),
+                          ],
                         ),
-                      ),
-                      DataCell(Text(doc.notes)),
+                        if (!editable)
+                          const Text(
+                            'بدأت حركة هذا الحساب؛ استخدم عملية مالية أو مطابقة موثقة لتصحيح الرصيد.',
+                          ),
+                      ],
                     ],
                   ),
-              ],
-              totalRows: docs.length,
-              page: page,
-              pageSize: 10,
-              onPageChanged: (v) => setState(() => page = v),
-            ),
-          ),
-        ],
+                ),
+              if (manage)
+                OpeningReviewPanel(
+                  vm: vm,
+                  balances: data.opening,
+                  editable: data.editable,
+                  equity: data.openingEquity,
+                ),
+              DeptAccountingPanel(
+                title: 'الحركات المالية',
+                padding: EdgeInsets.zero,
+                child: DeptAccountingDataTable(
+                  columns: const [
+                    DataColumn(label: Text('المرجع')),
+                    DataColumn(label: Text('النوع')),
+                    DataColumn(label: Text('التاريخ')),
+                    DataColumn(label: Text('المبلغ')),
+                    DataColumn(label: Text('البيان')),
+                  ],
+                  rows: [
+                    for (final doc in docs.items)
+                      DataRow(
+                        cells: [
+                          DataCell(
+                            TextButton(
+                              onPressed: () =>
+                                  context.go('/finance/view/${doc.id}'),
+                              child: Text(doc.number),
+                            ),
+                          ),
+                          DataCell(Text(doc.label)),
+                          DataCell(Text(formatDocumentDateTime(doc.date))),
+                          DataCell(
+                            DeptAccountingAmount(
+                              Numbers.format(doc.total),
+                              currency: currency,
+                            ),
+                          ),
+                          DataCell(Text(doc.notes)),
+                        ],
+                      ),
+                  ],
+                  totalRows: docs.total,
+                  page: docs.page,
+                  pageSize: 10,
+                  onPageChanged: (v) => setState(() => page = v),
+                ),
+              ),
+            ],
+          );
+        },
       );
     },
   );
@@ -240,260 +255,259 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
     builder: (context, _) {
       final d = vm.d,
           currency = d.store.shop!.currencyLabel,
-          manage = d.store.user!.canManage,
-          accounts = d.finance.accounts();
-      final parties = d.parties.all().where(
-        (p) => p.active && (vm.kind == 'receipt' ? p.customer : p.supplier),
-      );
-      final outstanding = !vm.voucher || vm.partyId == null
-          ? <Document>[]
-          : d.invoices
-                .list(vm.kind == 'receipt' ? 'sale' : 'purchase')
-                .where(
-                  (r) => r.partyId == vm.partyId && d.invoices.due(r.id) > 0,
-                )
-                .toList();
-      final preview = vm.safePreview;
-      return WorkPage(
-        title: 'عملية مالية جديدة',
-        onBack: () => context.go('/finance'),
-        actions: [
-          DeptAccountingButton(
-            label: 'اعتماد العملية',
-            loading: vm.busy,
-            onPressed: () async {
-              if (!await showDeptAccountingConfirmation(
-                context,
-                title: 'اعتماد العملية المالية؟',
-                message: 'تحقق من الحسابات والمبالغ والتخصيص المعروض.',
-                confirmLabel: 'اعتماد',
-              )) {
-                return;
-              }
-              final doc = await vm.post();
-              if (doc != null && context.mounted) {
-                context.go('/finance/view/${doc.id}');
-              }
-            },
-          ),
-        ],
-        child: SectionStack(
-          children: [
-            ErrorNotice(vm.error),
-            DeptAccountingEditorLayout(
-              form: SectionStack(
-                children: [
-                  DeptAccountingPanel(
-                    title: 'بيانات العملية',
-                    child: FieldGrid(
-                      children: [
-                        ChoiceField(
-                          label: 'نوع العملية',
-                          value: vm.kind,
-                          items: [
-                            (value: 'receipt', label: 'قبض من عميل'),
-                            if (manage) ...[
-                              (value: 'payment', label: 'سداد مورد'),
-                              (value: 'expense', label: 'مصروف'),
-                              (value: 'transfer', label: 'تحويل بين الحسابات'),
-                              (value: 'capital', label: 'إضافة رأس مال'),
-                              (value: 'drawing', label: 'مسحوبات شخصية'),
-                            ],
+          manage = d.store.user!.canManage;
+      return DatabaseQuery(
+        store: d.store,
+        task: FinanceTasks.voucher(
+          vm.voucher ? vm.partyId : null,
+          vm.kind == 'receipt',
+          vm.total,
+          vm.invoicePage,
+          vm.allocationMode == 'auto',
+        ),
+        queryKey: (
+          vm.partyId,
+          vm.kind,
+          vm.total,
+          vm.invoicePage,
+          vm.allocationMode,
+        ),
+        builder: (context, data) {
+          final accounts = data.accounts;
+          final outstanding = data.invoices,
+              preview = vm.allocationMode == 'auto'
+                  ? data.preview
+                  : vm.safePreview;
+          return WorkPage(
+            busy: vm.busy,
+            title: 'عملية مالية جديدة',
+            onBack: () => context.go('/finance'),
+            actions: [
+              DeptAccountingButton(
+                label: 'اعتماد العملية',
+                loading: vm.busy,
+                onPressed: () async {
+                  if (!await showDeptAccountingConfirmation(
+                    context,
+                    title: 'اعتماد العملية المالية؟',
+                    message: 'تحقق من الحسابات والمبالغ والتخصيص المعروض.',
+                    confirmLabel: 'اعتماد',
+                  )) {
+                    return;
+                  }
+                  final doc = await vm.post();
+                  if (doc != null && context.mounted) {
+                    context.go('/finance/view/${doc.id}');
+                  }
+                },
+              ),
+            ],
+            child: SectionStack(
+              children: [
+                ErrorNotice(vm.error),
+                DeptAccountingEditorLayout(
+                  form: SectionStack(
+                    children: [
+                      DeptAccountingPanel(
+                        title: 'بيانات العملية',
+                        child: FieldGrid(
+                          children: [
+                            ChoiceField(
+                              label: 'نوع العملية',
+                              value: vm.kind,
+                              items: [
+                                (value: 'receipt', label: 'قبض من عميل'),
+                                if (manage) ...[
+                                  (value: 'payment', label: 'سداد مورد'),
+                                  (value: 'expense', label: 'مصروف'),
+                                  (
+                                    value: 'transfer',
+                                    label: 'تحويل بين الحسابات',
+                                  ),
+                                  (value: 'capital', label: 'إضافة رأس مال'),
+                                  (value: 'drawing', label: 'مسحوبات شخصية'),
+                                ],
+                              ],
+                              onChanged: (v) => vm.changeKind(v!),
+                            ),
+                            if (vm.voucher)
+                              PartyField(
+                                repository: d.parties,
+                                customer: vm.kind == 'receipt',
+                                label: 'الطرف',
+                                emptyLabel: 'اختر الطرف',
+                                value: vm.partyId,
+                                onChanged: vm.changeParty,
+                              ),
+                            if (vm.kind == 'expense')
+                              DeptAccountingField(
+                                label: 'تصنيف المصروف',
+                                onChanged: (v) {
+                                  vm.category = v;
+                                  vm.changed();
+                                },
+                              ),
+                            if (vm.kind == 'transfer')
+                              ChoiceField(
+                                label: 'الحساب المستلم',
+                                value: vm.toAccount ?? '',
+                                items: [
+                                  (value: '', label: 'اختر الحساب'),
+                                  ...accounts.map(
+                                    (a) => (value: a.code, label: a.name),
+                                  ),
+                                ],
+                                onChanged: (v) {
+                                  vm.toAccount = v == '' ? null : v;
+                                  vm.changed();
+                                },
+                              ),
+                            DeptAccountingField(
+                              label: 'البيان / الملاحظات',
+                              onChanged: (v) {
+                                vm.notes = v;
+                                vm.changed();
+                              },
+                            ),
                           ],
-                          onChanged: (v) => vm.changeKind(v!),
                         ),
-                        if (vm.voucher)
-                          ChoiceField(
-                            label: 'الطرف',
-                            value: vm.partyId ?? '',
-                            items: [
-                              (value: '', label: 'اختر الطرف'),
-                              ...parties.map(
-                                (p) => (value: p.id, label: p.name),
-                              ),
-                            ],
-                            onChanged: (v) {
-                              vm.partyId = v == '' ? null : v;
-                              vm.manual.clear();
-                              vm.changed();
-                            },
-                          ),
-                        if (vm.kind == 'expense')
-                          DeptAccountingField(
-                            label: 'تصنيف المصروف',
-                            onChanged: (v) {
-                              vm.category = v;
-                              vm.changed();
-                            },
-                          ),
-                        if (vm.kind == 'transfer')
-                          ChoiceField(
-                            label: 'الحساب المستلم',
-                            value: vm.toAccount ?? '',
-                            items: [
-                              (value: '', label: 'اختر الحساب'),
-                              ...accounts.map(
-                                (a) => (value: a.code, label: a.name),
-                              ),
-                            ],
-                            onChanged: (v) {
-                              vm.toAccount = v == '' ? null : v;
-                              vm.changed();
-                            },
-                          ),
-                        DeptAccountingField(
-                          label: 'البيان / الملاحظات',
-                          onChanged: (v) {
-                            vm.notes = v;
+                      ),
+                      DeptAccountingPanel(
+                        title: 'الحسابات والمبالغ',
+                        action: DeptAccountingButton(
+                          label: 'إضافة حساب للدفع',
+                          variant: DeptAccountingButtonVariant.secondary,
+                          onPressed: () async {
+                            vm.payments.add(
+                              PaymentInput(account: accounts.first.code),
+                            );
                             vm.changed();
                           },
                         ),
-                      ],
-                    ),
-                  ),
-                  DeptAccountingPanel(
-                    title: 'الحسابات والمبالغ',
-                    action: DeptAccountingButton(
-                      label: 'إضافة حساب للدفع',
-                      variant: DeptAccountingButtonVariant.secondary,
-                      onPressed: () {
-                        vm.payments.add(
-                          PaymentInput(account: accounts.first.code),
-                        );
-                        vm.changed();
-                      },
-                    ),
-                    child: SectionStack.form(
-                      children: [
-                        for (final p in vm.payments)
-                          FieldGrid(
-                            key: ObjectKey(p),
-                            minWidth: 180,
-                            children: [
-                              ChoiceField(
-                                label: 'الحساب',
-                                value: p.account,
-                                items: accounts
-                                    .map(
-                                      (a) => (
-                                        value: a.code,
-                                        label:
-                                            '${a.name} — ${Numbers.format(a.balance)}',
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (v) {
-                                  p.account = v!;
-                                  vm.changed();
-                                },
-                              ),
-                              DeptAccountingField(
-                                label: 'المبلغ ($currency)',
-                                initialValue: p.amount,
-                                numeric: true,
-                                onChanged: (v) {
-                                  p.amount = v;
-                                  vm.changed();
-                                },
-                              ),
-                              if (vm.payments.length > 1)
-                                TextButton(
-                                  onPressed: () {
-                                    vm.payments.remove(p);
-                                    vm.changed();
-                                  },
-                                  child: const Text('إزالة'),
-                                ),
-                            ],
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (vm.voucher)
-                    DeptAccountingPanel(
-                      title: 'تخصيص الدفعة',
-                      description:
-                          'التخصيص يوزع الدفعة نفسها ولا ينشئ حركة نقدية أخرى.',
-                      child: SectionStack.form(
-                        children: [
-                          ChoiceField(
-                            label: 'طريقة التخصيص',
-                            value: vm.allocationMode,
-                            items: const [
-                              (value: 'auto', label: 'تلقائي — الأقدم أولًا'),
-                              (value: 'manual', label: 'اختيار يدوي'),
-                              (value: 'none', label: 'على الرصيد العام'),
-                            ],
-                            onChanged: (v) {
-                              vm.allocationMode = v!;
-                              vm.changed();
-                            },
-                          ),
-                          for (final invoice in outstanding)
-                            FieldGrid(
-                              children: [
-                                Text(
-                                  '${invoice.number} · المتبقي ${Numbers.format(d.invoices.due(invoice.id))} $currency',
-                                ),
-                                if (vm.allocationMode == 'manual')
-                                  DeptAccountingField(
-                                    key: ValueKey(invoice.id),
-                                    label: 'تخصيص للفاتورة',
-                                    initialValue: vm.manual[invoice.id] ?? '0',
-                                    numeric: true,
+                        child: SectionStack.form(
+                          children: [
+                            for (final p in vm.payments)
+                              FieldGrid(
+                                key: ObjectKey(p),
+                                minWidth: 180,
+                                children: [
+                                  ChoiceField(
+                                    label: 'الحساب',
+                                    value: p.account,
+                                    items: accounts
+                                        .map(
+                                          (a) => (
+                                            value: a.code,
+                                            label:
+                                                '${a.name} — ${Numbers.format(a.balance)}',
+                                          ),
+                                        )
+                                        .toList(),
                                     onChanged: (v) {
-                                      vm.manual[invoice.id] = v;
+                                      p.account = v!;
                                       vm.changed();
                                     },
-                                  )
-                                else
-                                  Text(
-                                    'التخصيص: ${Numbers.format(preview[invoice.id] ?? 0)} $currency',
                                   ),
-                              ],
-                            ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              summary: DeptAccountingPanel(
-                title: 'ملخص العملية',
-                child: SectionStack(
-                  children: [
-                    DeptAccountingSummaryLine(
-                      label: 'الإجمالي',
-                      value: Numbers.format(vm.total),
-                      currency: currency,
-                      total: true,
-                    ),
-                    if (vm.voucher) ...[
-                      DeptAccountingSummaryLine(
-                        label: 'المخصص للفواتير',
-                        value: Numbers.format(
-                          preview.values.fold<int>(0, (a, b) => a + b),
+                                  DeptAccountingField(
+                                    label: 'المبلغ ($currency)',
+                                    initialValue: p.amount,
+                                    numeric: true,
+                                    onChanged: (v) {
+                                      p.amount = v;
+                                      vm.changed();
+                                    },
+                                  ),
+                                  if (vm.payments.length > 1)
+                                    TextButton(
+                                      onPressed: () async {
+                                        vm.payments.remove(p);
+                                        vm.changed();
+                                      },
+                                      child: const Text('إزالة'),
+                                    ),
+                                ],
+                              ),
+                          ],
                         ),
-                        currency: currency,
                       ),
-                      DeptAccountingSummaryLine(
-                        label: 'غير مخصص / دفعة مقدمة',
-                        value: Numbers.format(
-                          vm.total -
-                              preview.values.fold<int>(0, (a, b) => a + b),
+                      if (vm.voucher)
+                        DeptAccountingPanel(
+                          title: 'تخصيص الدفعة',
+                          description: 'التخصيص يوزع الدفعة نفسها ولا ينشئ حركة نقدية أخرى.',
+                          child: SectionStack.form(
+                            children: [
+                              ChoiceField(
+                                label: 'طريقة التخصيص',
+                                value: vm.allocationMode,
+                                items: const [
+                                  (
+                                    value: 'auto',
+                                    label: 'تلقائي — الأقدم أولًا',
+                                  ),
+                                  (value: 'manual', label: 'اختيار يدوي'),
+                                  (value: 'none', label: 'على الرصيد العام'),
+                                ],
+                                onChanged: (v) {
+                                  vm.allocationMode = v!;
+                                  vm.changed();
+                                },
+                              ),
+                              InvoiceAllocationTable(
+                                invoices: outstanding,
+                                currency: currency,
+                                manualMode: vm.allocationMode == 'manual',
+                                manual: vm.manual,
+                                preview: preview,
+                                onPageChanged: vm.goInvoices,
+                                onManualChanged: (id, value) {
+                                  vm.manual[id] = value;
+                                  vm.changed();
+                                },
+                              ),
+                            ],
+                          ),
                         ),
-                        currency: currency,
-                      ),
                     ],
-                    const Text(
-                      'سيُرفض الصرف إذا تجاوز الرصيد المتاح للحساب.',
-                      style: TextStyle(color: DeptAccountingColors.muted),
+                  ),
+                  summary: DeptAccountingPanel(
+                    title: 'ملخص العملية',
+                    child: SectionStack(
+                      children: [
+                        DeptAccountingSummaryLine(
+                          label: 'الإجمالي',
+                          value: Numbers.format(vm.total),
+                          currency: currency,
+                          total: true,
+                        ),
+                        if (vm.voucher) ...[
+                          DeptAccountingSummaryLine(
+                            label: 'المخصص للفواتير',
+                            value: Numbers.format(
+                              preview.values.fold<int>(0, (a, b) => a + b),
+                            ),
+                            currency: currency,
+                          ),
+                          DeptAccountingSummaryLine(
+                            label: 'غير مخصص / دفعة مقدمة',
+                            value: Numbers.format(
+                              vm.total -
+                                  preview.values.fold<int>(0, (a, b) => a + b),
+                            ),
+                            currency: currency,
+                          ),
+                        ],
+                        const Text(
+                          'سيُرفض الصرف إذا تجاوز الرصيد المتاح للحساب.',
+                          style: TextStyle(color: DeptAccountingColors.muted),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       );
     },
   );

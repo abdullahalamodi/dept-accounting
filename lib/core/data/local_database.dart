@@ -12,13 +12,44 @@ const currentSchemaVersion = 2;
 
 class LocalDatabase {
   LocalDatabase.fromHandle(this.handle, this.path) {
+    _registerFunctions();
     migrate();
   }
+  LocalDatabase.readOnly(String filePath)
+    : handle = sqlite3.open(filePath, mode: OpenMode.readOnly),
+      path = filePath {
+    _registerFunctions();
+    handle.execute('PRAGMA query_only = ON');
+    handle.execute('PRAGMA busy_timeout = 50');
+  }
+
+  void _registerFunctions() {
+    // Match the existing Dart contains-search, including Unicode letter case.
+    handle.createFunction(
+      functionName: 'app_lower',
+      argumentCount: const AllowedArgumentCount(1),
+      deterministic: true,
+      function: (arguments) => (arguments.first as String).toLowerCase(),
+    );
+  }
+
   final Database handle;
   final String path;
   static Future<LocalDatabase> open({
     Future<void> Function(Database, String)? beforeMigration,
   }) async {
+    final path = await resolvePath();
+    final handle = sqlite3.open(path);
+    try {
+      await beforeMigration?.call(handle, path);
+      return LocalDatabase.fromHandle(handle, path);
+    } catch (_) {
+      handle.close();
+      rethrow;
+    }
+  }
+
+  static Future<String> resolvePath() async {
     final support = await getApplicationSupportDirectory();
     // Windows derives support from the display name; use a stable technical name.
     final directory = Platform.isWindows
@@ -40,14 +71,7 @@ class LocalDatabase {
           ),
         ),
     ]);
-    final handle = sqlite3.open(path);
-    try {
-      await beforeMigration?.call(handle, path);
-      return LocalDatabase.fromHandle(handle, path);
-    } catch (_) {
-      handle.close();
-      rethrow;
-    }
+    return path;
   }
 
   factory LocalDatabase.memory() =>
@@ -90,6 +114,12 @@ class LocalDatabase {
           value INTEGER NOT NULL, note TEXT NOT NULL DEFAULT '');
         CREATE TABLE allocations (id INTEGER PRIMARY KEY, payment_id TEXT NOT NULL REFERENCES documents(id),
           invoice_id TEXT NOT NULL REFERENCES documents(id), amount INTEGER NOT NULL CHECK(amount > 0));
+        CREATE TABLE cost_adjustments (
+          invoice_id TEXT NOT NULL REFERENCES documents(id),
+          product_id TEXT NOT NULL REFERENCES products(id),
+          adjustment_id TEXT NOT NULL REFERENCES documents(id),
+          amount INTEGER NOT NULL,
+          PRIMARY KEY(invoice_id, product_id, adjustment_id));
         CREATE TABLE drafts (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id),
           kind TEXT NOT NULL, updated_at TEXT NOT NULL, data TEXT NOT NULL);
         CREATE TABLE audit (id INTEGER PRIMARY KEY, user_id TEXT, at TEXT NOT NULL, action TEXT NOT NULL,
@@ -98,7 +128,16 @@ class LocalDatabase {
         CREATE INDEX journal_document ON journal(document_id);
         CREATE INDEX stock_document ON stock_moves(document_id);
         CREATE INDEX allocations_invoice ON allocations(invoice_id);
+        CREATE INDEX allocations_payment ON allocations(payment_id);
         CREATE INDEX documents_party ON documents(party_id, kind);
+        CREATE INDEX documents_source ON documents(source_id, kind);
+        CREATE INDEX documents_kind_posted ON documents(kind, posted_at);
+        CREATE INDEX documents_posted ON documents(posted_at);
+        CREATE INDEX documents_kind ON documents(kind);
+        CREATE INDEX stock_product ON stock_moves(product_id);
+        CREATE INDEX products_name ON products(json_extract(data, '\$.name'), id);
+        CREATE INDEX parties_name ON parties(json_extract(data, '\$.name'), id);
+        CREATE INDEX drafts_owner_kind_updated ON drafts(user_id, kind, updated_at, id);
       ''');
         const accounts = [
           ('1100', 'الصندوق الرئيسي', 'asset', 1),
@@ -154,7 +193,7 @@ class LocalDatabase {
     );
     final target = sqlite3.open(file.path);
     try {
-      await handle.backup(target).drain<void>();
+      await handle.backup(target, nPage: -1).drain<void>();
     } finally {
       target.close();
     }

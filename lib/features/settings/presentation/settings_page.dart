@@ -1,3 +1,7 @@
+import '../../reports/data/reports_tasks.dart';
+import '../../../core/ui/database_query.dart';
+import '../../../core/data/store_tasks.dart';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +12,7 @@ import '../../../design_system/dept_accounting_design_system.dart';
 import '../../backup/data/backup_codec.dart';
 import '../../auth/data/auth_models.dart';
 import '../../backup/presentation/backup_status_notice.dart';
+import '../../backup/presentation/backup_file_selection.dart';
 
 enum _SettingsSection {
   shop('المحل'),
@@ -64,305 +69,332 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: vm,
     builder: (context, _) {
-      final d = widget.dependencies,
-          s = d.store,
-          audit = section == _SettingsSection.activity
-              ? d.reports.audit()
-              : const <Map<String, dynamic>>[];
-      return SectionStack(
-        children: [
-          DeptAccountingPageHeader(
-            title: 'إعدادات المحل',
-            description: 'بيانات المحل، حماية البيانات، وصلاحيات فريقك',
-            actions: [
-              DeptAccountingButton(
-                label: 'ملفي الشخصي',
-                icon: Icons.person_outline,
-                variant: DeptAccountingButtonVariant.secondary,
-                onPressed: () => context.go('/profile'),
-              ),
-            ],
-          ),
-          Wrap(
-            spacing: DeptAccountingSpace.sm,
-            runSpacing: DeptAccountingSpace.sm,
+      final d = widget.dependencies, s = d.store;
+      return DatabaseQuery(
+        store: s,
+        task: ReportTasks.activity(section == _SettingsSection.activity),
+        queryKey: section,
+        builder: (context, audit) {
+          return SectionStack(
             children: [
-              for (final item in _SettingsSection.values)
-                DeptAccountingFilterChip(
-                  label: Text(item.label),
-                  selected: section == item,
-                  onSelected: vm.busy
-                      ? null
-                      : (_) => setState(() {
-                          section = item;
-                          vm.changed();
-                        }),
-                ),
-            ],
-          ),
-          if (vm.error != null) ErrorNotice(vm.error),
-          if (section == _SettingsSection.shop) ...[
-            DeptAccountingPanel(
-              title: 'بيانات المحل',
-              child: SectionStack.form(
-                children: [
-                  FieldGrid(
-                    minWidth: 400,
-                    children: [
-                      DeptAccountingField(
-                        label: 'الاسم الكامل (اختياري)',
-                        controller: fullName,
-                      ),
-                      DeptAccountingField(label: 'اسم المحل', controller: name),
-                      DeptAccountingField(label: 'الهاتف', controller: phone),
-                      DeptAccountingField(
-                        label: 'العنوان',
-                        controller: address,
-                      ),
-                      ChoiceField(
-                        label: 'العملة',
-                        value: currency,
-                        items: const [
-                          (value: 'YER', label: 'ريال يمني'),
-                          (value: 'SAR', label: 'ريال سعودي'),
-                        ],
-                        onChanged: (v) => setState(() => currency = v!),
-                      ),
-                    ],
-                  ),
+              DeptAccountingPageHeader(
+                title: 'إعدادات المحل',
+                description: 'بيانات المحل، حماية البيانات، وصلاحيات فريقك',
+                actions: [
                   DeptAccountingButton(
-                    label: 'حفظ إعدادات المحل',
-                    onPressed: () {
-                      if (vm.perform(
-                        () => s.updateShop(
-                          Shop(
-                            name: name.text.trim(),
-                            currency: currency,
-                            phone: phone.text.trim(),
-                            address: address.text.trim(),
-                          ),
-                          ownerName: fullName.text,
-                        ),
-                      )) {
-                        showMessage(context, 'تم حفظ الإعدادات');
-                      }
-                    },
+                    label: 'ملفي الشخصي',
+                    icon: Icons.person_outline,
+                    variant: DeptAccountingButtonVariant.secondary,
+                    onPressed: () => context.go('/profile'),
                   ),
                 ],
               ),
-            ),
-            DeptAccountingPanel(
-              title: 'تفضيلات العمل',
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('تفعيل نقطة البيع السريعة'),
-                subtitle: const Text(
-                  'نفس قواعد الفواتير والصلاحيات · F2 بيع، F3 منتجات، F4 أطراف، F6 شراء، Ctrl+L قفل',
-                ),
-                value: s.setting('pos_enabled') == 'true',
-                onChanged: (v) =>
-                    s.write(() => s.setSetting('pos_enabled', v.toString())),
-              ),
-            ),
-          ],
-          if (section == _SettingsSection.backups)
-            DeptAccountingPanel(
-              title: 'النسخ الاحتياطية والاستعادة',
-              description: 'احمِ بيانات محلك بنسخ مشفرة ونسخة خارجية آمنة.',
-              child: SectionStack(
+              Wrap(
+                spacing: DeptAccountingSpace.sm,
+                runSpacing: DeptAccountingSpace.sm,
                 children: [
-                  BackupStatusNotice(backups: d.backups),
-                  ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    title: const Text('كيف تعمل النسخ التلقائية؟'),
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: DeptAccountingSpace.lg,
-                        ),
-                        child: Text(
-                          'يحفظ التطبيق نسخة مشفرة تلقائيًا كل ساعة عند وجود تغييرات أثناء تشغيله، وعند فتحه إذا فات الموعد. تُحفظ النسخة في مجلد التطبيق أو المجلد الذي تختاره، وتُحفظ نسخة إضافية في المجلد الخارجي إذا كان متصلًا ومتاحًا.',
-                        ),
-                      ),
-                    ],
-                  ),
-                  Text(
-                    'آخر نسخة ناجحة: ${_backupTime(context, s.setting('backup_at'), 'لم تُنشأ بعد')}',
-                  ),
-                  Text(
-                    'آخر نسخة خارجية: ${_backupTime(context, s.setting('external_backup_at'), 'لا توجد')}',
-                  ),
-                  Text(
-                    'مجلد النسخ: ${s.setting('backup_directory') ?? d.backups.localDirectory}',
-                  ),
-                  Text(
-                    'مجلد النسخة الخارجية: ${s.setting('external_backup_directory') ?? 'لم يُحدد بعد'}',
-                  ),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    children: [
-                      DeptAccountingButton(
-                        label: 'اختيار مجلد النسخ',
-                        variant: DeptAccountingButtonVariant.secondary,
-                        onPressed: () => vm.run(() async {
-                          final path = await FilePicker.getDirectoryPath();
-                          if (path != null) {
-                            await d.backups.folders.remember(
-                              'backup_directory',
-                              path,
-                            );
-                          }
-                        }),
-                      ),
-                      DeptAccountingButton(
-                        label: 'اختيار مجلد النسخة الخارجية',
-                        variant: DeptAccountingButtonVariant.secondary,
-                        onPressed: () => vm.run(() async {
-                          final path = await FilePicker.getDirectoryPath();
-                          if (path != null) {
-                            await d.backups.folders.remember(
-                              'external_backup_directory',
-                              path,
-                            );
-                          }
-                        }),
-                      ),
-                      DeptAccountingButton(
-                        label: 'إنشاء نسخة احتياطية الآن',
-                        loading: vm.busy,
-                        onPressed: () => vm.run(() async {
-                          final file = await d.backups.backup();
-                          if (context.mounted) {
-                            showMessage(context, 'تم حفظ النسخة: $file');
-                          }
-                        }),
-                      ),
-                    ],
-                  ),
-                  ExpansionTile(
-                    tilePadding: EdgeInsets.zero,
-                    childrenPadding: const EdgeInsets.only(
-                      top: DeptAccountingSpace.lg,
+                  for (final item in _SettingsSection.values)
+                    DeptAccountingFilterChip(
+                      label: Text(item.label),
+                      selected: section == item,
+                      onSelected: vm.busy
+                          ? null
+                          : (_) => setState(() {
+                              section = item;
+                              vm.changed();
+                            }),
                     ),
-                    title: const Text('استعادة نسخة احتياطية'),
-                    subtitle: const Text('استبدال بيانات المحل بنسخة سابقة'),
+                ],
+              ),
+              if (vm.error != null) ErrorNotice(vm.error),
+              if (section == _SettingsSection.shop) ...[
+                DeptAccountingPanel(
+                  title: 'بيانات المحل',
+                  child: SectionStack.form(
                     children: [
-                      SectionStack.form(
+                      FieldGrid(
+                        minWidth: 400,
                         children: [
-                          const Text(
-                            'لاستعادة بياناتك، أدخل مفتاح استعادة النسخ الاحتياطية من ملف مفاتيح الاسترداد الذي حفظته عند إنشاء المحل، ثم اختر ملف النسخة بامتداد .dept_accounting. الاستعادة تستبدل البيانات الحالية ببيانات النسخة المختارة.',
+                          DeptAccountingField(
+                            label: 'الاسم الكامل (اختياري)',
+                            controller: fullName,
                           ),
                           DeptAccountingField(
-                            label: 'مفتاح استعادة النسخ الاحتياطية',
-                            controller: backupKey,
+                            label: 'اسم المحل',
+                            controller: name,
+                          ),
+                          DeptAccountingField(
+                            label: 'الهاتف',
+                            controller: phone,
+                          ),
+                          DeptAccountingField(
+                            label: 'العنوان',
+                            controller: address,
+                          ),
+                          ChoiceField(
+                            label: 'العملة',
+                            value: currency,
+                            items: const [
+                              (value: 'YER', label: 'ريال يمني'),
+                              (value: 'SAR', label: 'ريال سعودي'),
+                            ],
+                            onChanged: (v) => setState(() => currency = v!),
+                          ),
+                        ],
+                      ),
+                      DeptAccountingButton(
+                        label: 'حفظ إعدادات المحل',
+                        onPressed: () async {
+                          if (await vm.run(
+                                () async => s.run(
+                                  StoreTasks.shop(
+                                    Shop(
+                                      name: name.text.trim(),
+                                      currency: currency,
+                                      phone: phone.text.trim(),
+                                      address: address.text.trim(),
+                                    ),
+                                    fullName.text,
+                                  ),
+                                ),
+                              ) &&
+                              context.mounted) {
+                            showMessage(context, 'تم حفظ الإعدادات');
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+                DeptAccountingPanel(
+                  title: 'تفضيلات العمل',
+                  child: SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('تفعيل نقطة البيع السريعة'),
+                    subtitle: const Text(
+                      'نفس قواعد الفواتير والصلاحيات · F2 بيع، F3 منتجات، F4 أطراف، F6 شراء، Ctrl+L قفل',
+                    ),
+                    value: s.setting('pos_enabled') == 'true',
+                    onChanged: (v) => vm.run(
+                      () async => s.run(
+                        StoreTasks.preference('pos_enabled', v.toString()),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+              if (section == _SettingsSection.backups)
+                DeptAccountingPanel(
+                  title: 'النسخ الاحتياطية والاستعادة',
+                  description: 'احمِ بيانات محلك بنسخ مشفرة ونسخة خارجية آمنة.',
+                  child: SectionStack(
+                    children: [
+                      BackupStatusNotice(backups: d.backups),
+                      ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        title: const Text('كيف تعمل النسخ التلقائية؟'),
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(
+                              bottom: DeptAccountingSpace.lg,
+                            ),
+                            child: Text(
+                              'يحفظ التطبيق نسخة مشفرة تلقائيًا كل ساعة عند وجود تغييرات أثناء تشغيله، وعند فتحه إذا فات الموعد. تُحفظ النسخة في مجلد التطبيق أو المجلد الذي تختاره، وتُحفظ نسخة إضافية في المجلد الخارجي إذا كان متصلًا ومتاحًا.',
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        'آخر نسخة ناجحة: ${_backupTime(context, s.setting('backup_at'), 'لم تُنشأ بعد')}',
+                      ),
+                      Text(
+                        'آخر نسخة خارجية: ${_backupTime(context, s.setting('external_backup_at'), 'لا توجد')}',
+                      ),
+                      Text(
+                        'مجلد النسخ: ${s.setting('backup_directory') ?? d.backups.localDirectory}',
+                      ),
+                      Text(
+                        'مجلد النسخة الخارجية: ${s.setting('external_backup_directory') ?? 'لم يُحدد بعد'}',
+                      ),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          DeptAccountingButton(
+                            label: 'اختيار مجلد النسخ',
+                            variant: DeptAccountingButtonVariant.secondary,
+                            onPressed: () => vm.run(() async {
+                              final path = await FilePicker.getDirectoryPath();
+                              if (path != null) {
+                                await d.backups.folders.remember(
+                                  'backup_directory',
+                                  path,
+                                );
+                              }
+                            }),
                           ),
                           DeptAccountingButton(
-                            label: 'اختيار نسخة واستعادتها',
+                            label: 'اختيار مجلد النسخة الخارجية',
                             variant: DeptAccountingButtonVariant.secondary,
+                            onPressed: () => vm.run(() async {
+                              final path = await FilePicker.getDirectoryPath();
+                              if (path != null) {
+                                await d.backups.folders.remember(
+                                  'external_backup_directory',
+                                  path,
+                                );
+                              }
+                            }),
+                          ),
+                          DeptAccountingButton(
+                            label: 'إنشاء نسخة احتياطية الآن',
                             loading: vm.busy,
                             onPressed: () => vm.run(() async {
-                              final file = await FilePicker.pickFile(
-                                type: FileType.custom,
-                                allowedExtensions:
-                                    BackupCodec.supportedExtensions,
-                              );
-                              if (file == null) return;
-                              final bytes = await file.readAsBytes();
-                              final info = await d.backups.inspect(
-                                bytes,
-                                backupKey.text,
-                              );
-                              if (!context.mounted) return;
-                              if (await showDeptAccountingConfirmation(
-                                context,
-                                title: 'استعادة بيانات ${info.shop.name}؟',
-                                message:
-                                    'عملة ${info.shop.currency} · تاريخ البيانات ${info.date}. سيتم حفظ نسخة من البيانات الحالية قبل الاستبدال، ثم تسجيل الخروج.',
-                                confirmLabel: 'استعادة البيانات',
-                                destructive: true,
-                              )) {
-                                await d.backups.restore(bytes, backupKey.text);
+                              final file = await d.backups.backup();
+                              if (context.mounted) {
+                                showMessage(context, 'تم حفظ النسخة: $file');
                               }
                             }),
                           ),
                         ],
                       ),
+                      ExpansionTile(
+                        tilePadding: EdgeInsets.zero,
+                        childrenPadding: const EdgeInsets.only(
+                          top: DeptAccountingSpace.lg,
+                        ),
+                        title: const Text('استعادة نسخة احتياطية'),
+                        subtitle: const Text(
+                          'استبدال بيانات المحل بنسخة سابقة',
+                        ),
+                        children: [
+                          SectionStack.form(
+                            children: [
+                              const Text(
+                                'لاستعادة بياناتك، أدخل مفتاح استعادة النسخ الاحتياطية من ملف مفاتيح الاسترداد الذي حفظته عند إنشاء المحل، ثم اختر ملف النسخة بامتداد .dept_accounting. الاستعادة تستبدل البيانات الحالية ببيانات النسخة المختارة.',
+                              ),
+                              DeptAccountingField(
+                                label: 'مفتاح استعادة النسخ الاحتياطية',
+                                controller: backupKey,
+                              ),
+                              DeptAccountingButton(
+                                label: 'اختيار نسخة واستعادتها',
+                                variant: DeptAccountingButtonVariant.secondary,
+                                loading: vm.busy,
+                                onPressed: () => vm.run(() async {
+                                  final file = await FilePicker.pickFile(
+                                    type: FileType.custom,
+                                    allowedExtensions:
+                                        BackupCodec.supportedExtensions,
+                                  );
+                                  if (file == null) return;
+                                  await withSelectedBackup(file, (
+                                    backupFile,
+                                  ) async {
+                                    final info = await d.backups.inspectFile(
+                                      backupFile,
+                                      backupKey.text,
+                                    );
+                                    if (!context.mounted) return;
+                                    if (await showDeptAccountingConfirmation(
+                                      context,
+                                      title:
+                                          'استعادة بيانات ${info.shop.name}؟',
+                                      message:
+                                          'عملة ${info.shop.currency} · تاريخ البيانات ${info.date}. سيتم حفظ نسخة من البيانات الحالية قبل الاستبدال، ثم تسجيل الخروج.',
+                                      confirmLabel: 'استعادة البيانات',
+                                      destructive: true,
+                                    )) {
+                                      await d.backups.restoreFile(
+                                        backupFile,
+                                        backupKey.text,
+                                      );
+                                    }
+                                  });
+                                }),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const DeptAccountingNotice(
+                        title:
+                            'احفظ ملف المفاتيح ونسخة من البيانات خارج الجهاز',
+                        message: 'رمز استرداد الدخول يعيد تعيين كلمة مرور المالك. مفتاح استعادة النسخ الاحتياطية يفتح ملفات النسخ المشفرة، ولا يمكن استعادتها بدونه. ملف المفاتيح لا يحتوي بيانات المحل؛ ستحتاج إليه وإلى ملف نسخة احتياطية لاستعادة بياناتك عند فقد الجهاز.',
+                        tone: DeptAccountingTone.warning,
+                      ),
                     ],
                   ),
-                  const DeptAccountingNotice(
-                    title: 'احفظ ملف المفاتيح ونسخة من البيانات خارج الجهاز',
-                    message: 'رمز استرداد الدخول يعيد تعيين كلمة مرور المالك. مفتاح استعادة النسخ الاحتياطية يفتح ملفات النسخ المشفرة، ولا يمكن استعادتها بدونه. ملف المفاتيح لا يحتوي بيانات المحل؛ ستحتاج إليه وإلى ملف نسخة احتياطية لاستعادة بياناتك عند فقد الجهاز.',
-                    tone: DeptAccountingTone.warning,
+                ),
+              if (section == _SettingsSection.activity)
+                DeptAccountingPanel(
+                  title: 'سجل العمليات',
+                  child: DeptAccountingDataTable(
+                    columns: const [
+                      DataColumn(label: Text('الوقت')),
+                      DataColumn(label: Text('المستخدم')),
+                      DataColumn(label: Text('العملية')),
+                      DataColumn(label: Text('المرجع')),
+                    ],
+                    rows: [
+                      for (final row
+                          in audit.skip((auditPage - 1) * 10).take(10))
+                        DataRow(
+                          cells: [
+                            DataCell(
+                              Text(
+                                (row['at'] as String)
+                                    .substring(0, 16)
+                                    .replaceAll('T', ' '),
+                              ),
+                            ),
+                            DataCell(Text(row['name'] as String? ?? 'النظام')),
+                            DataCell(Text(row['action'] as String)),
+                            DataCell(Text(row['entity'] as String)),
+                          ],
+                        ),
+                    ],
+                    totalRows: audit.length,
+                    page: auditPage,
+                    pageSize: 10,
+                    onPageChanged: (v) => setState(() => auditPage = v),
                   ),
-                ],
-              ),
-            ),
-          if (section == _SettingsSection.activity)
-            DeptAccountingPanel(
-              title: 'سجل العمليات',
-              child: DeptAccountingDataTable(
-                columns: const [
-                  DataColumn(label: Text('الوقت')),
-                  DataColumn(label: Text('المستخدم')),
-                  DataColumn(label: Text('العملية')),
-                  DataColumn(label: Text('المرجع')),
-                ],
-                rows: [
-                  for (final row in audit.skip((auditPage - 1) * 10).take(10))
-                    DataRow(
-                      cells: [
-                        DataCell(
-                          Text(
-                            (row['at'] as String)
-                                .substring(0, 16)
-                                .replaceAll('T', ' '),
+                ),
+              if (section == _SettingsSection.users)
+                DeptAccountingPanel(
+                  title: 'المستخدمون والصلاحيات',
+                  action: DeptAccountingButton(
+                    label: 'مستخدم جديد',
+                    variant: DeptAccountingButtonVariant.secondary,
+                    onPressed: () => showDialog<void>(
+                      context: context,
+                      builder: (context) => _UserDialog(d: d),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      for (final user in s.users())
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(user.displayName),
+                          subtitle: Text(
+                            '${user.username} · ${user.roleLabel}${user.active ? '' : ' · موقوف'}',
+                          ),
+                          trailing: TextButton(
+                            onPressed: () => showDialog<void>(
+                              context: context,
+                              builder: (context) =>
+                                  _UserDialog(d: d, user: user),
+                            ),
+                            child: const Text('تعديل'),
                           ),
                         ),
-                        DataCell(Text(row['name'] as String? ?? 'النظام')),
-                        DataCell(Text(row['action'] as String)),
-                        DataCell(Text(row['entity'] as String)),
-                      ],
-                    ),
-                ],
-                totalRows: audit.length,
-                page: auditPage,
-                pageSize: 10,
-                onPageChanged: (v) => setState(() => auditPage = v),
-              ),
-            ),
-          if (section == _SettingsSection.users)
-            DeptAccountingPanel(
-              title: 'المستخدمون والصلاحيات',
-              action: DeptAccountingButton(
-                label: 'مستخدم جديد',
-                variant: DeptAccountingButtonVariant.secondary,
-                onPressed: () => showDialog<void>(
-                  context: context,
-                  builder: (context) => _UserDialog(d: d),
+                    ],
+                  ),
                 ),
-              ),
-              child: Column(
-                children: [
-                  for (final user in s.users())
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(user.displayName),
-                      subtitle: Text(
-                        '${user.username} · ${user.roleLabel}${user.active ? '' : ' · موقوف'}',
-                      ),
-                      trailing: TextButton(
-                        onPressed: () => showDialog<void>(
-                          context: context,
-                          builder: (context) => _UserDialog(d: d, user: user),
-                        ),
-                        child: const Text('تعديل'),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-        ],
+            ],
+          );
+        },
       );
     },
   );

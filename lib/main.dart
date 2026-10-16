@@ -6,19 +6,13 @@ import 'package:go_router/go_router.dart';
 
 import 'app/app_router.dart';
 import 'app/dependencies.dart';
-import 'app/upgrade_backup.dart';
 import 'core/app_identity.dart';
-import 'core/data/local_database.dart';
 import 'design_system/dept_accounting_design_system.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
-    final database = await LocalDatabase.open(
-      beforeMigration: backupBeforeUpgrade,
-    );
-    final dependencies = AppDependencies(database);
-    dependencies.store.setSetting('app_version', applicationVersion);
+    final dependencies = await AppDependencies.open();
     runApp(DeptAccountingApp(dependencies: dependencies));
   } catch (_) {
     runApp(
@@ -60,7 +54,9 @@ class _DeptAccountingAppState extends State<DeptAccountingApp>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) widget.dependencies.backups.check();
+    if (state == AppLifecycleState.resumed) {
+      widget.dependencies.backups.check(flush: true);
+    }
   }
 
   @override
@@ -72,9 +68,7 @@ class _DeptAccountingAppState extends State<DeptAccountingApp>
   }
 
   Future<void> _shutdown() async {
-    await widget.dependencies.backups.shutdown();
-    widget.dependencies.store.dispose();
-    widget.dependencies.store.database.close();
+    await widget.dependencies.shutdown();
   }
 
   @override

@@ -1,3 +1,6 @@
+import '../data/catalog_tasks.dart';
+import '../../../core/ui/database_query.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -27,8 +30,10 @@ class CatalogPage extends StatefulWidget {
 class _CatalogPageState extends State<CatalogPage> {
   late final vm = CatalogViewModel(widget.dependencies.catalog)
     ..lowOnly = widget.lowStockOnly;
+  final category = TextEditingController();
   @override
   void dispose() {
+    category.dispose();
     vm.dispose();
     super.dispose();
   }
@@ -39,136 +44,168 @@ class _CatalogPageState extends State<CatalogPage> {
     builder: (context, _) {
       final manage = widget.dependencies.store.user!.canManage,
           currency = widget.dependencies.store.shop!.currencyLabel;
-      return SectionStack(
-        children: [
-          DeptAccountingPageHeader(
-            title: 'المنتجات والخدمات',
-            description: 'منتجات محلك، وحداتها وأسعارها ومخزونها',
-            actions: [
-              if (manage)
-                DeptAccountingButton(
-                  label: 'إضافة منتج',
-                  onPressed: () => context.go('/catalog/new'),
-                ),
-            ],
-          ),
-          CatalogNavigation(selected: '/catalog', canManage: manage),
-          ErrorNotice(vm.error),
-          DeptAccountingPanel(
-            child: FieldGrid(
-              children: [
-                DeptAccountingField(
-                  label: 'بحث بالاسم أو الباركود',
-                  onChanged: vm.filter,
-                ),
-                ChoiceField<String>(
-                  label: 'التصنيف',
-                  value: vm.category,
-                  items: [
-                    (value: '', label: 'كل التصنيفات'),
-                    ...widget.dependencies.catalogReferences
-                        .all(CatalogReferenceKind.category)
-                        .map((c) => (value: c.id, label: c.name)),
-                  ],
-                  onChanged: (v) {
-                    vm.category = v!;
-                    vm.filter(vm.search);
-                  },
-                ),
-                Wrap(
+      return DatabaseQuery(
+        store: widget.dependencies.store,
+        task: CatalogTasks.page(
+          search: vm.search,
+          category: vm.category,
+          lowOnly: vm.lowOnly,
+          servicesOnly: vm.servicesOnly,
+          page: vm.page,
+          pageSize: vm.pageSize,
+        ),
+        queryKey: (
+          vm.search,
+          vm.category,
+          vm.lowOnly,
+          vm.servicesOnly,
+          vm.page,
+          vm.pageSize,
+        ),
+        builder: (context, results) {
+          return SectionStack(
+            children: [
+              DeptAccountingPageHeader(
+                title: 'المنتجات والخدمات',
+                description: 'منتجات محلك، وحداتها وأسعارها ومخزونها',
+                actions: [
+                  if (manage)
+                    DeptAccountingButton(
+                      label: 'إضافة منتج',
+                      onPressed: () => context.go('/catalog/new'),
+                    ),
+                ],
+              ),
+              CatalogNavigation(selected: '/catalog', canManage: manage),
+              ErrorNotice(vm.error),
+              DeptAccountingPanel(
+                child: FieldGrid(
                   children: [
-                    DeptAccountingFilterChip(
-                      label: const Text('مخزون منخفض'),
-                      selected: vm.lowOnly,
-                      onSelected: (v) {
-                        vm.lowOnly = v;
+                    DeptAccountingField(
+                      label: 'بحث بالاسم أو الباركود',
+                      onChanged: vm.filter,
+                    ),
+                    CatalogReferenceField(
+                      repository: widget.dependencies.catalogReferences,
+                      kind: CatalogReferenceKind.category,
+                      controller: category,
+                      label: 'التصنيف',
+                      optional: true,
+                      emptyLabel: 'كل التصنيفات',
+                      onChanged: (value) {
+                        vm.category = value;
                         vm.filter(vm.search);
                       },
                     ),
-                    const SizedBox(width: 8),
-                    DeptAccountingFilterChip(
-                      label: const Text('الخدمات'),
-                      selected: vm.servicesOnly,
-                      onSelected: (v) {
-                        vm.servicesOnly = v;
-                        vm.filter(vm.search);
-                      },
+                    Wrap(
+                      children: [
+                        DeptAccountingFilterChip(
+                          label: const Text('مخزون منخفض'),
+                          selected: vm.lowOnly,
+                          onSelected: (v) {
+                            vm.lowOnly = v;
+                            vm.filter(vm.search);
+                          },
+                        ),
+                        const SizedBox(width: 8),
+                        DeptAccountingFilterChip(
+                          label: const Text('الخدمات'),
+                          selected: vm.servicesOnly,
+                          onSelected: (v) {
+                            vm.servicesOnly = v;
+                            vm.filter(vm.search);
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          DeptAccountingPanel(
-            padding: EdgeInsets.zero,
-            child: DeptAccountingDataTable(
-              columns: [
-                const DataColumn(label: Text('المنتج')),
-                const DataColumn(label: Text('الباركود')),
-                const DataColumn(label: Text('التصنيف')),
-                const DataColumn(label: Text('المتوفر')),
-                const DataColumn(label: Text('سعر البيع')),
-                if (manage) const DataColumn(label: Text('سعر الشراء')),
-                const DataColumn(label: Text('الحالة')),
-                const DataColumn(label: Text('الإجراء')),
-              ],
-              rows: [
-                for (final p in vm.visible)
-                  DataRow(
-                    cells: [
-                      DataCell(Text(p.name)),
-                      DataCell(Text(p.barcode.isEmpty ? '—' : p.barcode)),
-                      DataCell(Text(p.category.isEmpty ? '—' : p.category)),
-                      DataCell(
-                        Text(
-                          p.service
-                              ? 'خدمة'
-                              : '${Numbers.format(widget.dependencies.engine.stock(p.id).quantity, decimals: 3)} ${p.unit}',
-                        ),
-                      ),
-                      DataCell(
-                        DeptAccountingAmount(
-                          Numbers.format(p.salePrice),
-                          currency: currency,
-                        ),
-                      ),
-                      if (manage)
-                        DataCell(
-                          DeptAccountingAmount(
-                            Numbers.format(p.purchasePrice),
-                            currency: currency,
+              ),
+              DeptAccountingPanel(
+                padding: EdgeInsets.zero,
+                child: DeptAccountingDataTable(
+                  columns: [
+                    const DataColumn(label: Text('المنتج')),
+                    const DataColumn(label: Text('الباركود')),
+                    const DataColumn(label: Text('التصنيف')),
+                    const DataColumn(label: Text('المتوفر')),
+                    const DataColumn(label: Text('سعر البيع')),
+                    if (manage) const DataColumn(label: Text('سعر الشراء')),
+                    const DataColumn(label: Text('الحالة')),
+                    const DataColumn(label: Text('الإجراء')),
+                  ],
+                  rows: [
+                    for (final row in results.items)
+                      DataRow(
+                        cells: [
+                          DataCell(Text(row.product.name)),
+                          DataCell(
+                            Text(
+                              row.product.barcode.isEmpty
+                                  ? '—'
+                                  : row.product.barcode,
+                            ),
                           ),
-                        ),
-                      DataCell(
-                        DeptAccountingStatusTag(
-                          p.active ? 'نشط' : 'موقوف',
-                          tone: p.active
-                              ? DeptAccountingTone.success
-                              : DeptAccountingTone.neutral,
-                        ),
+                          DataCell(
+                            Text(
+                              row.product.category.isEmpty
+                                  ? '—'
+                                  : row.product.category,
+                            ),
+                          ),
+                          DataCell(
+                            Text(
+                              row.product.service
+                                  ? 'خدمة'
+                                  : '${Numbers.format(row.quantity, decimals: 3)} ${row.product.unit}',
+                            ),
+                          ),
+                          DataCell(
+                            DeptAccountingAmount(
+                              Numbers.format(row.product.salePrice),
+                              currency: currency,
+                            ),
+                          ),
+                          if (manage)
+                            DataCell(
+                              DeptAccountingAmount(
+                                Numbers.format(row.product.purchasePrice),
+                                currency: currency,
+                              ),
+                            ),
+                          DataCell(
+                            DeptAccountingStatusTag(
+                              row.product.active ? 'نشط' : 'موقوف',
+                              tone: row.product.active
+                                  ? DeptAccountingTone.success
+                                  : DeptAccountingTone.neutral,
+                            ),
+                          ),
+                          DataCell(
+                            TextButton(
+                              onPressed: () =>
+                                  context.go('/catalog/${row.product.id}'),
+                              child: Text(manage ? 'عرض وتعديل' : 'عرض'),
+                            ),
+                          ),
+                        ],
                       ),
-                      DataCell(
-                        TextButton(
-                          onPressed: () => context.go('/catalog/${p.id}'),
-                          child: Text(manage ? 'عرض وتعديل' : 'عرض'),
-                        ),
-                      ),
-                    ],
-                  ),
-              ],
-              totalRows: vm.filtered.length,
-              page: vm.page,
-              pageSize: vm.pageSize,
-              onPageChanged: vm.go,
-              onPageSizeChanged: (v) {
-                vm.pageSize = v;
-                vm.go(1);
-              },
-              emptyTitle: 'لا توجد منتجات',
-              emptyMessage: 'أضف منتجاتك وخدماتك، ثم ابدأ الشراء والبيع.',
-            ),
-          ),
-        ],
+                  ],
+                  totalRows: results.total,
+                  page: results.page,
+                  pageSize: vm.pageSize,
+                  onPageChanged: vm.go,
+                  onPageSizeChanged: (v) {
+                    vm.pageSize = v;
+                    vm.go(1);
+                  },
+                  emptyTitle: 'لا توجد منتجات',
+                  emptyMessage: 'أضف منتجاتك وخدماتك، ثم ابدأ الشراء والبيع.',
+                ),
+              ),
+            ],
+          );
+        },
       );
     },
   );
@@ -186,10 +223,7 @@ class _ProductPageState extends State<ProductPage> {
   late final vm = CatalogViewModel(widget.dependencies.catalog);
   late final Product? product = widget.id == 'new'
       ? null
-      : widget.dependencies.catalog
-            .all()
-            .where((p) => p.id == widget.id)
-            .firstOrNull;
+      : widget.dependencies.catalog.find(widget.id);
   late final id = product?.id ?? widget.dependencies.store.id();
   late bool service = product?.service ?? false,
       fractional = product?.fractional ?? false,
@@ -201,16 +235,7 @@ class _ProductPageState extends State<ProductPage> {
     'unit': TextEditingController(
       text:
           product?.unitId ??
-          widget.dependencies.catalogReferences
-              .all(CatalogReferenceKind.unit)
-              .where((r) => r.active && r.id == 'unit_piece')
-              .firstOrNull
-              ?.id ??
-          widget.dependencies.catalogReferences
-              .all(CatalogReferenceKind.unit)
-              .where((r) => r.active)
-              .firstOrNull
-              ?.id ??
+          widget.dependencies.catalogReferences.defaultUnit()?.id ??
           '',
     ),
     'alternateUnit': TextEditingController(text: product?.alternateUnitId),
@@ -228,14 +253,15 @@ class _ProductPageState extends State<ProductPage> {
     ),
   };
 
-  void save({bool addOpening = false}) {
-    if (vm.save(
-      id: id,
-      values: fields.map((k, v) => MapEntry(k, v.text)),
-      service: service,
-      fractional: fractional,
-      active: active,
-    )) {
+  Future<void> save({bool addOpening = false}) async {
+    if (await vm.save(
+          id: id,
+          values: fields.map((k, v) => MapEntry(k, v.text)),
+          service: service,
+          fractional: fractional,
+          active: active,
+        ) &&
+        mounted) {
       showMessage(context, 'تم حفظ المنتج');
       context.go(addOpening ? '/catalog/$id/opening' : '/catalog');
     }
@@ -268,6 +294,7 @@ class _ProductPageState extends State<ProductPage> {
     return ListenableBuilder(
       listenable: Listenable.merge([vm, widget.dependencies.store]),
       builder: (context, _) => WorkPage(
+        busy: vm.busy,
         title: product == null ? 'منتج جديد' : product!.name,
         onBack: () => context.go('/catalog'),
         actions: [

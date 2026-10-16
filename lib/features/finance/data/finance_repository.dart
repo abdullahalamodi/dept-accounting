@@ -1,4 +1,5 @@
 import '../../../core/data/app_store.dart';
+import '../../../core/data/query_page.dart';
 import '../../../core/numbers.dart';
 import '../../accounting/data/posting_engine.dart';
 import '../../invoices/data/document.dart';
@@ -14,15 +15,27 @@ class FinanceRepository {
   final PostingEngine engine;
   final InvoiceRepository invoices;
   final PartyRepository parties;
+  List<({String code, String name})> accountOptions() {
+    store.require();
+    return store.database.handle
+        .select('SELECT code,name FROM accounts WHERE cash=1 ORDER BY code')
+        .map((r) => (code: r['code'] as String, name: r['name'] as String))
+        .toList();
+  }
+
   List<CashAccount> accounts() {
     store.require();
     return store.database.handle
-        .select('SELECT code,name FROM accounts WHERE cash = 1 ORDER BY code')
+        .select(
+          '''SELECT a.code,a.name,COALESCE(SUM(j.debit-j.credit),0) AS balance
+          FROM accounts a LEFT JOIN journal j ON j.account = a.code
+          WHERE a.cash = 1 GROUP BY a.code ORDER BY a.code''',
+        )
         .map(
           (r) => (
             code: r['code'] as String,
             name: r['name'] as String,
-            balance: engine.balance(r['code'] as String),
+            balance: r['balance'] as int,
           ),
         )
         .toList();
@@ -169,14 +182,38 @@ class FinanceRepository {
     });
   }
 
-  List<Document> documents() {
+  String get _documentsWhere {
     store.require();
     final kinds = store.user!.canManage
         ? "'receipt','payment','expense','transfer','capital','drawing','opening','customer_refund','supplier_refund','cash_reconciliation','opening_close'"
         : "'receipt'";
+    return "kind IN ($kinds) ${store.user!.canManage ? "OR (kind = 'reversal' AND source_id IN (SELECT id FROM documents WHERE kind = 'opening'))" : ''}";
+  }
+
+  QueryPage<Document> documentPage({int page = 1, int pageSize = 10}) {
+    store.require();
+    return QueryPage.read(
+      total:
+          store.database.handle
+                  .select(
+                    'SELECT COUNT(*) AS n FROM documents WHERE $_documentsWhere',
+                  )
+                  .first['n']
+              as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) => documents(limit: limit, offset: offset),
+    );
+  }
+
+  List<Document> documents({int? limit, int offset = 0}) {
+    store.require();
     return store.database.handle
         .select(
-          "SELECT data FROM documents WHERE kind IN ($kinds) ${store.user!.canManage ? "OR (kind = 'reversal' AND source_id IN (SELECT id FROM documents WHERE kind = 'opening'))" : ''} ORDER BY rowid DESC",
+          'SELECT data FROM documents WHERE $_documentsWhere ORDER BY rowid DESC ${limit == null ? '' : 'LIMIT ? OFFSET ?'}',
+          [
+            if (limit != null) ...[limit, offset],
+          ],
         )
         .map((r) => DocumentMapper.fromJson(r['data'] as String))
         .toList();
@@ -186,27 +223,7 @@ class FinanceRepository {
     String partyId,
     bool customer,
     int amount,
-  ) {
-    final candidates =
-        invoices
-            .list(customer ? 'sale' : 'purchase')
-            .where((d) => d.partyId == partyId)
-            .toList()
-          ..sort((a, b) {
-            final date = a.date.compareTo(b.date);
-            return date != 0 ? date : a.postedAt.compareTo(b.postedAt);
-          });
-    final result = <String, int>{};
-    for (final d in candidates) {
-      if (amount <= 0) break;
-      final part = invoices.due(d.id).clamp(0, amount);
-      if (part > 0) {
-        result[d.id] = part;
-        amount -= part;
-      }
-    }
-    return result;
-  }
+  ) => invoices.allocationPreview(partyId, customer, amount);
 
   Document post({
     required String requestId,

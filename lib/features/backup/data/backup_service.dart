@@ -4,14 +4,14 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import 'package:path/path.dart' as p;
-import 'package:sqlite3/sqlite3.dart';
 
 import '../../../core/data/app_store.dart';
-import '../../../core/data/local_database.dart';
+import '../../../core/data/store_tasks.dart';
 import '../../../core/numbers.dart';
 import '../../auth/data/auth_models.dart';
 import 'folder_access.dart';
 import 'backup_codec.dart';
+import 'backup_files.dart';
 
 class BackupNotice {
   const BackupNotice({
@@ -26,13 +26,20 @@ class BackupNotice {
 }
 
 class BackupService {
-  BackupService(this.store) {
+  BackupService(this.store, {DateTime Function()? now})
+    : _now = now ?? DateTime.now {
     folders = FolderAccess(store);
     _timer = Timer.periodic(const Duration(minutes: 1), (_) => check());
     store.addListener(_changed);
-    unawaited(check());
+    unawaited(check(flush: true));
   }
   final AppStore store;
+  final DateTime Function() _now;
+  static const externalDelay = Duration(minutes: 5);
+  DateTime? _externalDirtySince;
+  String? _observedExternal;
+  bool _externalWasAvailable = false;
+  Future<void>? _checking;
   late final FolderAccess folders;
   Timer? _timer;
   bool busy = false;
@@ -67,7 +74,7 @@ class BackupService {
             );
     } else {
       status.value =
-          DateTime.now().toUtc().difference(DateTime.parse(last)) >=
+          _now().toUtc().difference(DateTime.parse(last)) >=
               const Duration(hours: 24)
           ? const BackupNotice(
               title: 'النسخة الخارجية متأخرة',
@@ -79,7 +86,10 @@ class BackupService {
   }
 
   void _changed() {
-    if (store.shop != null) unawaited(check());
+    if (store.shop != null) {
+      _externalDirtySince ??= _now().toUtc();
+      unawaited(check());
+    }
   }
 
   String get localDirectory =>
@@ -88,24 +98,72 @@ class BackupService {
       BackupCodec.encrypt(bytes, key);
   Future<List<int>> decrypt(List<int> bytes, String key) =>
       BackupCodec.decrypt(bytes, key);
-  Future<void> check() async {
+  Future<void> check({bool flush = false}) async {
     if (_disposed) return;
+    final pending = _checking;
+    if (pending != null) {
+      await pending;
+      // A resume/shutdown request must not inherit a concurrent delayed check.
+      if (flush) await check(flush: true);
+      return;
+    }
+    final completion = Completer<void>();
+    _checking = completion.future;
+    try {
+      await _check(flush: flush);
+    } finally {
+      _checking = null;
+      completion.complete();
+    }
+  }
+
+  Future<void> _check({required bool flush}) async {
+    try {
+      await _checkDue(flush: flush);
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      _refreshStatus();
+    }
+  }
+
+  Future<void> _checkDue({required bool flush}) async {
+    if (_disposed || store.executor?.maintenance == true) return;
     _refreshStatus();
     if (store.database.path == ':memory:') return;
     await folders.restore();
     if (_disposed) return;
-    if (busy || store.shop == null || store.database.path == ':memory:') return;
+    if (busy ||
+        store.executor?.maintenance == true ||
+        store.shop == null ||
+        store.database.path == ':memory:') {
+      return;
+    }
     _refreshStatus();
     final changed = store.setting('changed_at'),
         last = store.setting('backup_at');
     final overdue =
         last == null ||
-        DateTime.now().toUtc().difference(DateTime.parse(last)).inHours >= 1;
+        _now().toUtc().difference(DateTime.parse(last)).inHours >= 1;
     final external = store.setting('external_backup_directory');
+    if (_observedExternal != external) {
+      _observedExternal = external;
+      _externalWasAvailable = false;
+    }
+    final available = external != null && await Directory(external).exists();
+    final reconnected = available && !_externalWasAvailable;
+    _externalWasAvailable = available;
+    if (changed == store.setting('external_backup_change')) {
+      _externalDirtySince = null;
+    }
     final externalDue =
-        external != null &&
-        await Directory(external).exists() &&
-        store.setting('external_backup_change') != changed;
+        available &&
+        store.setting('external_backup_change') != changed &&
+        (flush ||
+            reconnected ||
+            _externalDirtySince == null ||
+            _now().toUtc().difference(_externalDirtySince!) >= externalDelay);
+    if (store.executor?.maintenance == true) return;
     if ((overdue && changed != store.setting('backup_change')) || externalDue) {
       try {
         await backup(automatic: true);
@@ -125,25 +183,24 @@ class BackupService {
       throw const BusinessException('لم يتم إعداد مفتاح النسخ.');
     }
     busy = true;
-    _idle = Completer<void>();
+    _externalDirtySince = null;
+    final completion = _idle = Completer<void>();
     Directory? temporary;
     try {
       final changed = store.setting('changed_at') ?? '';
       temporary = await Directory.systemTemp.createTemp(
         'dept_accounting-backup-',
       );
-      final snapshot = await store.database.snapshot(temporary);
-      final bytes = await snapshot.readAsBytes();
-      final encrypted = await encrypt(bytes, store.setting('backup_key')!);
-      // Verify decryption and SQLite integrity before recording a successful backup.
-      final verified = File(p.join(temporary.path, 'verified.sqlite'));
-      await verified.writeAsBytes(
-        await decrypt(encrypted, store.setting('backup_key')!),
-        flush: true,
+      final snapshot = await store.snapshot(temporary);
+      final encrypted = File(
+        await BackupFiles.prepare(
+          snapshot.path,
+          temporary.path,
+          store.setting('backup_key')!,
+        ),
       );
-      _validate(verified.path);
       final filename =
-          'dept_accounting-${automatic ? 'auto' : 'manual'}-${DateTime.now().toUtc().toIso8601String().replaceAll(RegExp(r'[:.]'), '-')}.dept_accounting';
+          'dept_accounting-${automatic ? 'auto' : 'manual'}-${_now().toUtc().toIso8601String().replaceAll(RegExp(r'[:.]'), '-')}.dept_accounting';
       final configured = forceLocal ? null : store.setting('backup_directory');
       var directory = Directory(configured ?? localDirectory);
       final primaryUnavailable =
@@ -152,16 +209,27 @@ class BackupService {
         directory = await Directory(localDirectory).create(recursive: true);
       }
       final output = File(p.join(directory.path, filename));
-      await _write(output, encrypted);
-      final now = DateTime.now().toUtc().toIso8601String();
-      store.setSetting('backup_at', now);
-      store.setSetting('backup_change', changed);
-      store.setSetting('backup_file', output.path);
+      await BackupFiles.copyTo(encrypted, output);
+      final now = _now().toUtc().toIso8601String();
+      await store.setSettings({
+        'backup_at': now,
+        'backup_change': changed,
+        'backup_file': output.path,
+      });
       final external = store.setting('external_backup_directory');
       if (external != null && await Directory(external).exists()) {
-        await _write(File(p.join(external, filename)), encrypted);
-        store.setSetting('external_backup_at', now);
-        store.setSetting('external_backup_change', changed);
+        final sameDirectory = p.equals(
+          p.normalize(p.absolute(external)),
+          p.normalize(p.absolute(directory.path)),
+        );
+        if (!sameDirectory) {
+          await BackupFiles.copyTo(encrypted, File(p.join(external, filename)));
+        }
+        await store.setSettings({
+          'external_backup_at': now,
+          'external_backup_change': changed,
+        });
+        if (automatic && !sameDirectory) await _prune(Directory(external));
       }
       if (automatic) await _prune(directory);
       error = primaryUnavailable
@@ -172,12 +240,12 @@ class BackupService {
       error = e.toString();
       rethrow;
     } finally {
-      busy = false;
-      _refreshStatus();
       try {
         await temporary?.delete(recursive: true);
       } finally {
-        _idle?.complete();
+        busy = false;
+        _refreshStatus();
+        completion.complete();
       }
     }
   }
@@ -199,7 +267,26 @@ class BackupService {
     }
   }
 
-  Future<void> restoreFresh(List<int> file, String key) async {
+  Future<T> _withBytes<T>(
+    List<int> bytes,
+    Future<T> Function(File) action,
+  ) async {
+    final directory = await Directory.systemTemp.createTemp(
+      'dept-backup-input-',
+    );
+    try {
+      final input = await File(p.join(directory.path, 'input.backup'))
+          .writeAsBytes(bytes, flush: true);
+      return await action(input);
+    } finally {
+      await directory.delete(recursive: true);
+    }
+  }
+
+  Future<void> restoreFresh(List<int> file, String key) =>
+      _withBytes(file, (input) => restoreFreshFile(input, key));
+
+  Future<void> restoreFreshFile(File file, String key) async {
     if (store.shop != null) {
       throw const BusinessException(
         'يوجد محل على الجهاز. استخدم الاستعادة من حساب المالك.',
@@ -208,96 +295,64 @@ class BackupService {
     await _replace(file, key, existing: false);
   }
 
-  Future<void> _replace(
-    List<int> file,
-    String key, {
-    required bool existing,
-  }) async {
+  Future<void> _replace(File file, String key, {required bool existing}) async {
     final directory = await Directory.systemTemp.createTemp(
       'dept_accounting-restore-',
     );
     try {
       final temporary = File(p.join(directory.path, 'restore.sqlite'));
-      await temporary.writeAsBytes(await decrypt(file, key), flush: true);
-      _validate(temporary.path);
-      if (existing) await backup(forceLocal: true);
-      final source = sqlite3.open(temporary.path);
-      try {
-        LocalDatabase.fromHandle(source, temporary.path);
-        await source.backup(store.database.handle).drain<void>();
-      } finally {
-        source.close();
+      await BackupFiles.decryptAndValidate(file.path, temporary.path, key);
+      await _checking;
+      await _idle?.future;
+      Future<void> replace() async {
+        if (existing) await backup(forceLocal: true);
+        await store.run(
+          StoreTasks.restore(temporary.path, key, existing: existing),
+        );
       }
-      store.setSetting('backup_key', key.trim());
-      store.database.handle.execute(
-        "DELETE FROM settings WHERE key IN ('backup_directory','external_backup_directory','backup_directory_bookmark','external_backup_directory_bookmark','backup_at','backup_change','backup_file','external_backup_at','external_backup_change')",
-      );
-      store.logout();
+
+      final executor = store.executor;
+      if (executor == null) {
+        await replace();
+      } else {
+        await executor.exclusive(replace);
+      }
     } finally {
       await directory.delete(recursive: true);
     }
   }
 
-  Future<void> _write(File target, List<int> data) async {
-    final temporary = File('${target.path}.partial');
-    await temporary.writeAsBytes(data, flush: true);
-    await temporary.rename(target.path);
-  }
+  Future<({Shop shop, String date})> inspect(List<int> file, String key) =>
+      _withBytes(file, (input) => inspectFile(input, key));
 
-  Shop _validate(String path) {
-    final db = sqlite3.open(path, mode: OpenMode.readOnly);
-    try {
-      if (db.userVersion < 1 ||
-          db.userVersion > currentSchemaVersion ||
-          db.select('PRAGMA integrity_check').first.values.first != 'ok' ||
-          db.select('PRAGMA foreign_key_check').isNotEmpty) {
-        throw const BusinessException(
-          'النسخة تالفة أو غير متوافقة مع هذا الإصدار.',
-        );
-      }
-      final settings = db.select(
-        "SELECT value FROM settings WHERE key = 'shop'",
-      );
-      if (settings.isEmpty) {
-        throw const BusinessException('النسخة لا تحتوي بيانات محل.');
-      }
-      return ShopMapper.fromJson(settings.first['value'] as String);
-    } finally {
-      db.close();
-    }
-  }
-
-  Future<({Shop shop, String date})> inspect(List<int> file, String key) async {
+  Future<({Shop shop, String date})> inspectFile(File file, String key) async {
     final directory = await Directory.systemTemp.createTemp(
-      'dept_accounting-inspect-',
+      'dept-accounting-inspect-',
     );
     try {
-      final temporary = File(p.join(directory.path, 'restore.sqlite'));
-      await temporary.writeAsBytes(await decrypt(file, key), flush: true);
-      final shop = _validate(temporary.path);
-      final source = sqlite3.open(temporary.path, mode: OpenMode.readOnly);
-      try {
-        final rows = source.select(
-          "SELECT value FROM settings WHERE key = 'changed_at'",
-        );
-        return (
-          shop: shop,
-          date: rows.isEmpty ? '—' : rows.first['value'] as String,
-        );
-      } finally {
-        source.close();
-      }
+      return await BackupFiles.decryptAndValidate(
+        file.path,
+        p.join(directory.path, 'restore.sqlite'),
+        key,
+      );
     } finally {
       await directory.delete(recursive: true);
     }
   }
 
-  Future<void> restore(List<int> file, String key) async {
+  Future<void> restore(List<int> file, String key) =>
+      _withBytes(file, (input) => restoreFile(input, key));
+
+  Future<void> restoreFile(File file, String key) async {
     store.require(owner: true);
     await _replace(file, key, existing: true);
   }
 
   Future<void> shutdown() async {
+    _timer?.cancel();
+    await _checking;
+    await _idle?.future;
+    await check(flush: true);
     dispose();
     await _idle?.future;
   }

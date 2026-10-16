@@ -6,6 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
 import '../../../core/numbers.dart';
+import '../../../core/date_time.dart';
 import '../../../core/app_identity.dart';
 import '../../auth/data/auth_models.dart';
 import '../../invoices/data/document.dart';
@@ -173,7 +174,7 @@ class ExportService {
     return ReportTable(
       title: '${doc.label} · ${doc.number}',
       subtitle:
-          '${doc.date}${party == null ? '' : ' · $party'}\n${doc.notes}${doc.reason.isEmpty ? '' : '\nالسبب: ${doc.reason}'}',
+          '${formatDocumentDateTime(doc.date)}${party == null ? '' : ' · $party'}\n${doc.notes}${doc.reason.isEmpty ? '' : '\nالسبب: ${doc.reason}'}',
       columns: const [
         'المنتج',
         'الوحدة',

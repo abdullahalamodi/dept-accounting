@@ -77,7 +77,8 @@ class Document with DocumentMappable {
   final Map<String, dynamic> extra;
   bool get isSale => kind == 'sale';
   int get paid => payments.fold(0, (a, b) => a + b.amount);
-  String get label => switch (kind) {
+  String get label => labelFor(kind);
+  static String labelFor(String kind) => switch (kind) {
     'sale' => 'فاتورة بيع',
     'purchase' => 'فاتورة شراء',
     'receipt' => 'سند قبض',

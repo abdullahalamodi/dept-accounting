@@ -41,10 +41,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
     listenable: vm,
     builder: (context, _) {
       final d = widget.dependencies;
-      final product = d.catalog
-          .all()
-          .where((p) => p.id == widget.productId)
-          .firstOrNull;
+      final product = d.catalog.find(widget.productId);
       if (product == null) {
         return DeptAccountingStateView(
           state: DeptAccountingViewState.error,
@@ -58,6 +55,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
       final currency = d.store.shop!.currencyLabel;
       final total = vm.total;
       return WorkPage(
+        busy: vm.busy,
         title: 'المخزون الافتتاحي · ${product.name}',
         onBack: () => context.go('/catalog/${product.id}'),
         child: unavailable != null
@@ -136,7 +134,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
                                           confirmLabel: 'اعتماد',
                                         ) &&
                                         mounted &&
-                                        vm.post() &&
+                                        await vm.post() &&
                                         context.mounted) {
                                       showMessage(
                                         context,

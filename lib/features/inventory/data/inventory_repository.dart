@@ -1,4 +1,5 @@
 import '../../../core/data/app_store.dart';
+import '../../../core/data/query_page.dart';
 import '../../../core/numbers.dart';
 import '../../accounting/data/posting_engine.dart';
 import '../../catalog/data/catalog_repository.dart';
@@ -9,13 +10,40 @@ class InventoryRepository {
   final AppStore store;
   final PostingEngine engine;
   final CatalogRepository catalog;
-  List<Map<String, Object?>> movements(String productId) {
+  QueryPage<Map<String, Object?>> movementPage(
+    String productId, {
+    int page = 1,
+    int pageSize = 10,
+  }) {
+    store.require(manage: true);
+    return QueryPage.read(
+      total:
+          store.database.handle.select(
+                'SELECT COUNT(*) AS n FROM stock_moves WHERE product_id = ?',
+                [productId],
+              ).first['n']
+              as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) =>
+          movements(productId, limit: limit, offset: offset),
+    );
+  }
+
+  List<Map<String, Object?>> movements(
+    String productId, {
+    int? limit,
+    int offset = 0,
+  }) {
     store.require(manage: true);
     return store.database.handle
         .select(
           '''SELECT s.*,d.number,d.posted_at FROM stock_moves s JOIN documents d ON d.id = s.document_id
-      WHERE s.product_id = ? ORDER BY s.id DESC''',
-          [productId],
+      WHERE s.product_id = ? ORDER BY s.id DESC ${limit == null ? '' : 'LIMIT ? OFFSET ?'}''',
+          [
+            productId,
+            if (limit != null) ...[limit, offset],
+          ],
         )
         .map((r) => Map<String, Object?>.from(r))
         .toList();

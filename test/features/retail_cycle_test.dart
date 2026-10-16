@@ -249,9 +249,11 @@ void main() {
   );
 
   test('Quick receipt finalization adjusts sold and remaining costs without repeating stock', () {
+    final selectedDate = DateTime.now().subtract(const Duration(hours: 1));
     final receipt = d.receiving.receive(
       requestId: 'receive',
       partyId: 'party',
+      date: selectedDate.toIso8601String(),
       lines: const [
         InvoiceLine(
           productId: 'p',
@@ -262,6 +264,7 @@ void main() {
         ),
       ],
     );
+    expect(receipt.date, selectedDate.toIso8601String());
     final sale = d.invoices.post(
       requestId: 'sell',
       sale: true,
@@ -294,6 +297,15 @@ void main() {
     expect(d.engine.balance('5100'), 330000);
     expect(d.engine.balance('2200'), 0);
     expect(d.parties.balance('party', false), 1100000);
+    expect(d.returns.history(sale).corrections.single, 40000);
+    expect(d.invoices.get(sale.id).lines.single.cost, 400000);
+    expect(
+      d.store.database.handle.select(
+        'SELECT amount FROM cost_adjustments WHERE invoice_id = ?',
+        [sale.id],
+      ).single['amount'],
+      40000,
+    );
     d.returns.post(
       requestId: 'return-after-final',
       invoiceId: sale.id,
@@ -302,6 +314,7 @@ void main() {
     );
     expect(d.engine.stock('p').value, 880000);
     expect(d.engine.balance('5100'), 220000);
+    expect(d.returns.history(sale).returned.single.cost, 220000);
     expect(
       d.reports.trialBalance().fold<int>(
         0,
@@ -310,6 +323,89 @@ void main() {
       0,
     );
   });
+  for (final price in [90000, 110000]) {
+    test(
+      'Final cost $price splits duplicate product lines across partial returns',
+      () {
+        final receipt = d.receiving.receive(
+          requestId: 'receive',
+          partyId: 'party',
+          lines: const [
+            InvoiceLine(
+              productId: 'p',
+              name: 'مصباح',
+              unit: 'حبة',
+              quantity: 10000,
+              price: 100000,
+            ),
+          ],
+        );
+        final sale = d.invoices.post(
+          requestId: 'sale',
+          sale: true,
+          partyId: 'party',
+          payments: [],
+          lines: const [
+            InvoiceLine(
+              productId: 'p',
+              name: 'مصباح',
+              unit: 'حبة',
+              quantity: 2000,
+              price: 150000,
+            ),
+            InvoiceLine(
+              productId: 'p',
+              name: 'مصباح',
+              unit: 'حبة',
+              quantity: 2000,
+              price: 150000,
+            ),
+          ],
+        );
+        d.returns.post(
+          requestId: 'before',
+          invoiceId: sale.id,
+          reason: 'صالح',
+          selected: [
+            (index: 0, quantity: 1000, serviceAmount: 0, damaged: false),
+          ],
+        );
+        for (var retry = 0; retry < 2; retry++) {
+          d.receiving.finalize(
+            requestId: 'final',
+            receiptId: receipt.id,
+            actualPrices: [price],
+            payments: [],
+          );
+        }
+        expect(
+          d.store.database.handle.select('SELECT * FROM cost_adjustments'),
+          hasLength(1),
+        );
+        expect(
+          d.returns.history(sale).corrections,
+          List.filled(2, (price - 100000) * 2),
+        );
+        expect(d.returns.history(sale).returned.first.cost, price);
+        d.returns.post(
+          requestId: 'after',
+          invoiceId: sale.id,
+          reason: 'صالح',
+          selected: [
+            (index: 0, quantity: 1000, serviceAmount: 0, damaged: false),
+            (index: 1, quantity: 2000, serviceAmount: 0, damaged: false),
+          ],
+        );
+        expect(d.engine.stock('p').quantity, 10000);
+        expect(d.engine.stock('p').value, price * 10);
+        expect(d.engine.balance('5100'), 0);
+        expect(d.invoices.get(sale.id).lines.map((l) => l.cost), [
+          200000,
+          200000,
+        ]);
+      },
+    );
+  }
   test(
     'Mixed invoice partial service refund changes money without moving stock',
     () {

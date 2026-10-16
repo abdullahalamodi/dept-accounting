@@ -1,10 +1,16 @@
+import '../data/credit_tasks.dart';
+import '../../../core/ui/database_query.dart';
+
 import 'package:flutter/material.dart';
 
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dept_accounting_design_system.dart';
-import 'account_actions_view_model.dart';
+import 'credit_view_model.dart';
+import '../data/credit_repository.dart';
+import '../../../core/ui/paged_selection_dialog.dart';
+import 'invoice_allocation_table.dart';
 
 class CreditPanel extends StatefulWidget {
   const CreditPanel({
@@ -21,11 +27,28 @@ class CreditPanel extends StatefulWidget {
 }
 
 class _CreditPanelState extends State<CreditPanel> {
-  late final vm = AccountActionsViewModel(widget.d);
-  String? sourceId, account;
-  bool automatic = true;
+  late var vm = CreditViewModel(
+    widget.d,
+    partyId: widget.partyId,
+    customer: widget.customer,
+  );
+  String? account;
+  @override
+  void didUpdateWidget(covariant CreditPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.d != widget.d ||
+        oldWidget.partyId != widget.partyId ||
+        oldWidget.customer != widget.customer) {
+      vm.dispose();
+      vm = CreditViewModel(
+        widget.d,
+        partyId: widget.partyId,
+        customer: widget.customer,
+      );
+    }
+  }
+
   final amount = TextEditingController(), reason = TextEditingController();
-  final manual = <String, String>{};
   @override
   void dispose() {
     vm.dispose();
@@ -36,138 +59,164 @@ class _CreditPanelState extends State<CreditPanel> {
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(
-    listenable: vm,
+    listenable: Listenable.merge([vm, widget.d.store]),
     builder: (context, _) {
-      final d = widget.d,
-          sources = d.credits.sources(widget.partyId, widget.customer),
-          currency = d.store.shop!.currencyLabel;
-      final selected = sources
-          .where((s) => s.document.id == sourceId)
-          .firstOrNull;
-      final invoices = d.invoices
-          .list(widget.customer ? 'sale' : 'purchase')
-          .where((i) => i.partyId == widget.partyId && d.invoices.due(i.id) > 0)
-          .toList();
-      final preview = selected == null
-          ? <String, int>{}
-          : d.finance.allocationPreview(
-              widget.partyId,
-              widget.customer,
-              selected.available,
-            );
-      return DeptAccountingPanel(
-        title: 'الأرصدة غير المخصصة',
-        description: 'تخصيص دفعة موجودة يغيّر ربطها بالفواتير فقط؛ لا يتحرك الصندوق مرة ثانية.',
-        child: SectionStack.form(
-          children: [
-            ErrorNotice(vm.error),
-            if (sources.isEmpty)
-              const Text('لا يوجد رصيد غير مخصص لهذا الحساب.')
-            else ...[
-              ChoiceField(
-                label: 'مصدر الرصيد',
-                value: selected?.document.id ?? '',
-                items: [
-                  (value: '', label: 'اختر دفعة أو رصيدًا'),
-                  ...sources.map(
-                    (s) => (
-                      value: s.document.id,
-                      label:
-                          '${s.document.number} · ${Numbers.format(s.available)} $currency',
-                    ),
+      final d = widget.d, currency = d.store.shop!.currencyLabel;
+      return DatabaseQuery(
+        store: widget.d.store,
+        task: CreditTasks.context(
+          vm.partyId,
+          vm.customer,
+          vm.sourceId,
+          vm.invoicePage,
+          vm.automatic,
+        ),
+        queryKey: (
+          vm.partyId,
+          vm.customer,
+          vm.sourceId,
+          vm.invoicePage,
+          vm.automatic,
+        ),
+        builder: (context, data) {
+          final selected = data.selected;
+          return DeptAccountingPanel(
+            title: 'الأرصدة غير المخصصة',
+            description: 'تخصيص دفعة موجودة يغيّر ربطها بالفواتير فقط؛ لا يتحرك الصندوق مرة ثانية.',
+            child: SectionStack.form(
+              children: [
+                ErrorNotice(vm.error),
+                if (!data.hasSources)
+                  const Text('لا يوجد رصيد غير مخصص لهذا الحساب.')
+                else ...[
+                  DeptAccountingField(
+                    key: ValueKey((selected?.id, selected?.available)),
+                    label: 'مصدر الرصيد',
+                    readOnly: true,
+                    initialValue: selected == null
+                        ? 'اختر دفعة أو رصيدًا'
+                        : '${selected.number} · ${Numbers.format(selected.available)} $currency',
+                    suffixIcon: const Icon(Icons.expand_more),
+                    onTap: () async {
+                      final id = await showDialog<String>(
+                        context: context,
+                        builder: (dialogContext) =>
+                            PagedSelectionDialog<CreditSummary>(
+                              title: 'اختيار مصدر الرصيد',
+                              searchLabel: 'بحث بالمرجع أو الملاحظات',
+                              load: vm.searchSources,
+                              columns: const [
+                                DataColumn(label: Text('المرجع')),
+                                DataColumn(label: Text('المتاح')),
+                              ],
+                              cells: (source) => [
+                                DataCell(Text(source.number)),
+                                DataCell(
+                                  DeptAccountingAmount(
+                                    Numbers.format(source.available),
+                                    currency: currency,
+                                  ),
+                                ),
+                              ],
+                              onSelected: (source) =>
+                                  Navigator.pop(dialogContext, source.id),
+                              actions: [
+                                TextButton(
+                                  onPressed: () =>
+                                      Navigator.pop(dialogContext, ''),
+                                  child: const Text('بدون اختيار'),
+                                ),
+                              ],
+                            ),
+                      );
+                      if (context.mounted && id != null) {
+                        vm.chooseSource(id.isEmpty ? null : id);
+                      }
+                    },
                   ),
+                  if (selected != null) ...[
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('تلقائي للأقدم أولًا'),
+                      value: vm.automatic,
+                      onChanged: vm.changeAutomatic,
+                    ),
+                    InvoiceAllocationTable(
+                      invoices: data.invoices,
+                      currency: currency,
+                      manualMode: !vm.automatic,
+                      manual: vm.manual,
+                      preview: data.preview,
+                      onPageChanged: vm.goInvoices,
+                      onManualChanged: vm.changeManual,
+                    ),
+                    DeptAccountingButton(
+                      label: 'اعتماد تخصيص الرصيد',
+                      onPressed: () async {
+                        if (await vm.allocate(
+                              selected.id,
+                              data.preview,
+                              vm.automatic ? null : vm.manual,
+                            ) &&
+                            context.mounted) {
+                          vm.chooseSource(null);
+                        }
+                      },
+                    ),
+                  ],
                 ],
-                onChanged: (v) => setState(() {
-                  sourceId = v == '' ? null : v;
-                  manual.clear();
-                }),
-              ),
-              if (selected != null) ...[
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('تلقائي للأقدم أولًا'),
-                  value: automatic,
-                  onChanged: (v) => setState(() => automatic = v),
-                ),
-                for (final invoice in invoices)
+                if (d.store.user!.canManage) ...[
+                  const Divider(),
+                  const Text('رد الرصيد لصالح الطرف'),
                   FieldGrid(
                     children: [
-                      Text(
-                        '${invoice.number} · متبقٍ ${Numbers.format(d.invoices.due(invoice.id))} $currency',
+                      DeptAccountingField(
+                        label: 'مبلغ الرد',
+                        controller: amount,
+                        numeric: true,
                       ),
-                      automatic
-                          ? Text(
-                              'سيخصص ${Numbers.format(preview[invoice.id] ?? 0)} $currency',
-                            )
-                          : DeptAccountingField(
-                              key: ValueKey(invoice.id),
-                              label: 'التخصيص',
-                              initialValue: manual[invoice.id] ?? '0',
-                              numeric: true,
-                              onChanged: (v) => manual[invoice.id] = v,
-                            ),
-                    ],
-                  ),
-                DeptAccountingButton(
-                  label: 'اعتماد تخصيص الرصيد',
-                  onPressed: () {
-                    if (vm.allocate(
-                      selected.document.id,
-                      preview,
-                      automatic ? null : manual,
-                    )) {
-                      setState(() => sourceId = null);
-                    }
-                  },
-                ),
-              ],
-            ],
-            if (d.store.user!.canManage) ...[
-              const Divider(),
-              const Text('رد الرصيد لصالح الطرف'),
-              FieldGrid(
-                children: [
-                  DeptAccountingField(
-                    label: 'مبلغ الرد',
-                    controller: amount,
-                    numeric: true,
-                  ),
-                  ChoiceField(
-                    label: 'الحساب النقدي',
-                    value: account ?? '',
-                    items: [
-                      (value: '', label: 'اختر الحساب'),
-                      ...d.finance.accounts().map(
-                        (a) => (value: a.code, label: a.name),
+                      ChoiceField(
+                        label: 'الحساب النقدي',
+                        value: account ?? '',
+                        items: [
+                          (value: '', label: 'اختر الحساب'),
+                          ...data.accounts.map(
+                            (a) => (value: a.code, label: a.name),
+                          ),
+                        ],
+                        onChanged: (v) =>
+                            setState(() => account = v == '' ? null : v),
+                      ),
+                      DeptAccountingField(
+                        label: 'سبب الرد',
+                        controller: reason,
                       ),
                     ],
-                    onChanged: (v) =>
-                        setState(() => account = v == '' ? null : v),
                   ),
-                  DeptAccountingField(label: 'سبب الرد', controller: reason),
+                  DeptAccountingButton(
+                    label: widget.customer
+                        ? 'رد رصيد العميل'
+                        : 'استرداد رصيد المورد',
+                    variant: DeptAccountingButtonVariant.secondary,
+                    onPressed: () async {
+                      if (await vm.refund(
+                            widget.partyId,
+                            widget.customer,
+                            account,
+                            amount.text,
+                            reason.text,
+                          ) &&
+                          context.mounted) {
+                        amount.clear();
+                        showMessage(context, 'تم اعتماد رد الرصيد');
+                      }
+                    },
+                  ),
                 ],
-              ),
-              DeptAccountingButton(
-                label: widget.customer
-                    ? 'رد رصيد العميل'
-                    : 'استرداد رصيد المورد',
-                variant: DeptAccountingButtonVariant.secondary,
-                onPressed: () {
-                  if (vm.refund(
-                    widget.partyId,
-                    widget.customer,
-                    account,
-                    amount.text,
-                    reason.text,
-                  )) {
-                    amount.clear();
-                    showMessage(context, 'تم اعتماد رد الرصيد');
-                  }
-                },
-              ),
-            ],
-          ],
-        ),
+              ],
+            ),
+          );
+        },
       );
     },
   );

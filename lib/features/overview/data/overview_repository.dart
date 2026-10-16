@@ -1,4 +1,5 @@
 import '../../../core/data/app_store.dart';
+import '../../../core/data/query_page.dart';
 import '../../invoices/data/document.dart';
 import '../../invoices/data/invoice_repository.dart';
 
@@ -35,20 +36,23 @@ class OverviewRepository {
     final first = DateTime(today.year, today.month, today.day - days + 1);
     final end = DateTime(today.year, today.month, today.day + 1);
     final canManage = store.user!.canManage;
+    // Start with the indexed period. Starting from journal_account also read
+    // the entire historical revenue/cost ledger for a small recent window.
     final rows = store.database.handle.select(
-      '''SELECT d.posted_at,j.account,j.debit,j.credit FROM journal j
-      JOIN documents d ON d.id=j.document_id
+      """SELECT strftime('%Y-%m-%d',d.posted_at,'localtime') AS day,
+      SUM(CASE WHEN j.account IN ('4100','4200') THEN j.credit-j.debit ELSE 0 END) AS sales,
+      SUM(CASE WHEN j.account='5100' THEN j.credit-j.debit ELSE 0 END) AS cost
+      FROM documents d CROSS JOIN journal j ON j.document_id=d.id
       WHERE d.posted_at >= ? AND d.posted_at < ?
-      AND j.account IN (${canManage ? "'4100','4200','5100'" : "'4100','4200'"})''',
+      AND j.account IN (${canManage ? "'4100','4200','5100'" : "'4100','4200'"})
+      GROUP BY day""",
       [first.toUtc().toIso8601String(), end.toUtc().toIso8601String()],
     );
     final sales = <DateTime, int>{}, costs = <DateTime, int>{};
     for (final row in rows) {
-      final at = DateTime.parse(row['posted_at'] as String).toLocal();
-      final day = DateTime(at.year, at.month, at.day);
-      final amount = (row['credit'] as int) - (row['debit'] as int);
-      final target = row['account'] == '5100' ? costs : sales;
-      target.update(day, (n) => n + amount, ifAbsent: () => amount);
+      final day = DateTime.parse(row['day'] as String);
+      sales[day] = row['sales'] as int;
+      costs[day] = row['cost'] as int;
     }
     return [
       for (var i = 0; i < days; i++)
@@ -90,15 +94,35 @@ class OverviewRepository {
     ];
   }
 
-  List<OverviewStock> lowStock() {
+  QueryPage<OverviewStock> stockAlerts() {
     store.require();
-    final rows = store.database.handle.select('''
+    final total =
+        store.database.handle.select(r'''
+      SELECT COUNT(*) AS n FROM products p LEFT JOIN stock s ON s.product_id=p.id
+      WHERE json_extract(p.data,'$.active')=1 AND json_extract(p.data,'$.service')=0
+      AND COALESCE(s.quantity,0) <= json_extract(p.data,'$.minStock')
+    ''').first['n']
+            as int;
+    return QueryPage.read(
+      total: total,
+      page: 1,
+      pageSize: 4,
+      read: (limit, offset) => lowStock(limit: limit),
+    );
+  }
+
+  List<OverviewStock> lowStock({int? limit}) {
+    store.require();
+    final rows = store.database.handle.select(
+      '''
       SELECT p.id,p.data,COALESCE(s.quantity,0) AS quantity FROM products p
       LEFT JOIN stock s ON s.product_id=p.id
       WHERE json_extract(p.data,'\$.active')=1 AND json_extract(p.data,'\$.service')=0
       AND COALESCE(s.quantity,0) <= json_extract(p.data,'\$.minStock')
-      ORDER BY COALESCE(s.quantity,0),json_extract(p.data,'\$.name')
-    ''');
+      ORDER BY COALESCE(s.quantity,0),json_extract(p.data,'\$.name'),p.id ${limit == null ? '' : 'LIMIT ?'}
+    ''',
+      [?limit],
+    );
     return [
       for (final r in rows)
         (() {

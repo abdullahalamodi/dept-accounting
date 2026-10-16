@@ -1,10 +1,19 @@
 import '../../../core/data/app_store.dart';
+import '../../../core/data/query_page.dart';
 import '../../../core/numbers.dart';
 import '../../accounting/data/posting_engine.dart';
 import '../../catalog/data/catalog_repository.dart';
 import '../../invoices/data/document.dart';
 import '../../invoices/data/invoice_repository.dart';
 import '../../parties/data/party_repository.dart';
+
+typedef PendingReceipt = ({
+  String id,
+  String number,
+  String date,
+  String partyName,
+  int total,
+});
 
 class ReceivingRepository {
   ReceivingRepository(
@@ -19,14 +28,35 @@ class ReceivingRepository {
   final CatalogRepository catalog;
   final PartyRepository parties;
   final InvoiceRepository invoices;
-  List<Document> pending() {
+  QueryPage<PendingReceipt> pending({int page = 1, int pageSize = 10}) {
     store.require(manage: true);
-    return store.database.handle
-        .select(
-          "SELECT data FROM documents d WHERE kind = 'quick_receipt' AND NOT EXISTS (SELECT 1 FROM documents f WHERE f.source_id = d.id AND f.kind = 'purchase') ORDER BY d.rowid DESC",
-        )
-        .map((r) => DocumentMapper.fromJson(r['data'] as String))
-        .toList();
+    const where =
+        "d.kind = 'quick_receipt' AND NOT EXISTS (SELECT 1 FROM documents f WHERE f.source_id = d.id AND f.kind = 'purchase')";
+    final db = store.database.handle;
+    return QueryPage.read(
+      total:
+          db
+                  .select('SELECT COUNT(*) AS n FROM documents d WHERE $where')
+                  .first['n']
+              as int,
+      page: page,
+      pageSize: pageSize,
+      read: (limit, offset) => db
+          .select(
+            "SELECT d.id,d.number,json_extract(d.data, '\$.date') AS date,json_extract(d.data, '\$.total') AS total,json_extract(p.data, '\$.name') AS party FROM documents d JOIN parties p ON p.id = d.party_id WHERE $where ORDER BY d.rowid DESC LIMIT ? OFFSET ?",
+            [limit, offset],
+          )
+          .map(
+            (row) => (
+              id: row['id'] as String,
+              number: row['number'] as String,
+              date: row['date'] as String,
+              total: row['total'] as int,
+              partyName: row['party'] as String,
+            ),
+          )
+          .toList(),
+    );
   }
 
   Document receive({
@@ -34,6 +64,7 @@ class ReceivingRepository {
     required String partyId,
     required List<InvoiceLine> lines,
     String notes = '',
+    String? date,
   }) {
     store.require(manage: true);
     return store.write(() {
@@ -69,6 +100,7 @@ class ReceivingRepository {
         lines: snapshots,
         total: total,
         notes: notes,
+        date: date,
       );
       engine.insert(doc, [debit('1300', total), credit('2200', total)]);
       for (final line in snapshots) {
@@ -275,6 +307,14 @@ class ReceivingRepository {
         },
       );
       engine.insert(doc, journal);
+      for (final invoice in issues.entries) {
+        for (final product in invoice.value.entries) {
+          db.execute(
+            'INSERT INTO cost_adjustments(invoice_id,product_id,adjustment_id,amount) VALUES (?,?,?,?)',
+            [invoice.key, product.key, doc.id, product.value],
+          );
+        }
+      }
       for (final e in stockDeltas.entries) {
         if (e.value != 0) {
           engine.moveStock(

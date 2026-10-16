@@ -1,4 +1,7 @@
 import 'dart:convert';
+import 'dart:io';
+
+import '../../app/app_data.dart';
 
 import 'package:flutter/foundation.dart';
 
@@ -6,12 +9,42 @@ import '../../features/auth/data/auth_models.dart';
 import '../../features/auth/data/passwords.dart';
 import '../numbers.dart';
 import 'local_database.dart';
+import 'database_executor.dart';
+import 'database_task.dart';
+import 'store_tasks.dart';
 
 class AppStore extends ChangeNotifier {
   AppStore(this.database);
   final LocalDatabase database;
   AppUser? user;
   int revision = 0;
+  int sessionEpoch = 0;
+  DatabaseExecutor? executor;
+  Future<T> run<T>(DatabaseTask<T> task) => executor == null
+      ? Future.sync(() => task.run(AppData.fromStore(this)))
+      : executor!.run(task);
+
+  void acceptWorkerState(
+    AppUser? nextUser, {
+    required bool changed,
+    required bool notify,
+    required bool updatesSession,
+    required int requestEpoch,
+    required String? requestedUserId,
+  }) {
+    final previous = user?.toJson();
+    if (requestEpoch == sessionEpoch &&
+        (updatesSession || user?.id == requestedUserId)) {
+      user = nextUser?.active == true ? nextUser : null;
+    }
+    if (changed) revision++;
+    if ((changed && notify) || previous != user?.toJson()) notifyListeners();
+  }
+
+  Future<void> setSettings(Map<String, String> values) =>
+      run(StoreTasks.settings(values));
+  Future<File> snapshot(Directory directory) async =>
+      File(await run(StoreTasks.snapshot(directory.path)));
   Shop? get shop {
     final value = setting('shop');
     return value == null ? null : ShopMapper.fromJson(value);
@@ -62,11 +95,15 @@ class AppStore extends ChangeNotifier {
       );
   String id() => Passwords.token(18);
   void logout() {
+    sessionEpoch++;
     user = null;
     notifyListeners();
   }
 
   Future<void> login(String username, String password) async {
+    if (executor?.isRemote == true) {
+      return run(StoreTasks.login(username, password));
+    }
     final rows = database.handle.select(
       'SELECT * FROM users WHERE username = ? COLLATE NOCASE',
       [username.trim()],
@@ -91,6 +128,18 @@ class AppStore extends ChangeNotifier {
     required String recovery,
     required String backupKey,
   }) async {
+    if (executor?.isRemote == true) {
+      return run(
+        StoreTasks.setup(
+          shop: shop,
+          ownerName: ownerName,
+          username: username,
+          password: password,
+          recovery: recovery,
+          backupKey: backupKey,
+        ),
+      );
+    }
     if (this.shop != null) {
       throw const BusinessException('تم إعداد المحل مسبقًا.');
     }
@@ -131,6 +180,9 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> recoverOwner(String code, String password) async {
+    if (executor?.isRemote == true) {
+      return run(StoreTasks.recover(code, password));
+    }
     if (password.length < 8) {
       throw const BusinessException('كلمة المرور 8 أحرف على الأقل.');
     }
@@ -201,6 +253,9 @@ class AppStore extends ChangeNotifier {
     String currentPassword,
     String newPassword,
   ) async {
+    if (executor?.isRemote == true) {
+      return run(StoreTasks.password(currentPassword, newPassword));
+    }
     require();
     final actorId = user!.id;
     if (newPassword.length < 8) {
@@ -232,6 +287,9 @@ class AppStore extends ChangeNotifier {
   }
 
   Future<void> saveUser(AppUser next, String password) async {
+    if (executor?.isRemote == true) {
+      return run(StoreTasks.saveUser(next, password));
+    }
     require(owner: true);
     if (next.username.trim().isEmpty ||
         !['owner', 'seller', 'accountant'].contains(next.role) ||

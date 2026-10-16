@@ -17,7 +17,7 @@ class InvoiceSummaryPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final currency = vm.d.store.shop!.currencyLabel;
-    final accounts = vm.d.finance.accounts();
+    final accounts = vm.d.finance.accountOptions();
     return DeptAccountingPanel(
       title: 'ملخص الفاتورة',
       child: Column(

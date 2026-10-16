@@ -1,3 +1,4 @@
+import '../data/catalog_tasks.dart';
 import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../data/catalog_repository.dart';
@@ -29,7 +30,9 @@ class OpeningStockViewModel extends ActionViewModel {
     changed();
   }
 
-  bool post() => perform(
-    () => repository.opening(productId, Numbers.parse(quantity, decimals: 3)),
+  Future<bool> post() => run(
+    () async => await repository.store.run(
+      CatalogTasks.opening(productId, Numbers.parse(quantity, decimals: 3)),
+    ),
   );
 }
