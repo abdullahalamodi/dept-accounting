@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart';
 
 import '../../features/auth/data/auth_models.dart';
 import '../../features/auth/data/passwords.dart';
+import '../../features/auth/data/username.dart';
 import '../numbers.dart';
 import 'local_database.dart';
 import 'database_executor.dart';
@@ -154,6 +155,8 @@ class AppStore extends ChangeNotifier {
     if (!['YER', 'SAR'].contains(shop.currency)) {
       throw const BusinessException('اختر عملة المحل.');
     }
+    final usernameError = Username.validate(username);
+    if (usernameError != null) throw BusinessException(usernameError);
     final passwordHash = await Passwords.hash(password);
     final recoveryHash = await Passwords.hash(recovery);
     final owner = AppUser(
@@ -216,9 +219,8 @@ class AppStore extends ChangeNotifier {
   void updateProfile({required String name, required String username}) {
     require();
     final actor = user!;
-    if (username.trim().isEmpty) {
-      throw const BusinessException('أدخل اسم المستخدم.');
-    }
+    final usernameError = Username.validate(username);
+    if (usernameError != null) throw BusinessException(usernameError);
     final duplicate = database.handle.select(
       'SELECT id FROM users WHERE username = ? COLLATE NOCASE AND id != ?',
       [username.trim(), actor.id],
@@ -291,6 +293,8 @@ class AppStore extends ChangeNotifier {
       return run(StoreTasks.saveUser(next, password));
     }
     require(owner: true);
+    final usernameError = Username.validate(next.username);
+    if (usernameError != null) throw BusinessException(usernameError);
     if (next.username.trim().isEmpty ||
         !['owner', 'seller', 'accountant'].contains(next.role) ||
         next.discountLimit < 0 ||

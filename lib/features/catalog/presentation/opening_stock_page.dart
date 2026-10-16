@@ -81,8 +81,8 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
                   ),
                   if (product.purchasePrice <= 0)
                     DeptAccountingPanel(
-                      title: 'أضف سعر الشراء أولًا',
-                      description: 'تُحسب قيمة المخزون الافتتاحي من سعر الشراء المسجّل في بيانات المنتج.',
+                      title: 'أضف تكلفة الوحدة أولًا',
+                      description: 'تُحسب قيمة المخزون الافتتاحي من تكلفة الوحدة المسجّلة في بيانات المنتج.',
                       child: Align(
                         alignment: AlignmentDirectional.centerStart,
                         child: DeptAccountingButton(
@@ -95,7 +95,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
                   DeptAccountingPanel(
                     title: 'الكمية والقيمة الافتتاحية',
                     description:
-                        'سعر الوحدة يُقرأ تلقائيًا من سعر شراء المنتج.',
+                        'تُقرأ تكلفة الوحدة تلقائيًا من بيانات المنتج.',
                     child: SectionStack.form(
                       children: [
                         DeptAccountingField(
@@ -109,7 +109,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
                           onChanged: vm.setQuantity,
                         ),
                         DeptAccountingSummaryLine(
-                          label: 'سعر الشراء لكل ${product.unit}',
+                          label: 'تكلفة الوحدة لكل ${product.unit}',
                           value: Numbers.format(product.purchasePrice),
                           currency: currency,
                         ),
@@ -130,7 +130,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
                                           context,
                                           title: 'اعتماد المخزون الافتتاحي؟',
                                           message:
-                                              'الكمية: ${quantity.text} ${product.unit}\nسعر الشراء للوحدة: ${Numbers.format(product.purchasePrice)} $currency\nالقيمة الإجمالية: ${Numbers.format(total)} $currency\nلا يمكن تعديل الافتتاح بعد اعتماده.',
+                                              'الكمية: ${quantity.text} ${product.unit}\nتكلفة الوحدة: ${Numbers.format(product.purchasePrice)} $currency\nالقيمة الإجمالية: ${Numbers.format(total)} $currency\nلا يمكن تعديل الافتتاح بعد اعتماده.',
                                           confirmLabel: 'اعتماد',
                                         ) &&
                                         mounted &&

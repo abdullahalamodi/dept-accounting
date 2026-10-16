@@ -16,7 +16,8 @@ class AccountActionsViewModel extends ActionViewModel {
         ? automatic
         : {
             for (final e in manual.entries)
-              if (Numbers.parse(e.value) > 0) e.key: Numbers.parse(e.value),
+              if (e.value.trim().isNotEmpty && Numbers.parse(e.value) > 0)
+                e.key: Numbers.parse(e.value),
           };
     await d.store.run(
       CreditTasks.allocate(d.store.id(), sourceId, allocations),

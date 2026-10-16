@@ -106,26 +106,11 @@ class _PeriodReportsState extends State<PeriodReports> {
                   ],
                 ),
                 Text(report.subtitle),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 12,
-                  children: [
-                    DeptAccountingButton(
-                      label: 'تصدير PDF',
-                      loading: vm.busy,
-                      onPressed: vm.pdf,
-                    ),
-                    DeptAccountingButton(
-                      label: 'تصدير Excel',
-                      variant: DeptAccountingButtonVariant.secondary,
-                      onPressed: vm.excel,
-                    ),
-                    DeptAccountingButton(
-                      label: 'طباعة',
-                      variant: DeptAccountingButtonVariant.secondary,
-                      onPressed: vm.printReport,
-                    ),
-                  ],
+                DeptAccountingExportToolbar(
+                  busy: vm.busy,
+                  onPrint: vm.printReport,
+                  onSavePdf: vm.pdf,
+                  onExcel: vm.excel,
                 ),
                 DeptAccountingDataTable(
                   columns: report.columns

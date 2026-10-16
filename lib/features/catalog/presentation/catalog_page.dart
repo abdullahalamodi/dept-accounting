@@ -129,8 +129,8 @@ class _CatalogPageState extends State<CatalogPage> {
                     const DataColumn(label: Text('الباركود')),
                     const DataColumn(label: Text('التصنيف')),
                     const DataColumn(label: Text('المتوفر')),
+                    if (manage) const DataColumn(label: Text('تكلفة الوحدة')),
                     const DataColumn(label: Text('سعر البيع')),
-                    if (manage) const DataColumn(label: Text('سعر الشراء')),
                     const DataColumn(label: Text('الحالة')),
                     const DataColumn(label: Text('الإجراء')),
                   ],
@@ -160,12 +160,6 @@ class _CatalogPageState extends State<CatalogPage> {
                                   : '${Numbers.format(row.quantity, decimals: 3)} ${row.product.unit}',
                             ),
                           ),
-                          DataCell(
-                            DeptAccountingAmount(
-                              Numbers.format(row.product.salePrice),
-                              currency: currency,
-                            ),
-                          ),
                           if (manage)
                             DataCell(
                               DeptAccountingAmount(
@@ -173,6 +167,12 @@ class _CatalogPageState extends State<CatalogPage> {
                                 currency: currency,
                               ),
                             ),
+                          DataCell(
+                            DeptAccountingAmount(
+                              Numbers.format(row.product.salePrice),
+                              currency: currency,
+                            ),
+                          ),
                           DataCell(
                             DeptAccountingStatusTag(
                               row.product.active ? 'نشط' : 'موقوف',
@@ -182,10 +182,10 @@ class _CatalogPageState extends State<CatalogPage> {
                             ),
                           ),
                           DataCell(
-                            TextButton(
+                            DeptAccountingButton.table(
                               onPressed: () =>
                                   context.go('/catalog/${row.product.id}'),
-                              child: Text(manage ? 'عرض وتعديل' : 'عرض'),
+                              label: manage ? 'عرض وتعديل' : 'عرض',
                             ),
                           ),
                         ],
@@ -243,13 +243,13 @@ class _ProductPageState extends State<ProductPage> {
       text: Numbers.input(product?.factor ?? 1000, decimals: 3),
     ),
     'salePrice': TextEditingController(
-      text: Numbers.input(product?.salePrice ?? 0),
+      text: Numbers.input(product?.salePrice ?? 0, blankZero: true),
     ),
     'purchasePrice': TextEditingController(
-      text: Numbers.input(product?.purchasePrice ?? 0),
+      text: Numbers.input(product?.purchasePrice ?? 0, blankZero: true),
     ),
     'minStock': TextEditingController(
-      text: Numbers.input(product?.minStock ?? 0, decimals: 3),
+      text: Numbers.input(product?.minStock ?? 0, decimals: 3, blankZero: true),
     ),
   };
 
@@ -319,30 +319,42 @@ class _ProductPageState extends State<ProductPage> {
             if (canAddOpening)
               const DeptAccountingNotice(
                 title: 'لديك كمية موجودة من هذا المنتج؟',
-                message: 'اختر «حفظ وإضافة مخزون افتتاحي» لتسجيلها بسعر الشراء. يمكنك حفظ المنتج فقط وإضافة الكمية لاحقًا، قبل أول حركة عليه.',
+                message: 'اختر «حفظ وإضافة مخزون افتتاحي» لتسجيلها بتكلفة الوحدة. يمكنك حفظ المنتج فقط وإضافة الكمية لاحقًا، قبل أول حركة عليه.',
               ),
             DeptAccountingPanel(
               title: 'بيانات المنتج',
               child: SectionStack.form(
                 children: [
-                  if (manage)
-                    ChoiceField(
-                      label: 'النوع',
-                      value: service,
-                      items: const [
-                        (value: false, label: 'منتج مخزني'),
-                        (value: true, label: 'خدمة'),
-                      ],
-                      onChanged: (v) => setState(() => service = v!),
-                    ),
+                  FieldGrid(
+                    children: [
+                      if (manage)
+                        ChoiceField(
+                          label: 'النوع',
+                          value: service,
+                          items: const [
+                            (value: false, label: 'منتج مخزني'),
+                            (value: true, label: 'خدمة'),
+                          ],
+                          onChanged: (v) => setState(() => service = v!),
+                        ),
+                      CatalogReferenceField(
+                        repository: widget.dependencies.catalogReferences,
+                        kind: CatalogReferenceKind.category,
+                        label: 'التصنيف',
+                        controller: fields['category']!,
+                        optional: true,
+                        enabled: manage,
+                      ),
+                    ],
+                  ),
                   FieldGrid(
                     children: [
                       for (final (key, label, numeric) in [
                         ('name', 'اسم المنتج', false),
                         ('barcode', 'الباركود', false),
 
+                        if (manage) ('purchasePrice', 'تكلفة الوحدة', true),
                         ('salePrice', 'سعر البيع', true),
-                        if (manage) ('purchasePrice', 'سعر الشراء', true),
                         if (!service) ('minStock', 'حد تنبيه المخزون', true),
                       ])
                         DeptAccountingField(
@@ -354,14 +366,6 @@ class _ProductPageState extends State<ProductPage> {
                           numeric: numeric,
                           enabled: manage,
                         ),
-                      CatalogReferenceField(
-                        repository: widget.dependencies.catalogReferences,
-                        kind: CatalogReferenceKind.category,
-                        label: 'التصنيف',
-                        controller: fields['category']!,
-                        optional: true,
-                        enabled: manage,
-                      ),
                     ],
                   ),
                   if (manage) ...[

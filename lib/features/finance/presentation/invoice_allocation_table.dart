@@ -48,6 +48,7 @@ class InvoiceAllocationTable extends StatelessWidget {
                   ? DeptAccountingField(
                       key: ValueKey(invoice.id),
                       label: 'تخصيص للفاتورة',
+                      compact: true,
                       initialValue: manual[invoice.id] ?? '0',
                       numeric: true,
                       onChanged: (value) => onManualChanged(invoice.id, value),

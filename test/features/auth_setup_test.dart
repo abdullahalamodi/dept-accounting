@@ -1,53 +1,42 @@
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:io';
 
 import 'package:dept_accounting/app/dependencies.dart';
 import 'package:dept_accounting/core/data/local_database.dart';
+import 'package:dept_accounting/core/numbers.dart';
 import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
 import 'package:dept_accounting/features/auth/data/auth_models.dart';
 import 'package:dept_accounting/features/auth/presentation/auth_page.dart';
 import 'package:dept_accounting/features/auth/presentation/auth_view_model.dart';
-import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-class _SavePicker extends FilePickerPlatform {
-  Uri? result;
-  bool fail = false;
-  String? contents;
-  String? filename;
-
-  @override
-  Future<Uri?> saveFile({
-    required String fileName,
-    required Uint8List bytes,
-    required String mimeType,
-    String? dialogTitle,
-    String? initialDirectory,
-    void Function(FilePickerStatus)? onFileSaving,
-    WindowsOptions windowsOptions = const WindowsOptions(),
-    LinuxOptions linuxOptions = const LinuxOptions(),
-    WebOptions webOptions = const WebOptions(),
-  }) async {
-    if (fail) throw StateError('Save failed');
-    filename = fileName;
-    contents = utf8.decode(bytes);
-    return result;
-  }
-}
-
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
   late AppDependencies dependencies;
-  late _SavePicker picker;
-  late FilePickerPlatform originalPicker;
-  setUp(() {
+  late Directory downloads;
+  bool failDownload = false;
+  const pathChannel = MethodChannel('plugins.flutter.io/path_provider');
+  setUp(() async {
     dependencies = AppDependencies(LocalDatabase.memory());
-    originalPicker = FilePickerPlatform.instance;
-    FilePickerPlatform.instance = picker = _SavePicker();
+    downloads = await Directory.systemTemp.createTemp('recovery-downloads-');
+    failDownload = false;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pathChannel, (call) async {
+          if (call.method == 'getDownloadsDirectory') {
+            if (failDownload) throw PlatformException(code: 'unavailable');
+            return downloads.path;
+          }
+          return null;
+        });
   });
-  tearDown(() {
-    FilePickerPlatform.instance = originalPicker;
+  tearDown(() async {
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(pathChannel, null);
+    await downloads.delete(recursive: true);
     dependencies.backups.dispose();
     dependencies.store.dispose();
     dependencies.store.database.close();
@@ -61,6 +50,52 @@ void main() {
     home: AuthPage(dependencies: dependencies, setup: true),
   );
 
+  test(
+    'Account writes reject non-English usernames at every entry point',
+    () async {
+      final store = dependencies.store;
+      const shop = Shop(name: 'محل', currency: 'YER');
+      await expectLater(
+        store.setup(
+          shop: shop,
+          ownerName: 'المالك',
+          username: 'مالك',
+          password: 'safe-password',
+          recovery: 'recovery',
+          backupKey: 'backup',
+        ),
+        throwsA(isA<BusinessException>()),
+      );
+      expect(store.shop, isNull);
+      await store.setup(
+        shop: shop,
+        ownerName: 'المالك',
+        username: 'Owner_1.a-b',
+        password: 'safe-password',
+        recovery: 'recovery',
+        backupKey: 'backup',
+      );
+      expect(
+        () => store.updateProfile(name: 'المالك', username: 'ownerع'),
+        throwsA(isA<BusinessException>()),
+      );
+      await expectLater(
+        store.saveUser(
+          const AppUser(
+            id: 'seller',
+            name: 'البائع',
+            username: 'بائع',
+            role: 'seller',
+          ),
+          'safe-password',
+        ),
+        throwsA(isA<BusinessException>()),
+      );
+      expect(store.users(), hasLength(1));
+      expect(store.user!.username, 'Owner_1.a-b');
+    },
+  );
+
   test('Only saved and acknowledged exports unlock setup; exported keys recover the account and encrypted data', () async {
     final vm = AuthViewModel(dependencies.store);
     addTearDown(vm.dispose);
@@ -70,29 +105,34 @@ void main() {
     expect(await vm.setup(shop, 'المالك', 'owner', 'safe-password'), isFalse);
     expect(dependencies.store.shop, isNull);
 
-    await vm.downloadRecoveryKeys();
-    expect(vm.recoveryFileDownloaded, isFalse);
-    picker.fail = true;
+    failDownload = true;
     await vm.downloadRecoveryKeys();
     expect(vm.recoveryDownloadError, isNotNull);
     expect(vm.canSetup, isFalse);
 
-    picker.fail = false;
-    picker.result = Uri.file('/tmp/dept_accounting-recovery-keys.txt');
+    failDownload = false;
     await vm.downloadRecoveryKeys();
     expect(vm.recoveryDownloadError, isNull);
     expect(vm.recoveryFileDownloaded, isTrue);
     expect(vm.canSetup, isFalse);
-    expect(picker.filename, 'دبت للحسابات-مفاتيح الاسترداد.txt');
-    final lines = const LineSplitter().convert(picker.contents!);
+    final firstFile = File(vm.recoveryFileLocation!);
+    expect(p.dirname(firstFile.path), downloads.path);
+    expect(p.basename(firstFile.path), 'دبت للحسابات-مفاتيح الاسترداد.txt');
+    final contents = await firstFile.readAsString();
+    final lines = const LineSplitter().convert(contents);
     final recovery = lines[lines.indexOf('رمز استرداد دخول المالك') + 1];
     final backup = lines[lines.indexOf('مفتاح استعادة النسخ الاحتياطية') + 1];
     expect(recovery, vm.recovery);
     expect(backup, vm.backupKey);
     await vm.downloadRecoveryKeys();
-    expect(picker.contents, contains('\n$recovery\n'));
-    expect(picker.contents, contains('\n$backup\n'));
-    expect(picker.contents, isNot(contains('safe-password')));
+    final copy = File(vm.recoveryFileLocation!);
+    expect(copy.path, isNot(firstFile.path));
+    final copiedContents = await copy.readAsString();
+    expect(copiedContents, contents);
+    expect(copiedContents, contains('\n$recovery\n'));
+    expect(copiedContents, contains('\n$backup\n'));
+    expect(copiedContents, isNot(contains('safe-password')));
+    expect(await firstFile.readAsString(), contents);
 
     vm.confirmRecoveryStorage(true);
     expect(await vm.setup(shop, 'المالك', 'owner', 'safe-password'), isTrue);
@@ -104,7 +144,7 @@ void main() {
   });
 
   testWidgets(
-    'Registration handles save cancellation, errors, acknowledgement, and field validation',
+    'Registration handles download errors, acknowledgement, and field validation',
     (tester) async {
       tester.view.physicalSize = const Size(1000, 1800);
       tester.view.devicePixelRatio = 1;
@@ -131,16 +171,15 @@ void main() {
       );
       expect(find.byType(SelectableText), findsNothing);
       await tester.ensureVisible(download);
-      await tester.tap(download);
-      await tester.pumpAndSettle();
-      expect(tester.widget<DeptAccountingButton>(create).onPressed, isNull);
-      picker.fail = true;
+      failDownload = true;
       await tester.tap(download);
       await tester.pumpAndSettle();
       expect(find.text('لم يُحفظ الملف'), findsOneWidget);
-      picker.fail = false;
-      picker.result = Uri.file('/tmp/dept_accounting-recovery-keys.txt');
-      await tester.tap(download);
+      failDownload = false;
+      await tester.runAsync(() async {
+        await tester.tap(download);
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      });
       await tester.pumpAndSettle();
       expect(find.text('لم يُحفظ الملف'), findsNothing);
       expect(find.text('تم حفظ ملف المفاتيح'), findsOneWidget);
@@ -155,6 +194,24 @@ void main() {
       expect(find.text('أدخل اسم المالك.'), findsOneWidget);
       expect(find.text('أدخل اسم المستخدم.'), findsOneWidget);
       expect(dependencies.store.shop, isNull);
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'اسم المستخدم'),
+        'مالك',
+      );
+      await tester.pump();
+      expect(
+        find.text('استخدم أحرفًا إنجليزية وأرقامًا والرموز . أو _ أو - فقط.'),
+        findsOneWidget,
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'اسم المستخدم'),
+        'owner_1',
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('استخدم أحرفًا إنجليزية وأرقامًا والرموز . أو _ أو - فقط.'),
+        findsNothing,
+      );
       final passwordField = find.widgetWithText(TextFormField, 'كلمة المرور');
       await tester.enterText(passwordField, 'safe-password');
       final confirmation = find.widgetWithText(

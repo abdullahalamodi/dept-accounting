@@ -110,7 +110,6 @@ class _ReferencePicker extends StatelessWidget {
             alignment: AlignmentDirectional.centerStart,
             child: DeptAccountingButton(
               label: kind.addLabel,
-              variant: DeptAccountingButtonVariant.secondary,
               onPressed: () async {
                 final entry = await showCatalogReferenceEditor(
                   context,

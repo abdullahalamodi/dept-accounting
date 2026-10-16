@@ -1,11 +1,16 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 
 import '../../../core/app_identity.dart';
 
 class RecoveryKeyExport {
+  String? savedLocation;
+
   Future<bool> save({
     required String recoveryCode,
     required String backupKey,
@@ -28,12 +33,34 @@ class RecoveryKeyExport {
       'فقدان رمز الدخول يمنع استرداد كلمة المرور، وفقدان مفتاح النسخ يمنع استعادة النسخ المشفرة.',
       '',
     ].join('\n');
+    const filename = '$appName-مفاتيح الاسترداد.txt';
+    if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
+      final directory = await getDownloadsDirectory();
+      if (directory == null) {
+        throw const FileSystemException('Downloads folder unavailable');
+      }
+      await directory.create(recursive: true);
+      var file = File(p.join(directory.path, filename));
+      var copy = 1;
+      while (await file.exists()) {
+        file = File(
+          p.join(
+            directory.path,
+            '${p.withoutExtension(filename)} (${copy++}).txt',
+          ),
+        );
+      }
+      await file.writeAsString(content, encoding: utf8, flush: true);
+      savedLocation = file.path;
+      return true;
+    }
     final saved = await FilePicker.saveFile(
-      fileName: '$appName-مفاتيح الاسترداد.txt',
+      fileName: filename,
       dialogTitle: 'حفظ مفاتيح الاسترداد',
       mimeType: 'text/plain',
       bytes: Uint8List.fromList(utf8.encode(content)),
     );
+    if (saved != null) savedLocation = saved.toString();
     return saved != null;
   }
 }

@@ -26,6 +26,10 @@ class ReportTable {
 }
 
 class ExportService {
+  PdfPageFormat _pageFormat(bool thermal) => thermal
+      ? PdfPageFormat(80 * PdfPageFormat.mm, 297 * PdfPageFormat.mm)
+      : const PdfPageFormat(176 * PdfPageFormat.mm, 250 * PdfPageFormat.mm);
+
   Future<Uint8List> reportPdf(
     Shop shop,
     ReportTable report, {
@@ -39,9 +43,7 @@ class ExportService {
     );
     final document = pw.Document(title: report.title, author: shop.name);
     final green = PdfColor.fromHex('#17654D');
-    final format = thermal
-        ? PdfPageFormat(80 * PdfPageFormat.mm, 297 * PdfPageFormat.mm)
-        : PdfPageFormat.a4;
+    final format = _pageFormat(thermal);
     document.addPage(
       pw.MultiPage(
         pageFormat: format,
@@ -217,7 +219,14 @@ class ExportService {
     bool thermal = false,
   }) async {
     final bytes = await reportPdf(shop, report, thermal: thermal);
-    await Printing.layoutPdf(name: report.title, onLayout: (_) => bytes);
+    await Printing.layoutPdf(
+      name: report.title,
+      format: _pageFormat(thermal),
+      // The PDF is already laid out. Dynamic layout can deadlock the macOS
+      // print preview while it waits for a callback on the blocked UI thread.
+      dynamicLayout: false,
+      onLayout: (_) => bytes,
+    );
   }
 
   Future<void> share(

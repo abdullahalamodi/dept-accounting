@@ -47,7 +47,7 @@ void main() {
       await directory.delete(recursive: true);
     }
   });
-  test('Arabic reports serialize as A4, thermal PDF, and a real RTL Excel workbook', () async {
+  test('Arabic reports serialize as B5, thermal PDF, and a real RTL Excel workbook', () async {
     final service = ExportService(),
         shop = const Shop(name: 'دكان تجريبي', currency: 'YER');
     final report = ReportTable(

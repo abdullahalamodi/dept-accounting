@@ -163,9 +163,8 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
                     title: 'بنود الفاتورة',
                     action: vm.receiptId != null
                         ? null
-                        : DeptAccountingButton(
-                            label: 'إضافة منتجات وخدمات',
-                            variant: DeptAccountingButtonVariant.secondary,
+                        : DeptAccountingButton.table(
+                            label: 'إضافة منتج',
                             onPressed: picker,
                           ),
                     child: InvoiceItemsTable(vm: vm),

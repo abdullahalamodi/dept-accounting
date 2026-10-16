@@ -196,10 +196,10 @@ class _FinancePageState extends State<FinancePage> {
                       DataRow(
                         cells: [
                           DataCell(
-                            TextButton(
+                            DeptAccountingButton.table(
                               onPressed: () =>
                                   context.go('/finance/view/${doc.id}'),
-                              child: Text(doc.number),
+                              label: doc.number,
                             ),
                           ),
                           DataCell(Text(doc.label)),

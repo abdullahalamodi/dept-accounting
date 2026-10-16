@@ -1,3 +1,4 @@
+import '../../auth/presentation/username_field.dart';
 import '../../reports/data/reports_tasks.dart';
 import '../../../core/ui/database_query.dart';
 import '../../../core/data/store_tasks.dart';
@@ -420,7 +421,11 @@ class _UserDialogState extends State<_UserDialog> {
   late final name = TextEditingController(text: widget.user?.name),
       username = TextEditingController(text: widget.user?.username),
       password = TextEditingController(),
-      limit = TextEditingController(text: '${widget.user?.discountLimit ?? 0}');
+      limit = TextEditingController(
+        text: (widget.user?.discountLimit ?? 0) == 0
+            ? ''
+            : '${widget.user!.discountLimit}',
+      );
   late String role = widget.user?.role ?? 'seller';
   late bool active = widget.user?.active ?? true,
       changePrice = widget.user?.canChangePrice ?? false;
@@ -445,7 +450,7 @@ class _UserDialogState extends State<_UserDialog> {
             children: [
               if (vm.error != null) ErrorNotice(vm.error),
               DeptAccountingField(label: 'الاسم', controller: name),
-              DeptAccountingField(label: 'اسم المستخدم', controller: username),
+              UsernameField(controller: username),
               DeptAccountingPasswordField(
                 controller: password,
                 label: widget.user == null
@@ -500,7 +505,9 @@ class _UserDialogState extends State<_UserDialog> {
                   name: name.text.trim(),
                   username: username.text.trim(),
                   role: role,
-                  discountLimit: int.tryParse(limit.text) ?? -1,
+                  discountLimit: limit.text.trim().isEmpty
+                      ? 0
+                      : int.tryParse(limit.text) ?? -1,
                   canChangePrice: changePrice,
                   active: active,
                 ),

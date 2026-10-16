@@ -106,9 +106,9 @@ class _InvoicesPageState extends State<InvoicesPage> {
                           ),
                         ),
                         DataCell(
-                          TextButton(
+                          DeptAccountingButton.table(
                             onPressed: () => context.go('$path/view/${doc.id}'),
-                            child: const Text('التفاصيل'),
+                            label: 'التفاصيل',
                           ),
                         ),
                       ],

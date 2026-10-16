@@ -55,21 +55,14 @@ class _InventoryPageState extends State<InventoryPage> {
             busy: vm.busy,
             title: 'مخزون ${p.name}',
             onBack: () => context.go('/catalog/${p.id}'),
-            actions: [
-              DeptAccountingButton(
-                label: 'PDF',
-                variant: DeptAccountingButtonVariant.secondary,
-                onPressed: () => vm.export(),
-              ),
-              DeptAccountingButton(
-                label: 'Excel',
-                variant: DeptAccountingButtonVariant.secondary,
-                onPressed: () => vm.export(pdf: false),
-              ),
-            ],
             child: SectionStack(
               children: [
                 ErrorNotice(vm.error),
+                DeptAccountingExportToolbar(
+                  busy: vm.busy,
+                  onSavePdf: () => vm.export(),
+                  onExcel: () => vm.export(pdf: false),
+                ),
                 FieldGrid(
                   runSpacing: DeptAccountingSpace.xl,
                   children: [
@@ -159,11 +152,11 @@ class _InventoryPageState extends State<InventoryPage> {
                         DataRow(
                           cells: [
                             DataCell(
-                              TextButton(
+                              DeptAccountingButton.table(
                                 onPressed: () => context.go(
                                   '/documents/${m['document_id']}',
                                 ),
-                                child: Text(m['number'] as String),
+                                label: m['number'] as String,
                               ),
                             ),
                             DataCell(

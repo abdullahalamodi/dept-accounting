@@ -16,6 +16,7 @@ class AuthViewModel extends ActionViewModel {
   bool recoveryStorageConfirmed = false;
   bool downloadingRecoveryKeys = false;
   String? recoveryDownloadError;
+  String? get recoveryFileLocation => _recoveryKeyExport.savedLocation;
 
   bool get canSetup =>
       recoveryFileDownloaded &&
@@ -40,8 +41,7 @@ class AuthViewModel extends ActionViewModel {
         recoveryFileDownloaded = true;
       }
     } catch (_) {
-      recoveryDownloadError =
-          'تعذر حفظ ملف المفاتيح. اختر مكانًا آخر وحاول مجددًا.';
+      recoveryDownloadError = 'تعذر حفظ ملف المفاتيح في مجلد التنزيلات (Downloads). تحقق من صلاحية الوصول والمساحة المتاحة ثم حاول مجددًا.';
     } finally {
       downloadingRecoveryKeys = false;
       notifyListeners();

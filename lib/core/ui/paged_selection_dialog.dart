@@ -99,9 +99,9 @@ class _PagedSelectionDialogState<T> extends State<PagedSelectionDialog<T>> {
                         cells: [
                           ...widget.cells(item),
                           DataCell(
-                            TextButton(
+                            DeptAccountingButton.table(
+                              label: widget.selectLabel,
                               onPressed: () => widget.onSelected(item),
-                              child: Text(widget.selectLabel),
                             ),
                           ),
                         ],

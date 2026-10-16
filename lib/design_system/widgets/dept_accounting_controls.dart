@@ -12,29 +12,42 @@ class DeptAccountingButton extends StatelessWidget {
     this.icon,
     this.variant = DeptAccountingButtonVariant.primary,
     this.loading = false,
+    this.compact = false,
   });
+
+  const DeptAccountingButton.table({
+    super.key,
+    required this.label,
+    this.onPressed,
+    this.icon,
+    this.loading = false,
+  }) : compact = true,
+       variant = DeptAccountingButtonVariant.primary;
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final DeptAccountingButtonVariant variant;
   final bool loading;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     final action = loading ? null : onPressed;
+    final style = compact ? _compactButtonStyle(context) : null;
+    final iconSize = compact ? 16.0 : 18.0;
     final content = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         if (loading) ...[
-          const SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2),
+          SizedBox(
+            width: iconSize,
+            height: iconSize,
+            child: const CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: 8),
         ] else if (icon != null) ...[
-          Icon(icon, size: 18),
+          Icon(icon, size: iconSize),
           const SizedBox(width: 8),
         ],
         Flexible(child: Text(label, textAlign: TextAlign.center)),
@@ -44,25 +57,85 @@ class DeptAccountingButton extends StatelessWidget {
       liveRegion: loading,
       child: switch (variant) {
         DeptAccountingButtonVariant.primary => FilledButton(
+          style: style,
           onPressed: action,
           child: content,
         ),
         DeptAccountingButtonVariant.secondary => OutlinedButton(
+          style: style,
           onPressed: action,
           child: content,
         ),
         DeptAccountingButtonVariant.quiet => TextButton(
+          style: style,
           onPressed: action,
           child: content,
         ),
         DeptAccountingButtonVariant.danger => FilledButton(
           style: FilledButton.styleFrom(
             backgroundColor: DeptAccountingColors.danger,
-          ),
+          ).merge(style),
           onPressed: action,
           child: content,
         ),
       },
+    );
+  }
+}
+
+ButtonStyle _compactButtonStyle(BuildContext context) => ButtonStyle(
+  minimumSize: WidgetStatePropertyAll(
+    Size(
+      DeptAccountingLayout.compactControlHeight,
+      DeptAccountingTypography.compactControlHeight(context),
+    ),
+  ),
+  padding: const WidgetStatePropertyAll(
+    DeptAccountingLayout.compactControlPadding,
+  ),
+  textStyle: const WidgetStatePropertyAll(
+    DeptAccountingTypography.compactControl,
+  ),
+  visualDensity: VisualDensity.standard,
+  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+);
+
+class DeptAccountingIconButton extends StatelessWidget {
+  const DeptAccountingIconButton({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    this.onPressed,
+    this.compact = false,
+  });
+
+  const DeptAccountingIconButton.table({
+    super.key,
+    required this.tooltip,
+    required this.icon,
+    this.onPressed,
+  }) : compact = true;
+
+  final String tooltip;
+  final IconData icon;
+  final VoidCallback? onPressed;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    final height = compact
+        ? DeptAccountingTypography.compactControlHeight(context)
+        : DeptAccountingTypography.controlHeight(context);
+    return IconButton.filled(
+      tooltip: tooltip,
+      icon: Icon(icon, size: compact ? 16 : 18),
+      onPressed: onPressed,
+      style: ButtonStyle(
+        minimumSize: WidgetStatePropertyAll(Size.square(height)),
+        padding: const WidgetStatePropertyAll(EdgeInsets.zero),
+        visualDensity: VisualDensity.standard,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      ).merge(Theme.of(context).filledButtonTheme.style),
     );
   }
 }
@@ -279,6 +352,8 @@ class DeptAccountingField extends StatelessWidget {
     this.autofocus = false,
     this.enabled = true,
     this.numeric = false,
+    this.textDirection,
+    this.textAlign = TextAlign.start,
     this.prefixIcon,
     this.suffixIcon,
     this.obscureText = false,
@@ -300,6 +375,8 @@ class DeptAccountingField extends StatelessWidget {
   final bool autofocus;
   final bool enabled;
   final bool numeric;
+  final TextDirection? textDirection;
+  final TextAlign textAlign;
   final IconData? prefixIcon;
   final Widget? suffixIcon;
   final bool obscureText;
@@ -313,7 +390,7 @@ class DeptAccountingField extends StatelessWidget {
         ? DeptAccountingTypography.compactControl
         : DeptAccountingTypography.control,
     controller: controller,
-    initialValue: initialValue,
+    initialValue: numeric && initialValue == '0' ? '' : initialValue,
     validator: validator,
     readOnly: readOnly,
     onTap: onTap,
@@ -326,10 +403,12 @@ class DeptAccountingField extends StatelessWidget {
     obscureText: obscureText,
     autocorrect: autocorrect && !obscureText,
     enableSuggestions: autocorrect && !obscureText,
-    textDirection: numeric ? TextDirection.ltr : null,
-    textAlign: TextAlign.start,
+    textDirection: textDirection ?? (numeric ? TextDirection.ltr : null),
+    textAlign: textAlign,
     keyboardType: numeric
         ? const TextInputType.numberWithOptions(decimal: true)
+        : maxLines > 1
+        ? TextInputType.multiline
         : TextInputType.text,
     textInputAction: maxLines == 1
         ? TextInputAction.next
@@ -342,7 +421,7 @@ class DeptAccountingField extends StatelessWidget {
             )
           : null,
       contentPadding: compact
-          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+          ? DeptAccountingLayout.compactControlPadding
           : null,
       hintText: hint,
       helperText: helper,

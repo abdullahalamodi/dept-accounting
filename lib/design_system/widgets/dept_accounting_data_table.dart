@@ -82,40 +82,12 @@ class _DeptAccountingDataTableState extends State<DeptAccountingDataTable> {
                         ? constraints.maxWidth
                         : widget.minWidth,
                   ),
-                  child: TextButtonTheme(
-                    data: TextButtonThemeData(
-                      style:
-                          TextButton.styleFrom(
-                            textStyle: DeptAccountingTypography.tableBody,
-                            minimumSize: const Size(48, 36),
-                            padding: const EdgeInsets.symmetric(horizontal: 8),
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            splashFactory: NoSplash.splashFactory,
-                            overlayColor: Colors.transparent,
-                          ).copyWith(
-                            foregroundColor: WidgetStateProperty.resolveWith(
-                              (states) => states.contains(WidgetState.disabled)
-                                  ? DeptAccountingColors.muted
-                                  : states.contains(WidgetState.hovered)
-                                  ? DeptAccountingColors.primaryHover
-                                  : DeptAccountingColors.primary,
-                            ),
-                            side: WidgetStateProperty.resolveWith(
-                              (states) => states.contains(WidgetState.focused)
-                                  ? const BorderSide(
-                                      color: DeptAccountingColors.primary,
-                                    )
-                                  : BorderSide.none,
-                            ),
-                          ),
-                    ),
-                    child: DataTable(
-                      columnSpacing: widget.columnSpacing,
-                      horizontalMargin: widget.horizontalMargin,
-                      columns: widget.columns,
-                      rows: widget.rows,
-                      showCheckboxColumn: false,
-                    ),
+                  child: DataTable(
+                    columnSpacing: widget.columnSpacing,
+                    horizontalMargin: widget.horizontalMargin,
+                    columns: widget.columns,
+                    rows: widget.rows,
+                    showCheckboxColumn: false,
                   ),
                 ),
               ),

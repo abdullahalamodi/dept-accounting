@@ -86,7 +86,7 @@ class ChoiceField<T> extends StatelessWidget {
             )
           : null,
       contentPadding: compact
-          ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+          ? DeptAccountingLayout.compactControlPadding
           : null,
     ),
     items: [

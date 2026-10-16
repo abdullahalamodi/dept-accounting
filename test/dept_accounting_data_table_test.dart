@@ -1,4 +1,5 @@
 import 'package:dept_accounting/design_system/dept_accounting_design_system.dart';
+import 'package:dept_accounting/core/ui/form_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -89,7 +90,7 @@ void main() {
   });
 
   testWidgets(
-    'Table links stay compact without ink and footer fits narrow text',
+    'Primary table actions work and footer fits narrow enlarged text',
     (tester) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1;
@@ -110,9 +111,9 @@ void main() {
                     DataRow(
                       cells: [
                         DataCell(
-                          TextButton(
+                          DeptAccountingButton.table(
                             onPressed: () => opened = true,
-                            child: const Text('التفاصيل'),
+                            label: 'التفاصيل',
                           ),
                         ),
                       ],
@@ -129,14 +130,15 @@ void main() {
           ),
         ),
       );
-      final details = find.widgetWithText(TextButton, 'التفاصيل');
-      final style = TextButtonTheme.of(tester.element(details)).style!;
-      expect(style.splashFactory, NoSplash.splashFactory);
+      final details = find.widgetWithText(FilledButton, 'التفاصيل');
+      final button = tester.widget<FilledButton>(details);
+      expect(button.style!.textStyle!.resolve({})!.fontSize, 13);
+      final theme = FilledButtonTheme.of(tester.element(details)).style!;
+      expect(theme.backgroundColor!.resolve({}), DeptAccountingColors.primary);
       expect(
-        style.overlayColor!.resolve({WidgetState.pressed}),
-        Colors.transparent,
+        theme.backgroundColor!.resolve({WidgetState.hovered}),
+        DeptAccountingColors.primaryHover,
       );
-      expect(style.textStyle!.resolve({})!.fontSize, 13);
       await tester.tap(details);
       await tester.pump();
       expect(opened, isTrue);
@@ -144,4 +146,77 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets('Compact actions match field and dropdown heights', (
+    tester,
+  ) async {
+    for (final scale in [1.0, 1.5, 2.0]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: DeptAccountingTheme.light(),
+          home: Scaffold(
+            body: MediaQuery(
+              data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+              child: Directionality(
+                textDirection: TextDirection.rtl,
+                child: Column(
+                  children: [
+                    const DeptAccountingField(label: '', compact: true),
+                    ChoiceField(
+                      label: '',
+                      compact: true,
+                      value: 'unit',
+                      items: const [(value: 'unit', label: 'حبة')],
+                      onChanged: (_) {},
+                    ),
+                    DeptAccountingButton.table(
+                      label: 'تعديل',
+                      icon: Icons.edit_outlined,
+                      onPressed: () {},
+                    ),
+                    const DeptAccountingButton.table(
+                      label: 'حفظ',
+                      loading: true,
+                    ),
+                    DeptAccountingIconButton.table(
+                      tooltip: 'إزالة',
+                      icon: Icons.close,
+                      onPressed: () {},
+                    ),
+                    DeptAccountingButton(label: 'إضافة منتج', onPressed: () {}),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      final fieldHeight = tester.getSize(find.byType(TextFormField)).height;
+      expect(
+        tester.getSize(find.byType(DropdownButtonFormField<String>)).height,
+        closeTo(fieldHeight, .01),
+      );
+      for (final action in [
+        find.widgetWithText(FilledButton, 'تعديل'),
+        find.widgetWithText(FilledButton, 'حفظ'),
+        find.byType(IconButton),
+      ]) {
+        expect(
+          tester.getSize(action).height,
+          closeTo(fieldHeight, .01),
+          reason: "scale=$scale action=$action",
+        );
+      }
+      if (scale == 1) {
+        expect(fieldHeight, DeptAccountingLayout.compactControlHeight);
+        expect(
+          tester
+              .getSize(find.widgetWithText(FilledButton, 'إضافة منتج'))
+              .height,
+          DeptAccountingLayout.controlHeight,
+        );
+      }
+      expect(tester.takeException(), isNull);
+    }
+  });
 }

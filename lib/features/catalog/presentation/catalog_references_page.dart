@@ -121,18 +121,19 @@ class _CatalogReferencesPageState extends State<CatalogReferencesPage> {
                             Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                TextButton(
+                                DeptAccountingButton.table(
                                   onPressed: () => showCatalogReferenceEditor(
                                     context,
                                     repository: vm.repository,
                                     kind: widget.kind,
                                     entry: entry,
                                   ),
-                                  child: const Text('تعديل'),
+                                  label: 'تعديل',
                                 ),
-                                TextButton(
+                                const SizedBox(width: DeptAccountingSpace.sm),
+                                DeptAccountingButton.table(
                                   onPressed: () => vm.setActive(entry),
-                                  child: Text(entry.active ? 'إيقاف' : 'تفعيل'),
+                                  label: entry.active ? 'إيقاف' : 'تفعيل',
                                 ),
                               ],
                             ),

@@ -93,11 +93,11 @@ class _ReceivingPageState extends State<ReceivingPage> {
                             ),
                           ),
                           DataCell(
-                            TextButton(
+                            DeptAccountingButton.table(
                               onPressed: () => context.go(
                                 '/receiving/finalize/${doc.id}/${d.store.id()}',
                               ),
-                              child: const Text('فاتورة المورد وتسوية التكلفة'),
+                              label: 'فاتورة المورد وتسوية التكلفة',
                             ),
                           ),
                         ],

@@ -36,6 +36,31 @@ void main() {
       router.go('/catalog/new');
       await tester.pumpAndSettle();
       expect(find.text('لديك كمية موجودة من هذا المنتج؟'), findsOneWidget);
+      for (final label in ['تكلفة الوحدة', 'سعر البيع', 'حد تنبيه المخزون']) {
+        expect(
+          tester
+              .widget<TextFormField>(find.widgetWithText(TextFormField, label))
+              .controller!
+              .text,
+          isEmpty,
+        );
+      }
+      final type = find.widgetWithText(DropdownButtonFormField<bool>, 'النوع');
+      final category = find.widgetWithText(TextFormField, 'التصنيف');
+      expect(tester.getTopLeft(type).dy, tester.getTopLeft(category).dy);
+      expect(
+        tester.getTopLeft(type).dx,
+        greaterThan(tester.getTopLeft(category).dx),
+      );
+      expect(
+        tester
+            .getTopLeft(find.widgetWithText(TextFormField, 'تكلفة الوحدة'))
+            .dy,
+        lessThanOrEqualTo(
+          tester.getTopLeft(find.widgetWithText(TextFormField, 'سعر البيع')).dy,
+        ),
+      );
+
       await tester.enterText(
         find.widgetWithText(TextFormField, 'اسم المنتج'),
         'منتج جديد',
@@ -47,7 +72,7 @@ void main() {
         router.routeInformationProvider.value.uri.path,
         '/catalog/$id/opening',
       );
-      expect(find.text('أضف سعر الشراء أولًا'), findsOneWidget);
+      expect(find.text('أضف تكلفة الوحدة أولًا'), findsOneWidget);
       expect(
         tester
             .widget<DeptAccountingButton>(
@@ -62,12 +87,12 @@ void main() {
       await tester.tap(find.text('تعديل بيانات المنتج'));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextFormField, 'سعر الشراء'),
+        find.widgetWithText(TextFormField, 'تكلفة الوحدة'),
         '10.25',
       );
       await tester.tap(find.text('حفظ وإضافة مخزون افتتاحي'));
       await tester.pumpAndSettle();
-      expect(find.text('أضف سعر الشراء أولًا'), findsNothing);
+      expect(find.text('أضف تكلفة الوحدة أولًا'), findsNothing);
       await tester.enterText(
         find.widgetWithText(TextFormField, 'الكمية الافتتاحية'),
         '2',
@@ -146,7 +171,7 @@ void main() {
       'كرتون',
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, 'اختيار'));
+    await tester.tap(find.widgetWithText(FilledButton, 'اختيار'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, 'عدد الوحدات الأساسية'),
@@ -170,7 +195,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('1 كرتون = 12 حبة'), findsOneWidget);
     await tester.enterText(
-      find.widgetWithText(TextFormField, 'سعر الشراء'),
+      find.widgetWithText(TextFormField, 'تكلفة الوحدة'),
       '10',
     );
     await tester.ensureVisible(find.text('حفظ وإضافة مخزون افتتاحي'));
@@ -180,7 +205,7 @@ void main() {
       router.routeInformationProvider.value.uri.path,
       '/catalog/p/opening',
     );
-    expect(find.text('سعر الشراء لكل حبة'), findsOneWidget);
+    expect(find.text('تكلفة الوحدة لكل حبة'), findsOneWidget);
     expect(find.widgetWithText(TextFormField, 'تكلفة الوحدة'), findsNothing);
     expect(find.byType(TextFormField), findsOneWidget);
     await tester.enterText(

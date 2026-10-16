@@ -75,7 +75,9 @@ class InvoiceViewModel extends ActionViewModel {
         (sum, row) => sum + Numbers.parse(row['discount'] as String? ?? '0'),
       );
       if (legacyDiscounts != 0) {
-        discount = Numbers.input(Numbers.parse(discount) + legacyDiscounts);
+        discount = Numbers.input(
+          Numbers.parse(discount, emptyAsZero: true) + legacyDiscounts,
+        );
       }
       paymentMode =
           InvoicePaymentMode.values
@@ -102,6 +104,7 @@ class InvoiceViewModel extends ActionViewModel {
         ),
       );
     }
+    _normalizePaymentMode();
     if (paymentMode != InvoicePaymentMode.credit) _ensurePayment();
   }
   final AppDependencies d;
@@ -119,6 +122,18 @@ class InvoiceViewModel extends ActionViewModel {
   bool _posted = false;
   Timer? _draftTimer;
   String? draftError;
+  bool get cashOnly => sale && partyId == null;
+
+  bool canUsePaymentMode(InvoicePaymentMode mode) =>
+      mode == InvoicePaymentMode.cash || !cashOnly;
+
+  void _normalizePaymentMode() {
+    if (!cashOnly || paymentMode == InvoicePaymentMode.cash) return;
+    paymentMode = InvoicePaymentMode.cash;
+    _ensurePayment();
+    payments.removeRange(1, payments.length);
+  }
+
   Future<QueryPage<CatalogRow>> searchProducts(String search, int page) =>
       d.store.run(
         CatalogTasks.page(
@@ -182,7 +197,7 @@ class InvoiceViewModel extends ActionViewModel {
           name: p.name,
           unit: l.unit,
           quantity: Numbers.parse(l.quantity, decimals: 3),
-          price: Numbers.parse(l.price),
+          price: Numbers.parse(l.price, emptyAsZero: true),
           factor: l.unit == p.unit ? 1000 : p.factor,
           service: p.service,
         );
@@ -199,8 +214,8 @@ class InvoiceViewModel extends ActionViewModel {
   int get total {
     try {
       return subtotal -
-          Numbers.parse(discount) +
-          (sale ? 0 : Numbers.parse(shipping));
+          Numbers.parse(discount, emptyAsZero: true) +
+          (sale ? 0 : Numbers.parse(shipping, emptyAsZero: true));
     } catch (_) {
       return 0;
     }
@@ -225,6 +240,7 @@ class InvoiceViewModel extends ActionViewModel {
   }
 
   void changePaymentMode(InvoicePaymentMode mode) {
+    if (!canUsePaymentMode(mode)) return;
     if (paymentMode == mode) return;
     paymentMode = mode;
     if (mode != InvoicePaymentMode.credit) _ensurePayment();
@@ -254,6 +270,7 @@ class InvoiceViewModel extends ActionViewModel {
   };
 
   void edit() {
+    _normalizePaymentMode();
     changed();
     _draftTimer?.cancel();
     _draftTimer = Timer(
@@ -318,9 +335,11 @@ class InvoiceViewModel extends ActionViewModel {
           ReceivingTasks.finalize(
             requestId: id,
             receiptId: receiptId!,
-            actualPrices: lines.map((l) => Numbers.parse(l.price)).toList(),
+            actualPrices: lines
+                .map((l) => Numbers.parse(l.price, emptyAsZero: true))
+                .toList(),
             payments: buildPayments(),
-            shipping: Numbers.parse(shipping),
+            shipping: Numbers.parse(shipping, emptyAsZero: true),
             date: date,
             notes: notes,
           ),
@@ -333,8 +352,8 @@ class InvoiceViewModel extends ActionViewModel {
             lines: buildLines(),
             payments: buildPayments(),
             partyId: partyId,
-            discount: Numbers.parse(discount),
-            shipping: sale ? 0 : Numbers.parse(shipping),
+            discount: Numbers.parse(discount, emptyAsZero: true),
+            shipping: sale ? 0 : Numbers.parse(shipping, emptyAsZero: true),
             notes: notes,
             date: date,
             correctionOf: correctionOf,

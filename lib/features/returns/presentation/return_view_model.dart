@@ -67,7 +67,7 @@ class ReturnViewModel extends ActionViewModel {
           selected: selections,
           reason: reason,
           cashAccount: account,
-          refund: Numbers.parse(refund),
+          refund: Numbers.parse(refund, emptyAsZero: true),
         ),
       );
     });

@@ -8,7 +8,13 @@ class BusinessException implements Exception {
 abstract final class Numbers {
   static const maxValue = 100000000000000;
 
-  static int parse(String input, {int decimals = 2, bool negative = false}) {
+  static int parse(
+    String input, {
+    int decimals = 2,
+    bool negative = false,
+    bool emptyAsZero = false,
+  }) {
+    if (emptyAsZero && input.trim().isEmpty) return 0;
     var text = input
         .trim()
         .replaceAll('٬', '')
@@ -59,7 +65,8 @@ abstract final class Numbers {
     return ratio(quantity, factor, 1000);
   }
 
-  static String input(int value, {int decimals = 2}) {
+  static String input(int value, {int decimals = 2, bool blankZero = false}) {
+    if (blankZero && value == 0) return '';
     final sign = value < 0 ? '-' : '';
     final digits = value.abs().toString().padLeft(decimals + 1, '0');
     if (decimals == 0) return '$sign$digits';

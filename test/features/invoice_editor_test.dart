@@ -6,8 +6,12 @@ import 'package:dept_accounting/features/catalog/data/product.dart';
 import 'package:dept_accounting/features/invoices/presentation/invoice_items_table.dart';
 import 'package:dept_accounting/features/invoices/presentation/invoice_summary_panel.dart';
 import 'package:dept_accounting/features/invoices/presentation/invoice_view_model.dart';
+import 'package:dept_accounting/features/parties/data/party.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/load_app_fonts.dart';
 
 void main() {
   late AppDependencies d;
@@ -38,6 +42,7 @@ void main() {
         factor: 12000,
       ),
     );
+    d.parties.save(const Party(id: 'customer', name: 'عميل تجريبي'));
   });
   tearDown(() {
     d.backups.dispose();
@@ -101,6 +106,7 @@ void main() {
     'Cash tracks edits, partial splits and credit survive draft restore',
     () async {
       final vm = InvoiceViewModel(d, sale: true, id: 'payment');
+      vm.partyId = 'customer';
       final selectedDate = DateTime.now().subtract(const Duration(hours: 1));
       vm.date = selectedDate.toIso8601String();
       vm.add(d.catalog.get('p'));
@@ -129,6 +135,17 @@ void main() {
       restored.changePaymentMode(InvoicePaymentMode.cash);
       restored.changeUnit(restored.lines.single, 'كرتون');
       expect(restored.buildPayments().single.amount, 28400);
+      restored.partyId = null;
+      restored.edit();
+      expect(restored.paymentMode, InvoicePaymentMode.cash);
+      for (final mode in [
+        InvoicePaymentMode.credit,
+        InvoicePaymentMode.partial,
+      ]) {
+        restored.changePaymentMode(mode);
+        expect(restored.paymentMode, InvoicePaymentMode.cash);
+      }
+      expect(restored.paid, restored.total);
       restored.dispose();
       vm.dispose();
     },
@@ -166,6 +183,7 @@ void main() {
   testWidgets(
     'Single item row edits update summary; compact and narrow layouts fit',
     (tester) async {
+      await loadAppFonts();
       final vm = InvoiceViewModel(d, sale: true, id: 'ui');
       vm.add(d.catalog.get('p'));
       tester.view.physicalSize = const Size(1200, 1000);
@@ -175,6 +193,9 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: DeptAccountingTheme.light(),
+          locale: const Locale('ar'),
+          supportedLocales: const [Locale('ar')],
+          localizationsDelegates: GlobalMaterialLocalizations.delegates,
           home: Directionality(
             textDirection: TextDirection.rtl,
             child: Scaffold(
@@ -206,16 +227,140 @@ void main() {
           .last;
       expect(tester.getCenter(quantity).dy, tester.getCenter(price).dy);
       expect(tester.getSize(quantity).height, lessThan(48));
+      final unit = find.descendant(
+        of: find.byType(InvoiceItemsTable),
+        matching: find.byType(DropdownButtonFormField<String>),
+      );
+      expect(tester.getSize(quantity).height, tester.getSize(unit).height);
+      expect(tester.getSize(price).height, tester.getSize(unit).height);
+      final quantityValue = find.descendant(
+        of: quantity,
+        matching: find.byType(EditableText),
+      );
+      final unitValue = find
+          .descendant(of: unit, matching: find.text('حبة'))
+          .first;
+      expect(
+        InputDecorator.containerOf(tester.element(quantityValue))!.size.height,
+        InputDecorator.containerOf(tester.element(unitValue))!.size.height,
+      );
+      expect(
+        tester.widget<EditableText>(quantityValue).textAlign,
+        TextAlign.end,
+      );
+      final rowTotal = find.descendant(
+        of: find.byType(InvoiceItemsTable),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is Text && widget.data == '12',
+        ),
+      );
+      expect(tester.widget<Text>(rowTotal).textAlign, TextAlign.start);
+      final priceValue = find.descendant(
+        of: price,
+        matching: find.byType(EditableText),
+      );
+      for (final pair in [
+        (find.text('الكمية'), quantityValue),
+        (find.text('سعر الوحدة'), priceValue),
+      ]) {
+        expect(
+          tester.getTopRight(pair.$1).dx,
+          closeTo(tester.getTopRight(pair.$2).dx, 1),
+        );
+      }
+      expect(
+        tester.getTopLeft(find.text('الإجمالي').first).dx,
+        tester.getTopLeft(rowTotal).dx,
+      );
+      final discount = find.descendant(
+        of: find.byKey(const ValueKey('invoice-discount')),
+        matching: find.byType(TextFormField),
+      );
+      expect(tester.widget<TextFormField>(discount).initialValue, isEmpty);
+      expect(
+        tester.getCenter(discount).dy,
+        closeTo(tester.getCenter(find.text('خصم الفاتورة')).dy, 1),
+      );
+      expect(tester.getSize(discount).width, lessThan(140));
+      expect(
+        tester.getTopRight(find.text('خصم الفاتورة')).dx,
+        tester.getTopRight(find.text('مجموع البنود')).dx,
+      );
+      await tester.enterText(discount, '1');
+      await tester.pump();
+      expect(vm.total, 1100);
+      await tester.enterText(discount, '');
+      await tester.pump();
+      expect(vm.total, 1200);
       await tester.enterText(quantity, '3');
       await tester.pump();
       expect(vm.paid, 3600);
+      for (final label in ['آجل', 'دفع جزئي']) {
+        expect(
+          tester
+              .widget<OutlinedButton>(
+                find.widgetWithText(OutlinedButton, label),
+              )
+              .onPressed,
+          isNull,
+        );
+      }
+      expect(
+        find.text('اختر عميلًا لتفعيل البيع الآجل أو الدفع الجزئي.'),
+        findsOneWidget,
+      );
+      vm.partyId = 'customer';
+      vm.edit();
+      await tester.pump();
+      expect(
+        find.text('اختر عميلًا لتفعيل البيع الآجل أو الدفع الجزئي.'),
+        findsNothing,
+      );
+      await tester.tap(find.text('دفع جزئي'));
+      await tester.pumpAndSettle();
+      final summaryAccount = find.descendant(
+        of: find.byType(InvoiceSummaryPanel),
+        matching: find.byType(DropdownButtonFormField<String>),
+      );
+      final paidInput = find.widgetWithText(TextFormField, 'المدفوع (ر.س)');
+      expect(tester.getSize(discount).height, 44);
+      expect(
+        tester.getSize(paidInput).height,
+        tester.getSize(summaryAccount).height,
+      );
+      expect(
+        tester.getSize(discount).height,
+        tester.getSize(summaryAccount).height,
+      );
       await tester.tap(find.text('آجل'));
       await tester.pump();
       expect(vm.paid, 0);
+      vm.partyId = null;
+      vm.edit();
+      await tester.pump();
+      expect(vm.paymentMode, InvoicePaymentMode.cash);
+      expect(vm.paid, vm.total);
       expect(find.text('وصف البند (اختياري)'), findsNothing);
       expect(find.textContaining('خصم البند'), findsNothing);
       tester.view.physicalSize = const Size(390, 900);
+      tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
       await tester.pump();
+      expect(
+        tester.getSize(quantity).height,
+        closeTo(tester.getSize(unit).height, 0.5),
+      );
+      expect(
+        tester.getSize(price).height,
+        closeTo(tester.getSize(unit).height, 0.5),
+      );
+      expect(
+        InputDecorator.containerOf(tester.element(quantityValue))!.size.height,
+        closeTo(
+          InputDecorator.containerOf(tester.element(unitValue))!.size.height,
+          0.5,
+        ),
+      );
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       vm.dispose();

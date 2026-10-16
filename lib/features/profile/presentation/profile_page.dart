@@ -1,3 +1,5 @@
+import '../../auth/presentation/username_field.dart';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -99,14 +101,7 @@ class _ProfilePageState extends State<ProfilePage> {
               child: SectionStack.form(
                 children: [
                   if (vm.error != null) ErrorNotice(vm.error),
-                  DeptAccountingField(
-                    label: 'اسم المستخدم',
-                    controller: username,
-                    helper: 'استخدم الاسم الجديد عند تسجيل الدخول لاحقًا.',
-                    validator: (value) => value == null || value.trim().isEmpty
-                        ? 'أدخل اسم المستخدم.'
-                        : null,
-                  ),
+                  UsernameField(controller: username),
                   Wrap(
                     spacing: DeptAccountingSpace.md,
                     runSpacing: DeptAccountingSpace.md,

@@ -19,10 +19,11 @@ class InvoiceSummaryPanel extends StatelessWidget {
     final currency = vm.d.store.shop!.currencyLabel;
     final accounts = vm.d.finance.accountOptions();
     return DeptAccountingPanel(
-      title: 'ملخص الفاتورة',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text('ملخص الفاتورة', style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: DeptAccountingSpace.lg),
           DeptAccountingSummaryLine(
             label: 'مجموع البنود',
             value: Numbers.format(vm.subtotal),
@@ -30,11 +31,11 @@ class InvoiceSummaryPanel extends StatelessWidget {
           ),
           if (!vm.quick && vm.receiptId == null) ...[
             const SizedBox(height: DeptAccountingSpace.sm),
-            DeptAccountingField(
-              label: 'خصم الفاتورة ($currency)',
-              compact: true,
+            _SummaryAmountField(
+              fieldKey: const ValueKey('invoice-discount'),
+              label: 'خصم الفاتورة',
+              currency: currency,
               initialValue: vm.discount,
-              numeric: true,
               onChanged: (value) {
                 vm.discount = value;
                 vm.edit();
@@ -42,12 +43,11 @@ class InvoiceSummaryPanel extends StatelessWidget {
             ),
           ],
           if (!vm.sale && !vm.quick) ...[
-            const SizedBox(height: DeptAccountingSpace.lg),
-            DeptAccountingField(
+            const SizedBox(height: DeptAccountingSpace.md),
+            _SummaryAmountField(
               label: 'شحن يضاف لتكلفة المنتجات',
-              compact: true,
+              currency: currency,
               initialValue: vm.shipping,
-              numeric: true,
               onChanged: (value) {
                 vm.shipping = value;
                 vm.edit();
@@ -70,14 +70,17 @@ class InvoiceSummaryPanel extends StatelessWidget {
               children: [
                 for (final mode in InvoicePaymentMode.values) ...[
                   if (mode != InvoicePaymentMode.values.first)
-                    const SizedBox(width: DeptAccountingSpace.xs),
+                    const SizedBox(width: DeptAccountingSpace.sm),
                   Expanded(
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 40),
+                        minimumSize: const Size(
+                          0,
+                          DeptAccountingLayout.compactControlHeight,
+                        ),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 4,
-                          vertical: 8,
+                          vertical: 10,
                         ),
                         textStyle: DeptAccountingTypography.compactControl,
                         backgroundColor: vm.paymentMode == mode
@@ -89,7 +92,9 @@ class InvoiceSummaryPanel extends StatelessWidget {
                               : DeptAccountingColors.border,
                         ),
                       ),
-                      onPressed: () => vm.changePaymentMode(mode),
+                      onPressed: vm.canUsePaymentMode(mode)
+                          ? () => vm.changePaymentMode(mode)
+                          : null,
                       child: Semantics(
                         selected: vm.paymentMode == mode,
                         child: Text(switch (mode) {
@@ -103,8 +108,15 @@ class InvoiceSummaryPanel extends StatelessWidget {
                 ],
               ],
             ),
+            if (vm.cashOnly) ...[
+              const SizedBox(height: DeptAccountingSpace.sm),
+              const Text(
+                'اختر عميلًا لتفعيل البيع الآجل أو الدفع الجزئي.',
+                style: DeptAccountingTypography.label,
+              ),
+            ],
             if (vm.paymentMode != InvoicePaymentMode.credit) ...[
-              const SizedBox(height: DeptAccountingSpace.xl),
+              const SizedBox(height: DeptAccountingSpace.lg),
               for (final payment
                   in vm.paymentMode == InvoicePaymentMode.cash
                       ? vm.payments.take(1)
@@ -112,7 +124,7 @@ class InvoiceSummaryPanel extends StatelessWidget {
                 Padding(
                   key: ObjectKey(payment),
                   padding: const EdgeInsets.only(
-                    bottom: DeptAccountingSpace.lg,
+                    bottom: DeptAccountingSpace.formGap,
                   ),
                   child: Column(
                     children: [
@@ -129,7 +141,7 @@ class InvoiceSummaryPanel extends StatelessWidget {
                         },
                       ),
                       if (vm.paymentMode == InvoicePaymentMode.partial) ...[
-                        const SizedBox(height: DeptAccountingSpace.lg),
+                        const SizedBox(height: DeptAccountingSpace.formGap),
                         Row(
                           children: [
                             Expanded(
@@ -145,13 +157,19 @@ class InvoiceSummaryPanel extends StatelessWidget {
                               ),
                             ),
                             if (vm.payments.length > 1)
-                              IconButton(
-                                tooltip: 'إزالة الدفعة',
-                                onPressed: () {
-                                  vm.payments.remove(payment);
-                                  vm.edit();
-                                },
-                                icon: const Icon(Icons.close, size: 16),
+                              Padding(
+                                padding: const EdgeInsetsDirectional.only(
+                                  start: DeptAccountingSpace.sm,
+                                ),
+                                child: DeptAccountingIconButton(
+                                  compact: true,
+                                  tooltip: 'إزالة الدفعة',
+                                  onPressed: () {
+                                    vm.payments.remove(payment);
+                                    vm.edit();
+                                  },
+                                  icon: Icons.close,
+                                ),
                               ),
                           ],
                         ),
@@ -162,11 +180,10 @@ class InvoiceSummaryPanel extends StatelessWidget {
               if (vm.paymentMode == InvoicePaymentMode.partial)
                 DeptAccountingButton(
                   label: 'إضافة حساب للدفع',
-                  variant: DeptAccountingButtonVariant.quiet,
+                  compact: true,
                   onPressed: vm.addPayment,
                 ),
             ],
-            const SizedBox(height: DeptAccountingSpace.sm),
             DeptAccountingSummaryLine(
               label: 'المدفوع',
               value: Numbers.format(vm.paid),
@@ -192,4 +209,48 @@ class InvoiceSummaryPanel extends StatelessWidget {
       ),
     );
   }
+}
+
+class _SummaryAmountField extends StatelessWidget {
+  const _SummaryAmountField({
+    this.fieldKey,
+    required this.label,
+    required this.currency,
+    required this.initialValue,
+    required this.onChanged,
+  });
+
+  final Key? fieldKey;
+  final String label;
+  final String currency;
+  final String initialValue;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Expanded(
+        child: Text(
+          label,
+          style: const TextStyle(color: DeptAccountingColors.muted),
+        ),
+      ),
+      const SizedBox(width: DeptAccountingSpace.lg),
+      SizedBox(
+        width: 112,
+        child: Semantics(
+          label: '$label ($currency)',
+          child: DeptAccountingField(
+            key: fieldKey,
+            label: '',
+            hint: '0',
+            compact: true,
+            numeric: true,
+            initialValue: initialValue,
+            onChanged: onChanged,
+          ),
+        ),
+      ),
+    ],
+  );
 }

@@ -38,7 +38,11 @@ abstract final class DeptAccountingLayout {
   static const maxContent = 1440.0;
   static const minTarget = 48.0;
   static const controlHeight = 52.0;
-  static const compactControlHeight = 36.0;
+  static const compactControlHeight = 44.0;
+  static const compactControlPadding = EdgeInsets.symmetric(
+    horizontal: 10,
+    vertical: 10,
+  );
   static const paginationControlHeight = 36.0;
   static const compactNoticeMaxHeight = 160.0;
   static const badgeRadius = 4.0;
@@ -66,7 +70,7 @@ abstract final class DeptAccountingTypography {
     fontFamily: family,
     fontSize: 13,
     fontWeight: regular,
-    height: 1.5,
+    height: controlLineHeight / 13,
     color: DeptAccountingColors.ink,
   );
   static const label = TextStyle(
@@ -132,6 +136,17 @@ abstract final class DeptAccountingTypography {
             DeptAccountingLayout.controlHeight
         ? textHeight + controlVerticalPadding * 2
         : DeptAccountingLayout.controlHeight;
+  }
+
+  static double compactControlHeight(BuildContext context) {
+    final textHeight =
+        MediaQuery.textScalerOf(context).scale(compactControl.fontSize!) *
+        compactControl.height!;
+    final height =
+        textHeight + DeptAccountingLayout.compactControlPadding.vertical;
+    return height > DeptAccountingLayout.compactControlHeight
+        ? height
+        : DeptAccountingLayout.compactControlHeight;
   }
 }
 

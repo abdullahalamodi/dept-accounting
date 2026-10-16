@@ -72,9 +72,9 @@ class _InvoiceDraftsPanelState extends State<InvoiceDraftsPanel> {
                           ),
                         ),
                         DataCell(
-                          TextButton(
+                          DeptAccountingButton.table(
                             onPressed: () => widget.onOpen(draft),
-                            child: const Text('استكمال'),
+                            label: 'استكمال',
                           ),
                         ),
                       ],

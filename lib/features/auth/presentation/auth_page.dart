@@ -1,3 +1,5 @@
+import 'username_field.dart';
+
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 
@@ -193,12 +195,7 @@ class _AuthPageState extends State<AuthPage> {
           title: '٢. بيانات الدخول',
           child: SectionStack.form(
             children: [
-              DeptAccountingField(
-                label: 'اسم المستخدم',
-                controller: username,
-                helper: 'ستستخدمه مع كلمة المرور للدخول إلى $appName.',
-                validator: (value) => _required(value, 'أدخل اسم المستخدم.'),
-              ),
+              UsernameField(controller: username),
               FieldGrid(
                 children: [
                   DeptAccountingPasswordField(
@@ -261,6 +258,9 @@ class _AuthPageState extends State<AuthPage> {
                 loading: vm.downloadingRecoveryKeys,
                 onPressed: vm.busy ? null : vm.downloadRecoveryKeys,
               ),
+              const Text(
+                'يُحفظ ملف TXT في مجلد التنزيلات (Downloads) على الكمبيوتر.',
+              ),
               if (vm.recoveryDownloadError != null)
                 DeptAccountingNotice(
                   title: 'لم يُحفظ الملف',
@@ -268,9 +268,10 @@ class _AuthPageState extends State<AuthPage> {
                   tone: DeptAccountingTone.danger,
                 ),
               if (vm.recoveryFileDownloaded)
-                const DeptAccountingNotice(
+                DeptAccountingNotice(
                   title: 'تم حفظ ملف المفاتيح',
-                  message: 'احتفظ بنسخة آمنة خارج جهاز المحل قبل بدء العمل.',
+                  message:
+                      '${vm.recoveryFileLocation ?? ''}\nاحتفظ بنسخة آمنة خارج جهاز المحل قبل بدء العمل.',
                   tone: DeptAccountingTone.success,
                 ),
               const DeptAccountingNotice(
@@ -344,7 +345,7 @@ class _AuthPageState extends State<AuthPage> {
       children: [
         if (vm.error != null) ErrorNotice(vm.error),
         if (!recovery)
-          DeptAccountingField(label: 'اسم المستخدم', controller: username)
+          UsernameField(controller: username, login: true)
         else
           DeptAccountingField(
             label: 'رمز استرداد دخول المالك',

@@ -10,6 +10,7 @@ import '../../../core/numbers.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dept_accounting_design_system.dart';
 import 'document_view_model.dart';
+import 'document_cancellation_dialog.dart';
 
 class DocumentPage extends StatefulWidget {
   const DocumentPage({super.key, required this.dependencies, required this.id});
@@ -43,30 +44,6 @@ class _DocumentPageState extends State<DocumentPage> {
           return WorkPage(
             busy: vm.busy,
             title: '${doc.label} · ${doc.number}',
-            actions: [
-              if (d.store.user!.canManage &&
-                  data.cancelled &&
-                  ['sale', 'purchase'].contains(doc.kind))
-                DeptAccountingButton(
-                  label: 'إنشاء نسخة مصححة',
-                  onPressed: () async {
-                    final draft = await vm.correctionDraft();
-                    if (draft != null && context.mounted) {
-                      context.go(
-                        '/${doc.isSale ? 'sales' : 'purchases'}/new/$draft',
-                      );
-                    }
-                  },
-                ),
-              if (d.store.user!.canManage &&
-                  !data.cancelled &&
-                  ['sale', 'purchase'].contains(doc.kind))
-                DeptAccountingButton(
-                  label: 'إرجاع منتجات أو خدمة',
-                  variant: DeptAccountingButtonVariant.secondary,
-                  onPressed: () => context.go('/returns/${doc.id}'),
-                ),
-            ],
             onBack: () => context.go(
               doc.kind == 'sale'
                   ? '/sales'
@@ -78,49 +55,65 @@ class _DocumentPageState extends State<DocumentPage> {
               children: [
                 ErrorNotice(vm.error),
                 DeptAccountingPanel(
-                  child: Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      ChoiceChip(
-                        label: const Text('A4'),
-                        selected: !thermal,
-                        onSelected: (_) => setState(() => thermal = false),
+                  padding: const EdgeInsets.all(DeptAccountingSpace.lg),
+                  child: DeptAccountingExportToolbar(
+                    busy: vm.busy,
+                    onPrint: () => vm.printDocument(thermal),
+                    onSavePdf: vm.saveDocument,
+                    onShare: vm.shareDocument,
+                    printOptions: SizedBox(
+                      width: 180,
+                      child: ChoiceField<bool>(
+                        label: 'مقاس الطباعة',
+                        value: thermal,
+                        enabled: !vm.busy,
+                        items: const [
+                          (value: false, label: 'ورق B5'),
+                          (value: true, label: 'حراري 80 مم'),
+                        ],
+                        onChanged: (value) => setState(() => thermal = value!),
                       ),
-                      ChoiceChip(
-                        label: const Text('حراري 80 مم'),
-                        selected: thermal,
-                        onSelected: (_) => setState(() => thermal = true),
-                      ),
-                      DeptAccountingButton(
-                        label: 'طباعة',
-                        loading: vm.busy,
-                        onPressed: () => vm.printDocument(thermal),
-                      ),
-                      DeptAccountingButton(
-                        label: 'حفظ PDF',
-                        variant: DeptAccountingButtonVariant.secondary,
-                        onPressed: vm.saveDocument,
-                      ),
-                      DeptAccountingButton(
-                        label: 'مشاركة',
-                        variant: DeptAccountingButtonVariant.secondary,
-                        onPressed: vm.shareDocument,
-                      ),
+                    ),
+                    actions: [
                       if (d.store.user!.canManage &&
+                          data.cancelled &&
+                          ['sale', 'purchase'].contains(doc.kind))
+                        DeptAccountingToolbarAction(
+                          label: 'إنشاء نسخة مصححة',
+                          icon: Icons.edit_document,
+                          onPressed: () async {
+                            final draft = await vm.correctionDraft();
+                            if (draft != null && context.mounted) {
+                              context.go(
+                                '/${doc.isSale ? 'sales' : 'purchases'}/new/$draft',
+                              );
+                            }
+                          },
+                        ),
+                      if (d.store.user!.canManage &&
+                          !data.cancelled &&
+                          ['sale', 'purchase'].contains(doc.kind))
+                        DeptAccountingToolbarAction(
+                          label: 'إرجاع منتجات أو خدمة',
+                          icon: Icons.assignment_return_outlined,
+                          onPressed: () => context.go('/returns/${doc.id}'),
+                        ),
+                      if (d.store.user!.canManage &&
+                          !data.cancelled &&
                           ['receipt', 'payment'].contains(doc.kind))
-                        DeptAccountingButton(
+                        DeptAccountingToolbarAction(
                           label: 'إلغاء تخصيص الفواتير',
-                          variant: DeptAccountingButtonVariant.secondary,
+                          icon: Icons.link_off_outlined,
                           onPressed: () async {
                             final reason = await showDialog<String>(
                               context: context,
-                              builder: (context) => const _CancelDialog(),
+                              builder: (context) => DocumentCancellationDialog(
+                                documentNumber: doc.number,
+                                allocationsOnly: true,
+                              ),
                             );
-                            if (reason != null) {
+                            if (reason != null)
                               await vm.clearAllocations(reason);
-                            }
                           },
                         ),
                       if (d.store.user!.canManage &&
@@ -135,13 +128,16 @@ class _DocumentPageState extends State<DocumentPage> {
                             'capital',
                             'drawing',
                           ].contains(doc.kind))
-                        DeptAccountingButton(
+                        DeptAccountingToolbarAction(
                           label: 'إلغاء المستند',
-                          variant: DeptAccountingButtonVariant.danger,
+                          icon: Icons.cancel_outlined,
+                          destructive: true,
                           onPressed: () async {
                             final reason = await showDialog<String>(
                               context: context,
-                              builder: (context) => const _CancelDialog(),
+                              builder: (context) => DocumentCancellationDialog(
+                                documentNumber: doc.number,
+                              ),
                             );
                             if (reason == null) return;
                             final result = await vm.cancel(reason);
@@ -226,7 +222,12 @@ class _DocumentPageState extends State<DocumentPage> {
                   ),
                 DeptAccountingPanel(
                   title: 'الإجمالي والدفع',
-                  child: SectionStack(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: DeptAccountingSpace.xl,
+                    vertical: DeptAccountingSpace.md,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (doc.discount > 0)
                         DeptAccountingSummaryLine(
@@ -261,7 +262,13 @@ class _DocumentPageState extends State<DocumentPage> {
                           value: Numbers.format(data.due),
                           currency: currency,
                         ),
-                      if (doc.notes.isNotEmpty) Text(doc.notes),
+                      if (doc.notes.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: DeptAccountingSpace.sm,
+                          ),
+                          child: Text(doc.notes),
+                        ),
                     ],
                   ),
                 ),
@@ -271,51 +278,5 @@ class _DocumentPageState extends State<DocumentPage> {
         },
       );
     },
-  );
-}
-
-class _CancelDialog extends StatefulWidget {
-  const _CancelDialog();
-  @override
-  State<_CancelDialog> createState() => _CancelDialogState();
-}
-
-class _CancelDialogState extends State<_CancelDialog> {
-  final reason = TextEditingController();
-  @override
-  void dispose() {
-    reason.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('إلغاء المستند'),
-    content: SizedBox(
-      width: 450,
-      child: SectionStack(
-        children: [
-          const Text(
-            'يُنشأ مستند عكسي ويحفظ الأصل. قد تمنع الحركات اللاحقة الإلغاء؛ عندها استخدم المرتجع المرتبط.',
-          ),
-          DeptAccountingField(label: 'سبب الإلغاء', controller: reason),
-        ],
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('العودة'),
-      ),
-      DeptAccountingButton(
-        label: 'اعتماد الإلغاء',
-        variant: DeptAccountingButtonVariant.danger,
-        onPressed: () async {
-          if (reason.text.trim().isNotEmpty) {
-            Navigator.pop(context, reason.text.trim());
-          }
-        },
-      ),
-    ],
   );
 }

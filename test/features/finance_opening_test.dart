@@ -74,7 +74,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextFormField, 'الطرف'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, 'اختيار'));
+    await tester.tap(find.widgetWithText(FilledButton, 'اختيار'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('تلقائي — الأقدم أولًا'));
     await tester.pumpAndSettle();

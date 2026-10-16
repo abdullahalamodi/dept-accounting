@@ -30,7 +30,14 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
       for (var i = 1; i < cells.length; i++) ...[
         const SizedBox(width: DeptAccountingSpace.sm),
         SizedBox(
-          width: [0.0, 100.0, 76.0, 96.0, 100.0, 36.0][i],
+          width: [
+            0.0,
+            100.0,
+            76.0,
+            96.0,
+            100.0,
+            DeptAccountingTypography.compactControlHeight(context),
+          ][i],
           child: cells[i],
         ),
       ],
@@ -41,7 +48,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
     try {
       return Numbers.format(
         Numbers.ratio(
-          Numbers.parse(line.price),
+          Numbers.parse(line.price, emptyAsZero: true),
           Numbers.parse(line.quantity, decimals: 3),
           1000,
         ),
@@ -54,6 +61,10 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
   @override
   Widget build(BuildContext context) {
     final vm = widget.vm;
+    final border = Theme.of(context).inputDecorationTheme.border;
+    final fieldInset =
+        DeptAccountingLayout.compactControlPadding.horizontal / 2 +
+        (border is OutlineInputBorder ? border.gapPadding : 0);
     if (vm.lines.isEmpty) {
       return const DeptAccountingStateView(
         state: DeptAccountingViewState.empty,
@@ -85,9 +96,13 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                       ),
                       child: columns([
                         const Text('المنتج / الخدمة'),
-                        const Text('الوحدة'),
-                        const Text('الكمية'),
-                        const Text('سعر الوحدة'),
+                        for (final label in ['الوحدة', 'الكمية', 'سعر الوحدة'])
+                          Padding(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: fieldInset,
+                            ),
+                            child: Text(label),
+                          ),
                         const Text('الإجمالي', textAlign: TextAlign.end),
                         const SizedBox.shrink(),
                       ]),
@@ -139,6 +154,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                                 compact: true,
                                 enabled: vm.receiptId == null,
                                 numeric: true,
+                                textAlign: TextAlign.end,
                                 initialValue: line.quantity,
                                 onChanged: (value) {
                                   line.quantity = value;
@@ -153,6 +169,7 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                                 label: '',
                                 compact: true,
                                 numeric: true,
+                                textAlign: TextAlign.end,
                                 initialValue: line.price,
                                 onChanged: (value) {
                                   line.price = value;
@@ -163,18 +180,13 @@ class _InvoiceItemsTableState extends State<InvoiceItemsTable> {
                             Text(
                               lineTotal(line),
                               textDirection: TextDirection.ltr,
-                              textAlign: TextAlign.end,
+                              textAlign: TextAlign.start,
                               style: DeptAccountingTypography.tableBody,
                             ),
                             if (vm.receiptId == null)
-                              IconButton(
+                              DeptAccountingIconButton.table(
                                 tooltip: 'إزالة ${product.name}',
-                                icon: const Icon(Icons.close, size: 16),
-                                style: IconButton.styleFrom(
-                                  minimumSize: const Size.square(36),
-                                  padding: EdgeInsets.zero,
-                                  foregroundColor: DeptAccountingColors.muted,
-                                ),
+                                icon: Icons.close,
                                 onPressed: () {
                                   vm.lines.remove(line);
                                   vm.edit();

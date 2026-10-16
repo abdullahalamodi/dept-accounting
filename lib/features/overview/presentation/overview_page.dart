@@ -358,9 +358,9 @@ class _RecentInvoices extends StatelessWidget {
     minHeight: wide ? 486 : 0,
     showHeaderDivider: false,
     padding: EdgeInsets.zero,
-    action: TextButton(
+    action: DeptAccountingButton.table(
       onPressed: () => context.go('/sales'),
-      child: const Text('كل الفواتير ←'),
+      label: 'كل الفواتير ←',
     ),
     child: ConstrainedBox(
       constraints: BoxConstraints(minHeight: wide ? 360 : 0),
@@ -425,10 +425,10 @@ class _RecentInvoices extends StatelessWidget {
                   ),
                 ),
                 DataCell(
-                  TextButton(
+                  DeptAccountingButton.table(
                     onPressed: () =>
                         context.go('/sales/view/${row.document.id}'),
-                    child: const Text('عرض'),
+                    label: 'عرض',
                   ),
                 ),
               ],
