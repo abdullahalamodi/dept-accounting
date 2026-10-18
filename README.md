@@ -31,6 +31,16 @@ flutter run -d macos
 - [خطة التطوير](docs/development-plan-v1.md)
 - [سجل التنفيذ](docs/implementation-progress.md)
 
+## مرجع تصميم الجوال
+
+نموذج HTML تفاعلي محفوظ في [`prototypes/mobile-sales/`](prototypes/mobile-sales/README.md) لمراجعة تصميم الجوال وتطويره. افتح [`index.html`](prototypes/mobile-sales/index.html) مباشرة في المتصفح، أو شغّل من جذر المشروع:
+
+```bash
+python3 -m http.server 8765 --bind 127.0.0.1 --directory prototypes/mobile-sales
+```
+
+ثم افتح [المعاينة المحلية](http://127.0.0.1:8765/). تظهر معاينة جوال على سطح المكتب، وتملأ الواجهة الشاشة على الجوال. لا يحتاج النموذج إلى Flutter أو تثبيت تبعيات؛ بياناته توضيحية وتُعاد عند تحديث الصفحة، ولا يتصل بقاعدة بيانات التطبيق. أوقف الخادم بـ `Ctrl+C`.
+
 ## بنية المشروع
 
 `lib/features/` يفصل الميزات إلى بيانات وعرض وViewModels. `lib/core/` يضم قاعدة البيانات والجلسة والحساب الدقيق ومكونات تركيب الصفحات. `lib/design_system/` مرجع الواجهات المشترك؛ يمكن فتح معرضه من الإعدادات. التنقل بـ go_router، والحالة بـ ChangeNotifier، والنماذج بـ dart_mappable. ملفات `*.mapper.dart` مولدة؛ عدّل المصدر ثم أعد التوليد.

@@ -50,7 +50,7 @@ class CatalogReferenceField extends StatelessWidget {
         suffixIcon: const Icon(Icons.expand_more),
         onTap: enabled
             ? () async {
-                final id = await showDialog<String>(
+                final id = await showDeptAccountingAdaptiveDialog<String>(
                   context: context,
                   builder: (_) => _ReferencePicker(
                     repository: repository,

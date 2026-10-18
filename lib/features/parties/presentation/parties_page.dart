@@ -64,6 +64,43 @@ class _PartiesPageState extends State<PartiesPage> {
               DeptAccountingPanel(
                 padding: EdgeInsets.zero,
                 child: DeptAccountingDataTable(
+                  compactRowBuilder: (context, index) {
+                    final party = results.items[index];
+                    return Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: DeptAccountingRecordTile(
+                        title: party.name,
+                        subtitle: [
+                          if (party.phone.isNotEmpty) party.phone,
+                          if (party.customer) 'عميل',
+                          if (party.supplier) 'مورد',
+                        ].join(' · '),
+                        leading: Icons.person_outline,
+                        onTap: () => context.go('/parties/${party.id}'),
+                        details: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (party.customer)
+                              DeptAccountingSummaryLine(
+                                label: 'رصيد العميل',
+                                value: Numbers.format(
+                                  data.balances[party.id]!.customer,
+                                ),
+                                currency: currency,
+                              ),
+                            if (manage && party.supplier)
+                              DeptAccountingSummaryLine(
+                                label: 'رصيد المورد',
+                                value: Numbers.format(
+                                  data.balances[party.id]!.supplier,
+                                ),
+                                currency: currency,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                   columns: [
                     const DataColumn(label: Text('الاسم')),
                     const DataColumn(label: Text('الهاتف')),
@@ -156,6 +193,8 @@ class PartyPage extends StatefulWidget {
 }
 
 class _PartyPageState extends State<PartyPage> {
+  bool editing = false;
+  bool showOpening = false;
   late final vm = PartyViewModel(
     widget.dependencies.parties,
     exports: widget.dependencies.exports,
@@ -214,158 +253,213 @@ class _PartyPageState extends State<PartyPage> {
         queryKey: (id, customerStatement, page, party != null, manage),
         builder: (context, data) {
           final statements = data.rows;
+          final compact =
+              MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact;
+          final editForm = !compact || party == null || editing;
           return WorkPage(
             busy: vm.busy,
             title: party?.name ?? 'طرف جديد',
-            onBack: () => context.go('/parties'),
+            onBack: () {
+              if (compact && editing) {
+                setState(() => editing = false);
+              } else {
+                context.go('/parties');
+              }
+            },
             actions: [
-              DeptAccountingButton(
-                label: 'حفظ البيانات',
-                onPressed: () async {
-                  if (await vm.save(
-                        Party(
-                          id: id,
-                          name: name.text.trim(),
-                          phone: phone.text.trim(),
-                          address: address.text.trim(),
-                          customer: customer,
-                          supplier: supplier,
-                          active: active,
-                        ),
-                      ) &&
-                      context.mounted) {
-                    showMessage(context, 'تم حفظ الطرف');
-                    context.go('/parties');
-                  }
-                },
-              ),
+              if (!editForm)
+                DeptAccountingButton(
+                  label: 'تعديل البيانات',
+                  icon: Icons.edit_outlined,
+                  onPressed: () => setState(() => editing = true),
+                ),
+              if (editForm)
+                DeptAccountingButton(
+                  label: 'حفظ البيانات',
+                  onPressed: () async {
+                    if (await vm.save(
+                          Party(
+                            id: id,
+                            name: name.text.trim(),
+                            phone: phone.text.trim(),
+                            address: address.text.trim(),
+                            customer: customer,
+                            supplier: supplier,
+                            active: active,
+                          ),
+                        ) &&
+                        context.mounted) {
+                      showMessage(context, 'تم حفظ الطرف');
+                      context.go('/parties');
+                    }
+                  },
+                ),
             ],
             child: SectionStack(
               children: [
                 ErrorNotice(vm.error),
-                DeptAccountingPanel(
-                  title: 'بيانات الطرف',
-                  child: SectionStack.form(
-                    children: [
-                      FieldGrid(
-                        children: [
-                          DeptAccountingField(
-                            label: 'اسم الطرف',
-                            controller: name,
-                          ),
-                          DeptAccountingField(
-                            label: 'الهاتف',
-                            controller: phone,
-                          ),
-                          DeptAccountingField(
-                            label: 'العنوان',
-                            controller: address,
-                          ),
-                        ],
-                      ),
-                      Wrap(
-                        children: [
-                          DeptAccountingFilterChip(
-                            label: const Text('عميل'),
-                            selected: customer,
-                            onSelected: (v) => setState(() => customer = v),
-                          ),
-                          if (manage) ...[
-                            const SizedBox(width: 12),
-                            DeptAccountingFilterChip(
-                              label: const Text('مورد'),
-                              selected: supplier,
-                              onSelected: (v) => setState(() => supplier = v),
+                if (!editForm)
+                  DeptAccountingRecordTile(
+                    title: party!.name,
+                    subtitle: [
+                      party!.phone,
+                      party!.address,
+                    ].where((v) => v.isNotEmpty).join(' · '),
+                    leading: Icons.person_outline,
+                    details: Wrap(
+                      spacing: 8,
+                      children: [
+                        if (party!.customer)
+                          const DeptAccountingStatusTag('عميل'),
+                        if (party!.supplier && manage)
+                          const DeptAccountingStatusTag('مورد'),
+                      ],
+                    ),
+                  ),
+                if (editForm)
+                  DeptAccountingPanel(
+                    title: 'بيانات الطرف',
+                    child: SectionStack.form(
+                      children: [
+                        FieldGrid(
+                          children: [
+                            DeptAccountingField(
+                              label: 'اسم الطرف',
+                              controller: name,
+                            ),
+                            DeptAccountingField(
+                              label: 'الهاتف',
+                              controller: phone,
+                            ),
+                            DeptAccountingField(
+                              label: 'العنوان',
+                              controller: address,
                             ),
                           ],
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                if (party != null && (party!.customer || manage)) ...[
-                  DeptAccountingPanel(
-                    title: 'كشف الحساب',
-                    description: 'الرصيد الموجب مستحق؛ الرصيد السالب دفعة مقدمة لصالح الطرف',
-                    child: SectionStack(
-                      children: [
-                        ChoiceField(
-                          label: 'الحساب',
-                          value: customerStatement,
-                          items: [
-                            if (party!.customer)
-                              (value: true, label: 'حساب العميل'),
-                            if (party!.supplier && manage)
-                              (value: false, label: 'حساب المورد'),
-                          ],
-                          onChanged: (v) => setState(() {
-                            customerStatement = v!;
-                            page = 1;
-                          }),
                         ),
-                        DeptAccountingSummaryLine(
-                          label: 'الرصيد الحالي',
-                          value: Numbers.format(data.balance),
-                          currency: currency,
-                          total: true,
-                        ),
-                        DeptAccountingDataTable(
-                          columns: const [
-                            DataColumn(label: Text('التاريخ')),
-                            DataColumn(label: Text('المرجع')),
-                            DataColumn(label: Text('مدين')),
-                            DataColumn(label: Text('دائن')),
-                            DataColumn(label: Text('الرصيد')),
-                          ],
-                          rows: [
-                            for (final row in statements.items)
-                              DataRow(
-                                cells: [
-                                  DataCell(
-                                    Text(
-                                      (row['posted_at'] as String).substring(
-                                        0,
-                                        10,
-                                      ),
-                                    ),
-                                  ),
-                                  DataCell(Text(row['number'] as String)),
-                                  DataCell(
-                                    DeptAccountingAmount(
-                                      Numbers.format(row['debit'] as int),
-                                      currency: currency,
-                                    ),
-                                  ),
-                                  DataCell(
-                                    DeptAccountingAmount(
-                                      Numbers.format(row['credit'] as int),
-                                      currency: currency,
-                                    ),
-                                  ),
-                                  DataCell(
-                                    DeptAccountingAmount(
-                                      Numbers.format(row['balance'] as int),
-                                      currency: currency,
-                                    ),
-                                  ),
-                                ],
+                        Wrap(
+                          children: [
+                            DeptAccountingFilterChip(
+                              label: const Text('عميل'),
+                              selected: customer,
+                              onSelected: (v) => setState(() => customer = v),
+                            ),
+                            if (manage) ...[
+                              const SizedBox(width: 12),
+                              DeptAccountingFilterChip(
+                                label: const Text('مورد'),
+                                selected: supplier,
+                                onSelected: (v) => setState(() => supplier = v),
                               ),
+                            ],
                           ],
-                          totalRows: statements.total,
-                          page: statements.page,
-                          pageSize: 10,
-                          onPageChanged: (v) => setState(() => page = v),
                         ),
                       ],
                     ),
                   ),
-                  CreditPanel(
-                    key: ValueKey('$id-$customerStatement'),
-                    d: d,
-                    partyId: id,
-                    customer: customerStatement,
+                if (compact && !editForm && manage)
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      DeptAccountingFilterChip(
+                        label: const Text('كشف الحساب'),
+                        selected: !showOpening,
+                        onSelected: (_) => setState(() => showOpening = false),
+                      ),
+                      DeptAccountingFilterChip(
+                        label: const Text('الأرصدة والتسويات'),
+                        selected: showOpening,
+                        onSelected: (_) => setState(() => showOpening = true),
+                      ),
+                    ],
                   ),
-                  if (manage)
+                if (party != null &&
+                    (party!.customer || manage) &&
+                    (!compact || !editing)) ...[
+                  if (!compact || !showOpening)
+                    DeptAccountingPanel(
+                      title: 'كشف الحساب',
+                      description: 'الرصيد الموجب مستحق؛ الرصيد السالب دفعة مقدمة لصالح الطرف',
+                      child: SectionStack(
+                        children: [
+                          ChoiceField(
+                            label: 'الحساب',
+                            value: customerStatement,
+                            items: [
+                              if (party!.customer)
+                                (value: true, label: 'حساب العميل'),
+                              if (party!.supplier && manage)
+                                (value: false, label: 'حساب المورد'),
+                            ],
+                            onChanged: (v) => setState(() {
+                              customerStatement = v!;
+                              page = 1;
+                            }),
+                          ),
+                          DeptAccountingSummaryLine(
+                            label: 'الرصيد الحالي',
+                            value: Numbers.format(data.balance),
+                            currency: currency,
+                            total: true,
+                          ),
+                          DeptAccountingDataTable(
+                            columns: const [
+                              DataColumn(label: Text('التاريخ')),
+                              DataColumn(label: Text('المرجع')),
+                              DataColumn(label: Text('مدين')),
+                              DataColumn(label: Text('دائن')),
+                              DataColumn(label: Text('الرصيد')),
+                            ],
+                            rows: [
+                              for (final row in statements.items)
+                                DataRow(
+                                  cells: [
+                                    DataCell(
+                                      Text(
+                                        (row['posted_at'] as String).substring(
+                                          0,
+                                          10,
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(Text(row['number'] as String)),
+                                    DataCell(
+                                      DeptAccountingAmount(
+                                        Numbers.format(row['debit'] as int),
+                                        currency: currency,
+                                      ),
+                                    ),
+                                    DataCell(
+                                      DeptAccountingAmount(
+                                        Numbers.format(row['credit'] as int),
+                                        currency: currency,
+                                      ),
+                                    ),
+                                    DataCell(
+                                      DeptAccountingAmount(
+                                        Numbers.format(row['balance'] as int),
+                                        currency: currency,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                            ],
+                            totalRows: statements.total,
+                            page: statements.page,
+                            pageSize: 10,
+                            onPageChanged: (v) => setState(() => page = v),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (!compact || !showOpening)
+                    CreditPanel(
+                      key: ValueKey('$id-$customerStatement'),
+                      d: d,
+                      partyId: id,
+                      customer: customerStatement,
+                    ),
+                  if (manage && (!compact || showOpening))
                     DeptAccountingPanel(
                       title: 'تسوية رصيد سابق لبدء البرنامج',
                       description: 'فرق مستقل موثق دون إنشاء فاتورة وهمية. السالب يخفض المستحق أو يزيد الرصيد لصالح الطرف.',
@@ -402,7 +496,7 @@ class _PartyPageState extends State<PartyPage> {
                         ],
                       ),
                     ),
-                  if (manage)
+                  if (manage && (!compact || showOpening))
                     DeptAccountingPanel(
                       title: 'رصيد افتتاحي لهذا الحساب',
                       description: 'مرة واحدة قبل أول حركة. السالب يعني رصيدًا لصالح الطرف.',

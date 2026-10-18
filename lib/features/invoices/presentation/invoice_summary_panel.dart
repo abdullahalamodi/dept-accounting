@@ -10,9 +10,11 @@ class InvoiceSummaryPanel extends StatelessWidget {
     super.key,
     required this.vm,
     required this.onConfirm,
+    this.showConfirm = true,
   });
   final InvoiceViewModel vm;
   final VoidCallback onConfirm;
+  final bool showConfirm;
 
   @override
   Widget build(BuildContext context) {
@@ -198,15 +200,16 @@ class InvoiceSummaryPanel extends StatelessWidget {
             ),
           ],
           const SizedBox(height: DeptAccountingSpace.lg),
-          DeptAccountingButton(
-            label: vm.quick
-                ? 'اعتماد الاستلام'
-                : vm.sale
-                ? 'اعتماد فاتورة بيع'
-                : 'اعتماد فاتورة شراء',
-            loading: vm.busy,
-            onPressed: onConfirm,
-          ),
+          if (showConfirm)
+            DeptAccountingButton(
+              label: vm.quick
+                  ? 'اعتماد الاستلام'
+                  : vm.sale
+                  ? 'اعتماد فاتورة بيع'
+                  : 'اعتماد فاتورة شراء',
+              loading: vm.busy,
+              onPressed: onConfirm,
+            ),
         ],
       ),
     );

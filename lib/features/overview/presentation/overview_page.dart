@@ -46,6 +46,8 @@ class _OverviewPageState extends State<OverviewPage> {
       }
       final d = widget.dependencies;
       final manage = d.store.user!.canManage;
+      final compact =
+          MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact;
       return SectionStack(
         children: [
           DeptAccountingPageHeader(
@@ -53,14 +55,15 @@ class _OverviewPageState extends State<OverviewPage> {
             description:
                 'مرحبًا ${d.store.user!.displayName}، إليك آخر حركة في ${d.store.shop!.name}.',
             actions: [
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  MaterialLocalizations.of(context)
-                      .formatFullDate(DateTime.now()),
-                  style: const TextStyle(color: DeptAccountingColors.muted),
+              if (!compact)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Text(
+                    MaterialLocalizations.of(context)
+                        .formatFullDate(DateTime.now()),
+                    style: const TextStyle(color: DeptAccountingColors.muted),
+                  ),
                 ),
-              ),
             ],
           ),
           if (manage) StartupGuide(dependencies: d),
@@ -75,7 +78,9 @@ class _OverviewPageState extends State<OverviewPage> {
                 manage: manage,
                 wide: wide,
               );
-              final actions = _QuickActions(d: d, wide: wide);
+              final actions = compact
+                  ? _MobileQuickActions(d: d)
+                  : _QuickActions(d: d, wide: wide);
               final invoices = _RecentInvoices(
                 d: d,
                 invoices: vm.invoices,
@@ -88,7 +93,36 @@ class _OverviewPageState extends State<OverviewPage> {
               );
               if (!wide) {
                 return SectionStack(
-                  children: [actions, chart, invoices, stock],
+                  children: [
+                    if (compact)
+                      DeptAccountingPanel(
+                        title: 'مبيعات اليوم',
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              '${Numbers.format(vm.activity.lastOrNull?.sales ?? 0)} ${d.store.shop!.currencyLabel}',
+                              style: Theme.of(context).textTheme.headlineMedium
+                                  ?.copyWith(
+                                    color: DeptAccountingColors.primary,
+                                  ),
+                            ),
+                            if (manage)
+                              Text(
+                                'مجمل الربح ${Numbers.format(vm.activity.lastOrNull?.profit ?? 0)} ${d.store.shop!.currencyLabel}',
+                                style: const TextStyle(
+                                  color: DeptAccountingColors.muted,
+                                  fontSize: 12,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    actions,
+                    chart,
+                    invoices,
+                    stock,
+                  ],
                 );
               }
               Widget row(
@@ -270,12 +304,50 @@ class _Legend extends StatelessWidget {
   );
 }
 
+class _MobileQuickActions extends StatelessWidget {
+  const _MobileQuickActions({required this.d});
+  final AppDependencies d;
+  @override
+  Widget build(BuildContext context) => FieldGrid(
+    key: const ValueKey('overview-quick-actions'),
+    minWidth: 130,
+    children: [
+      DeptAccountingButton(
+        label: 'فاتورة بيع',
+        icon: Icons.receipt_long_outlined,
+        onPressed: () => context.go('/sales/new/${d.store.id()}'),
+      ),
+      if (d.store.user!.canManage)
+        DeptAccountingButton(
+          label: 'فاتورة شراء',
+          icon: Icons.shopping_bag_outlined,
+          variant: DeptAccountingButtonVariant.secondary,
+          onPressed: () => context.go('/purchases/new/${d.store.id()}'),
+        ),
+      DeptAccountingButton(
+        label: 'سند قبض',
+        icon: Icons.south_west,
+        variant: DeptAccountingButtonVariant.secondary,
+        onPressed: () => context.go('/finance/new?kind=receipt'),
+      ),
+      if (d.store.user!.canManage)
+        DeptAccountingButton(
+          label: 'تسجيل مصروف',
+          icon: Icons.north_east,
+          variant: DeptAccountingButtonVariant.secondary,
+          onPressed: () => context.go('/finance/new?kind=expense'),
+        ),
+    ],
+  );
+}
+
 class _QuickActions extends StatelessWidget {
   const _QuickActions({required this.d, required this.wide});
   final AppDependencies d;
   final bool wide;
   @override
   Widget build(BuildContext context) => DeptAccountingPanel(
+    key: const ValueKey('overview-quick-actions'),
     title: 'خطوة سريعة',
     minHeight: wide ? 440 : 0,
     showHeaderDivider: false,
@@ -366,6 +438,41 @@ class _RecentInvoices extends StatelessWidget {
       constraints: BoxConstraints(minHeight: wide ? 360 : 0),
       child: DeptAccountingDataTable(
         minWidth: 680,
+        compactRowBuilder: (context, index) {
+          final row = invoices[index];
+          return Padding(
+            padding: const EdgeInsets.all(8),
+            child: DeptAccountingRecordTile(
+              title: row.document.number,
+              subtitle: row.customer,
+              leading: Icons.receipt_long_outlined,
+              onTap: () => context.go('/sales/view/${row.document.id}'),
+              details: Wrap(
+                spacing: 12,
+                runSpacing: 8,
+                alignment: WrapAlignment.spaceBetween,
+                children: [
+                  DeptAccountingAmount(
+                    Numbers.format(row.document.total),
+                    currency: d.store.shop!.currencyLabel,
+                  ),
+                  DeptAccountingStatusTag(
+                    row.cancelled
+                        ? 'ملغاة'
+                        : row.due == 0
+                        ? 'مسددة'
+                        : 'متبقي ${Numbers.format(row.due)}',
+                    tone: row.cancelled
+                        ? DeptAccountingTone.neutral
+                        : row.due == 0
+                        ? DeptAccountingTone.success
+                        : DeptAccountingTone.warning,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
         columnSpacing: 12,
         horizontalMargin: 20,
         showPagination: false,

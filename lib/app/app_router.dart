@@ -19,9 +19,11 @@ import '../features/overview/presentation/overview_page.dart';
 import '../features/settings/presentation/settings_page.dart';
 import '../features/profile/presentation/profile_page.dart';
 import 'dependencies.dart';
+import 'more_page.dart';
 import '../features/returns/presentation/return_page.dart';
 import '../features/receiving/presentation/receiving_page.dart';
 import '../features/inventory/presentation/inventory_page.dart';
+import '../features/inventory/presentation/inventory_list_page.dart';
 
 GoRouter createRouter(AppDependencies d) => GoRouter(
   refreshListenable: d.store,
@@ -73,6 +75,10 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
             _AppWorkspace(d: d, path: state.uri.path, child: child!),
       ),
       routes: [
+        _featureRoute(
+          path: '/more',
+          builder: (context, state) => MorePage(dependencies: d),
+        ),
         _featureRoute(
           path: '/',
           builder: (context, state) => OverviewPage(dependencies: d),
@@ -200,6 +206,10 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
           ),
         ),
         _featureRoute(
+          path: '/inventory',
+          builder: (context, state) => InventoryListPage(dependencies: d),
+        ),
+        _featureRoute(
           path: '/inventory/:id',
           builder: (context, state) => InventoryPage(
             key: ValueKey(state.uri),
@@ -318,29 +328,90 @@ class _AppWorkspace extends StatelessWidget {
         const SingleActivator(LogicalKeyboardKey.keyL, control: true):
             d.store.logout,
       },
-      child: DeptAccountingWorkspace(
-        libraryMode: false,
-        scrollBody: false,
-        notice: d.store.user!.canManage
-            ? BackupStatusNotice(
-                backups: d.backups,
-                padding: const EdgeInsets.all(12),
-              )
-            : null,
-        destinations: items.map((i) => (label: i.label, icon: i.icon)).toList(),
-        selectedIndex: selected < 0 ? 0 : selected,
-        title: items[selected < 0 ? 0 : selected].label,
-        profileName: d.store.user!.displayName,
-        profileRole: d.store.user!.roleLabel,
-        onProfilePressed: () => context.go('/profile'),
-        onSelected: (index) {
-          context.go(
-            items[index].path == '/pos'
-                ? '/pos/${d.store.id()}'
-                : items[index].path,
-          );
+      child: PopScope(
+        canPop:
+            MediaQuery.sizeOf(context).width >= DeptAccountingLayout.compact ||
+            path == '/',
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop) return;
+          if (const [
+            '/sales',
+            '/catalog',
+            '/finance',
+            '/more',
+          ].contains(path)) {
+            context.go('/');
+          } else if (const [
+            '/purchases',
+            '/receiving',
+            '/parties',
+            '/reports',
+            '/settings',
+            '/inventory',
+            '/profile',
+          ].contains(path)) {
+            context.go('/more');
+          }
         },
-        child: child,
+        child: DeptAccountingWorkspace(
+          compactDestinations: const [
+            (label: 'الرئيسية', icon: Icons.home_outlined),
+            (label: 'المبيعات', icon: Icons.receipt_long_outlined),
+            (label: 'المنتجات', icon: Icons.inventory_2_outlined),
+            (label: 'المالية', icon: Icons.account_balance_wallet_outlined),
+            (label: 'المزيد', icon: Icons.grid_view_outlined),
+          ],
+          compactSelectedIndex: path == '/'
+              ? 0
+              : path == '/sales'
+              ? 1
+              : path == '/catalog'
+              ? 2
+              : path == '/finance'
+              ? 3
+              : 4,
+          onCompactSelected: (index) => context.go(
+            const ['/', '/sales', '/catalog', '/finance', '/more'][index],
+          ),
+          compactFocused: !const [
+            '/',
+            '/sales',
+            '/catalog',
+            '/finance',
+            '/more',
+            '/purchases',
+            '/receiving',
+            '/parties',
+            '/reports',
+            '/settings',
+            '/inventory',
+            '/profile',
+          ].contains(path),
+          libraryMode: false,
+          scrollBody: false,
+          notice: d.store.user!.canManage
+              ? BackupStatusNotice(
+                  backups: d.backups,
+                  padding: const EdgeInsets.all(12),
+                )
+              : null,
+          destinations: items
+              .map((i) => (label: i.label, icon: i.icon))
+              .toList(),
+          selectedIndex: selected < 0 ? 0 : selected,
+          title: items[selected < 0 ? 0 : selected].label,
+          profileName: d.store.user!.displayName,
+          profileRole: d.store.user!.roleLabel,
+          onProfilePressed: () => context.go('/profile'),
+          onSelected: (index) {
+            context.go(
+              items[index].path == '/pos'
+                  ? '/pos/${d.store.id()}'
+                  : items[index].path,
+            );
+          },
+          child: child,
+        ),
       ),
     );
   }
@@ -351,6 +422,19 @@ GoRoute _featureRoute({
   required Widget Function(BuildContext, GoRouterState) builder,
 }) => GoRoute(
   path: path,
-  builder: (context, state) =>
-      DeptAccountingPageBody(child: builder(context, state)),
+  builder: (context, state) {
+    final page = builder(context, state);
+    // Work pages own the viewport to keep their compact action bars reachable.
+    if (page is InvoiceEditorPage ||
+        page is ProductPage ||
+        page is PartyPage ||
+        page is OpeningStockPage ||
+        page is InventoryPage ||
+        page is ReturnPage ||
+        page is FinanceEditorPage ||
+        page is DocumentPage) {
+      return page;
+    }
+    return DeptAccountingPageBody(child: page);
+  },
 );

@@ -158,7 +158,7 @@ void main() {
         expect(find.text('حركة المبيعات'), findsOneWidget);
         expect(tester.takeException(), isNull, reason: 'overview at $width');
         final actions = tester.getRect(
-          find.widgetWithText(DeptAccountingPanel, 'خطوة سريعة'),
+          find.byKey(const ValueKey('overview-quick-actions')),
         );
         final chart = tester.getRect(
           find.widgetWithText(DeptAccountingPanel, 'حركة المبيعات'),

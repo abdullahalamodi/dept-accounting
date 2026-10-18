@@ -227,7 +227,15 @@ class DeptAccountingPanel extends StatelessWidget {
             ),
             if (showHeaderDivider) const Divider(),
           ],
-          Padding(padding: padding, child: child),
+          Padding(
+            padding:
+                MediaQuery.sizeOf(context).width <
+                        DeptAccountingLayout.compact &&
+                    padding == const EdgeInsets.all(DeptAccountingSpace.xl)
+                ? const EdgeInsets.all(DeptAccountingSpace.lg)
+                : padding,
+            child: child,
+          ),
         ],
       ),
     ),
@@ -251,7 +259,12 @@ class DeptAccountingPageHeader extends StatelessWidget {
       final text = Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: Theme.of(context).textTheme.headlineMedium),
+          Text(
+            title,
+            style: size.maxWidth < DeptAccountingLayout.compact
+                ? Theme.of(context).textTheme.headlineSmall
+                : Theme.of(context).textTheme.headlineMedium,
+          ),
           const SizedBox(height: 4),
           Text(
             description,
@@ -740,7 +753,13 @@ class DeptAccountingSummaryLine extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 16),
-        DeptAccountingAmount(value, emphasized: total, currency: currency),
+        Flexible(
+          child: DeptAccountingAmount(
+            value,
+            emphasized: total,
+            currency: currency,
+          ),
+        ),
       ],
     ),
   );

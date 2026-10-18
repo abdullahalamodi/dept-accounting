@@ -1,4 +1,5 @@
 import '../data/catalog_tasks.dart';
+import '../../inventory/data/inventory_tasks.dart';
 import '../../../core/ui/database_query.dart';
 
 import 'package:flutter/material.dart';
@@ -28,6 +29,7 @@ class CatalogPage extends StatefulWidget {
 }
 
 class _CatalogPageState extends State<CatalogPage> {
+  bool filtersOpen = false;
   late final vm = CatalogViewModel(widget.dependencies.catalog)
     ..lowOnly = widget.lowStockOnly;
   final category = TextEditingController();
@@ -63,6 +65,8 @@ class _CatalogPageState extends State<CatalogPage> {
           vm.pageSize,
         ),
         builder: (context, results) {
+          final compact =
+              MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact;
           return SectionStack(
             children: [
               DeptAccountingPageHeader(
@@ -77,53 +81,106 @@ class _CatalogPageState extends State<CatalogPage> {
                 ],
               ),
               CatalogNavigation(selected: '/catalog', canManage: manage),
-              ErrorNotice(vm.error),
+              if (vm.error != null) ErrorNotice(vm.error),
               DeptAccountingPanel(
                 child: FieldGrid(
                   children: [
-                    DeptAccountingField(
-                      label: 'بحث بالاسم أو الباركود',
-                      onChanged: vm.filter,
-                    ),
-                    CatalogReferenceField(
-                      repository: widget.dependencies.catalogReferences,
-                      kind: CatalogReferenceKind.category,
-                      controller: category,
-                      label: 'التصنيف',
-                      optional: true,
-                      emptyLabel: 'كل التصنيفات',
-                      onChanged: (value) {
-                        vm.category = value;
-                        vm.filter(vm.search);
-                      },
-                    ),
-                    Wrap(
+                    Row(
                       children: [
-                        DeptAccountingFilterChip(
-                          label: const Text('مخزون منخفض'),
-                          selected: vm.lowOnly,
-                          onSelected: (v) {
-                            vm.lowOnly = v;
-                            vm.filter(vm.search);
-                          },
+                        Expanded(
+                          child: DeptAccountingField(
+                            label: 'بحث بالاسم أو الباركود',
+                            onChanged: vm.filter,
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        DeptAccountingFilterChip(
-                          label: const Text('الخدمات'),
-                          selected: vm.servicesOnly,
-                          onSelected: (v) {
-                            vm.servicesOnly = v;
-                            vm.filter(vm.search);
-                          },
-                        ),
+                        if (compact)
+                          IconButton(
+                            tooltip: 'تصفية المنتجات',
+                            icon: Icon(
+                              filtersOpen ? Icons.filter_list_off : Icons.tune,
+                            ),
+                            onPressed: () =>
+                                setState(() => filtersOpen = !filtersOpen),
+                          ),
                       ],
                     ),
+                    if (!compact || filtersOpen)
+                      CatalogReferenceField(
+                        repository: widget.dependencies.catalogReferences,
+                        kind: CatalogReferenceKind.category,
+                        controller: category,
+                        label: 'التصنيف',
+                        optional: true,
+                        emptyLabel: 'كل التصنيفات',
+                        onChanged: (value) {
+                          vm.category = value;
+                          vm.filter(vm.search);
+                        },
+                      ),
+                    if (!compact || filtersOpen)
+                      Wrap(
+                        children: [
+                          DeptAccountingFilterChip(
+                            label: const Text('مخزون منخفض'),
+                            selected: vm.lowOnly,
+                            onSelected: (v) {
+                              vm.lowOnly = v;
+                              vm.filter(vm.search);
+                            },
+                          ),
+                          const SizedBox(width: 8),
+                          DeptAccountingFilterChip(
+                            label: const Text('الخدمات'),
+                            selected: vm.servicesOnly,
+                            onSelected: (v) {
+                              vm.servicesOnly = v;
+                              vm.filter(vm.search);
+                            },
+                          ),
+                        ],
+                      ),
                   ],
                 ),
               ),
               DeptAccountingPanel(
                 padding: EdgeInsets.zero,
                 child: DeptAccountingDataTable(
+                  compactRowBuilder: (context, index) {
+                    final row = results.items[index], product = row.product;
+                    return Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: DeptAccountingRecordTile(
+                        title: product.name,
+                        subtitle: [
+                          if (product.category.isNotEmpty) product.category,
+                          if (product.barcode.isNotEmpty) product.barcode,
+                        ].join(' · '),
+                        leading: Icons.inventory_2_outlined,
+                        onTap: () => context.go('/catalog/${product.id}'),
+                        details: Wrap(
+                          spacing: 16,
+                          runSpacing: 8,
+                          alignment: WrapAlignment.spaceBetween,
+                          children: [
+                            DeptAccountingAmount(
+                              Numbers.format(product.salePrice),
+                              currency: currency,
+                            ),
+                            Text(
+                              product.service
+                                  ? 'خدمة'
+                                  : '${Numbers.format(row.quantity, decimals: 3)} ${product.unit}',
+                            ),
+                            if (!product.active)
+                              const DeptAccountingStatusTag(
+                                'موقوف',
+                                tone: DeptAccountingTone.warning,
+                              ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                   columns: [
                     const DataColumn(label: Text('المنتج')),
                     const DataColumn(label: Text('الباركود')),
@@ -223,6 +280,7 @@ class ProductPage extends StatefulWidget {
 }
 
 class _ProductPageState extends State<ProductPage> {
+  bool editing = false;
   late final vm = CatalogViewModel(widget.dependencies.catalog);
   late final Product? product = widget.id == 'new'
       ? null
@@ -289,6 +347,88 @@ class _ProductPageState extends State<ProductPage> {
         message: 'ارجع إلى قائمة المنتجات.',
       );
     }
+    if (MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact &&
+        product != null &&
+        !editing) {
+      final d = widget.dependencies;
+      final p = d.catalog.get(id);
+      final currency = d.store.shop!.currencyLabel;
+      return DatabaseQuery(
+        store: d.store,
+        task: InventoryTasks.snapshot(id, 1),
+        queryKey: id,
+        builder: (context, data) => WorkPage(
+          title: p.name,
+          onBack: () => context.go('/catalog'),
+          actions: [
+            if (manage)
+              DeptAccountingButton(
+                label: 'تعديل المنتج',
+                icon: Icons.edit_outlined,
+                onPressed: () => setState(() => editing = true),
+              ),
+          ],
+          child: SectionStack(
+            children: [
+              DeptAccountingRecordTile(
+                title: p.name,
+                subtitle: [
+                  p.category,
+                  if (p.barcode.isNotEmpty) p.barcode,
+                ].where((v) => v.isNotEmpty).join(' · '),
+                leading: Icons.inventory_2_outlined,
+                details: DeptAccountingStatusTag(
+                  p.active ? 'نشط' : 'موقوف',
+                  tone: p.active
+                      ? DeptAccountingTone.success
+                      : DeptAccountingTone.warning,
+                ),
+              ),
+              DeptAccountingPanel(
+                title: 'الأسعار والوحدات',
+                child: Column(
+                  children: [
+                    DeptAccountingSummaryLine(
+                      label: 'سعر البيع لكل ${p.unit}',
+                      value: Numbers.format(p.salePrice),
+                      currency: currency,
+                    ),
+                    if (manage)
+                      DeptAccountingSummaryLine(
+                        label: 'تكلفة الوحدة',
+                        value: Numbers.format(p.purchasePrice),
+                        currency: currency,
+                      ),
+                    if (p.alternateUnit.isNotEmpty)
+                      Text(
+                        '1 ${p.alternateUnit} = ${Numbers.format(p.factor, decimals: 3)} ${p.unit}',
+                      ),
+                  ],
+                ),
+              ),
+              if (!p.service)
+                DeptAccountingMetricCard(
+                  label: 'الكمية المتاحة',
+                  value: Numbers.format(data.stock.quantity, decimals: 3),
+                  caption: p.unit,
+                ),
+              if (manage && !p.service)
+                DeptAccountingButton(
+                  label: 'حركة المخزون والجرد',
+                  variant: DeptAccountingButtonVariant.secondary,
+                  onPressed: () => context.go('/inventory/$id'),
+                ),
+              if (manage && d.catalog.openingUnavailableReason(id) == null)
+                DeptAccountingButton(
+                  label: 'إضافة مخزون افتتاحي',
+                  variant: DeptAccountingButtonVariant.secondary,
+                  onPressed: () => context.go('/catalog/$id/opening'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }
     final canAddOpening =
         manage &&
         !service &&
@@ -299,7 +439,14 @@ class _ProductPageState extends State<ProductPage> {
       builder: (context, _) => WorkPage(
         busy: vm.busy,
         title: product == null ? 'منتج جديد' : product!.name,
-        onBack: () => context.go('/catalog'),
+        onBack: () {
+          if (editing &&
+              MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact) {
+            setState(() => editing = false);
+          } else {
+            context.go('/catalog');
+          }
+        },
         actions: [
           if (manage && product != null && !service)
             DeptAccountingButton(

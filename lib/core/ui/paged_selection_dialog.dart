@@ -55,9 +55,8 @@ class _PagedSelectionDialogState<T> extends State<PagedSelectionDialog<T>> {
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: vm,
-    builder: (context, _) => AlertDialog(
-      title: Text(widget.title),
-      content: SizedBox(
+    builder: (context, _) {
+      final content = SizedBox(
         width: widget.width,
         child: SingleChildScrollView(
           child: SectionStack.form(
@@ -89,6 +88,32 @@ class _PagedSelectionDialogState<T> extends State<PagedSelectionDialog<T>> {
               else if (vm.value case final results?)
                 DeptAccountingDataTable(
                   minWidth: widget.minWidth,
+                  compactRowBuilder: (context, index) {
+                    final item = results.items[index];
+                    final cells = widget.cells(item);
+                    return ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 4,
+                        vertical: 10,
+                      ),
+                      title: cells.first.child,
+                      subtitle: Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            for (final cell in cells.skip(1)) cell.child,
+                          ],
+                        ),
+                      ),
+                      trailing: DeptAccountingButton.table(
+                        label: widget.selectLabel,
+                        onPressed: () => widget.onSelected(item),
+                      ),
+                      onTap: () => widget.onSelected(item),
+                    );
+                  },
                   columns: [
                     ...widget.columns,
                     const DataColumn(label: Text('الإجراء')),
@@ -118,15 +143,45 @@ class _PagedSelectionDialogState<T> extends State<PagedSelectionDialog<T>> {
             ],
           ),
         ),
-      ),
-      actions: [
+      );
+      final actions = <Widget>[
         ...widget.actions,
         DeptAccountingButton(
           label: 'إغلاق',
           variant: DeptAccountingButtonVariant.quiet,
           onPressed: () => Navigator.pop(context),
         ),
-      ],
-    ),
+      ];
+      if (MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact) {
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+              child: Text(
+                widget.title,
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+            ),
+            Flexible(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: content,
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Wrap(spacing: 8, runSpacing: 8, children: actions),
+            ),
+          ],
+        );
+      }
+      return AlertDialog(
+        title: Text(widget.title),
+        content: content,
+        actions: actions,
+      );
+    },
   );
 }

@@ -72,6 +72,35 @@ class _ReceivingPageState extends State<ReceivingPage> {
               DeptAccountingPanel(
                 title: 'استلامات تنتظر فاتورة المورد',
                 child: DeptAccountingDataTable(
+                  compactRowBuilder: (context, index) {
+                    final doc = docs.items[index];
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: DeptAccountingRecordTile(
+                        title: doc.number,
+                        subtitle:
+                            '${doc.partyName} · ${formatDocumentDateTime(doc.date)}',
+                        leading: Icons.local_shipping_outlined,
+                        onTap: () => context.go(
+                          '/receiving/finalize/${doc.id}/${d.store.id()}',
+                        ),
+                        details: Wrap(
+                          spacing: 12,
+                          runSpacing: 8,
+                          children: [
+                            DeptAccountingAmount(
+                              Numbers.format(doc.total),
+                              currency: currency,
+                            ),
+                            const DeptAccountingStatusTag(
+                              'بانتظار فاتورة المورد',
+                              tone: DeptAccountingTone.warning,
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
                   columns: const [
                     DataColumn(label: Text('الاستلام')),
                     DataColumn(label: Text('المورد')),

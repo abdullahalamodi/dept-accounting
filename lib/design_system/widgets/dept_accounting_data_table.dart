@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../theme/dept_accounting_tokens.dart';
 import 'dept_accounting_controls.dart';
+import 'dept_accounting_mobile.dart';
 
 class DeptAccountingDataTable extends StatefulWidget {
   const DeptAccountingDataTable({
@@ -17,6 +18,7 @@ class DeptAccountingDataTable extends StatefulWidget {
     this.emptyMessage = 'جرّب البحث باسم آخر أو غيّر عوامل التصفية.',
     this.minWidth = 700,
     this.showPagination = true,
+    this.compactRowBuilder,
     this.columnSpacing,
     this.horizontalMargin,
   }) : assert(pageSize > 0),
@@ -33,6 +35,7 @@ class DeptAccountingDataTable extends StatefulWidget {
   final String emptyMessage;
   final double minWidth;
   final bool showPagination;
+  final Widget Function(BuildContext context, int index)? compactRowBuilder;
   final double? columnSpacing;
   final double? horizontalMargin;
 
@@ -67,33 +70,50 @@ class _DeptAccountingDataTableState extends State<DeptAccountingDataTable> {
           )
         else
           LayoutBuilder(
-            builder: (context, constraints) => Scrollbar(
-              controller: _horizontal,
-              thumbVisibility: true,
-              notificationPredicate: (notification) =>
-                  notification.metrics.axis == Axis.horizontal,
-              child: SingleChildScrollView(
-                controller: _horizontal,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(bottom: 10),
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(
-                    minWidth: constraints.maxWidth > widget.minWidth
-                        ? constraints.maxWidth
-                        : widget.minWidth,
+            builder: (context, constraints) =>
+                constraints.maxWidth < DeptAccountingLayout.compact
+                ? ListView.separated(
+                    shrinkWrap: true,
+                    primary: false,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: widget.rows.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) =>
+                        widget.compactRowBuilder?.call(context, index) ??
+                        DeptAccountingCompactDataRow(
+                          columns: widget.columns,
+                          row: widget.rows[index],
+                        ),
+                  )
+                : Scrollbar(
+                    controller: _horizontal,
+                    thumbVisibility: true,
+                    notificationPredicate: (notification) =>
+                        notification.metrics.axis == Axis.horizontal,
+                    child: SingleChildScrollView(
+                      controller: _horizontal,
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minWidth: constraints.maxWidth > widget.minWidth
+                              ? constraints.maxWidth
+                              : widget.minWidth,
+                        ),
+                        child: DataTable(
+                          columnSpacing: widget.columnSpacing,
+                          horizontalMargin: widget.horizontalMargin,
+                          columns: widget.columns,
+                          rows: widget.rows,
+                          showCheckboxColumn: false,
+                        ),
+                      ),
+                    ),
                   ),
-                  child: DataTable(
-                    columnSpacing: widget.columnSpacing,
-                    horizontalMargin: widget.horizontalMargin,
-                    columns: widget.columns,
-                    rows: widget.rows,
-                    showCheckboxColumn: false,
-                  ),
-                ),
-              ),
-            ),
           ),
-        if (widget.showPagination) ...[
+        if (widget.showPagination &&
+            (MediaQuery.sizeOf(context).width >= DeptAccountingLayout.compact ||
+                widget.totalRows > widget.pageSize)) ...[
           const Divider(),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

@@ -49,6 +49,8 @@ class _DocumentPageState extends State<DocumentPage> {
                   ? '/sales'
                   : doc.kind == 'purchase'
                   ? '/purchases'
+                  : doc.kind == 'quick_receipt'
+                  ? '/receiving'
                   : '/finance',
             ),
             child: SectionStack(

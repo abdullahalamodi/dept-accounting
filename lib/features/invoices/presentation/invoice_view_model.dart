@@ -175,16 +175,18 @@ class InvoiceViewModel extends ActionViewModel {
     edit();
   }
 
+  String priceForUnit(Product product, String unit) => Numbers.input(
+    Numbers.ratio(
+      sale ? product.salePrice : product.purchasePrice,
+      unit == product.unit ? 1000 : product.factor,
+      1000,
+    ),
+  );
+
   void changeUnit(InvoiceItemInput line, String unit) {
-    final p = d.catalog.get(line.productId);
+    final product = d.catalog.get(line.productId);
     line.unit = unit;
-    line.price = Numbers.input(
-      Numbers.ratio(
-        sale ? p.salePrice : p.purchasePrice,
-        unit == p.unit ? 1000 : p.factor,
-        1000,
-      ),
-    );
+    line.price = priceForUnit(product, unit);
     edit();
   }
 

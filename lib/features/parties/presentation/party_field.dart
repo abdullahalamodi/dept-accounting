@@ -37,7 +37,7 @@ class PartyField extends StatelessWidget {
       onTap: !enabled
           ? null
           : () async {
-              final id = await showDialog<String>(
+              final id = await showDeptAccountingAdaptiveDialog<String>(
                 context: context,
                 builder: (dialogContext) => PagedSelectionDialog<Party>(
                   title: customer ? 'اختيار العميل' : 'اختيار المورد',

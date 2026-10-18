@@ -21,6 +21,10 @@ class DeptAccountingWorkspace extends StatelessWidget {
     this.profileName,
     this.profileRole,
     this.onProfilePressed,
+    this.compactDestinations = const [],
+    this.compactSelectedIndex = 0,
+    this.onCompactSelected,
+    this.compactFocused = false,
   });
   final List<DeptAccountingDestination> destinations;
   final int selectedIndex;
@@ -34,11 +38,17 @@ class DeptAccountingWorkspace extends StatelessWidget {
   final String? profileName;
   final String? profileRole;
   final VoidCallback? onProfilePressed;
+  final List<DeptAccountingDestination> compactDestinations;
+  final int compactSelectedIndex;
+  final ValueChanged<int>? onCompactSelected;
+  final bool compactFocused;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, size) {
       final expanded = size.maxWidth >= DeptAccountingLayout.expanded;
+      final compact =
+          size.maxWidth < DeptAccountingLayout.compact && !libraryMode;
       final scrollNotice =
           size.maxWidth < DeptAccountingLayout.compact && notice != null;
       final body = scrollBody
@@ -63,6 +73,26 @@ class DeptAccountingWorkspace extends StatelessWidget {
               },
       );
       return Scaffold(
+        bottomNavigationBar:
+            compact && !compactFocused && compactDestinations.isNotEmpty
+            ? NavigationBar(
+                selectedIndex: compactSelectedIndex,
+                onDestinationSelected: onCompactSelected,
+                height: 72,
+                backgroundColor: DeptAccountingColors.surface,
+                indicatorColor: DeptAccountingColors.primarySoft,
+                labelTextStyle: const WidgetStatePropertyAll(
+                  TextStyle(fontSize: 11),
+                ),
+                destinations: [
+                  for (final item in compactDestinations)
+                    NavigationDestination(
+                      icon: Icon(item.icon, size: 22),
+                      label: item.label,
+                    ),
+                ],
+              )
+            : null,
         drawer: expanded
             ? null
             : Drawer(
@@ -78,41 +108,48 @@ class DeptAccountingWorkspace extends StatelessWidget {
               Expanded(
                 child: Column(
                   children: [
-                    Container(
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        border: Border(
-                          bottom: BorderSide(
-                            color: DeptAccountingColors.border,
+                    if (!compact || !compactFocused)
+                      Container(
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          border: Border(
+                            bottom: BorderSide(
+                              color: DeptAccountingColors.border,
+                            ),
                           ),
                         ),
-                      ),
-                      padding: EdgeInsets.symmetric(
-                        horizontal: size.maxWidth < 600 ? 16 : 32,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          if (!expanded)
-                            Builder(
-                              builder: (context) => IconButton(
-                                tooltip: 'فتح القائمة',
-                                icon: const Icon(Icons.menu),
-                                onPressed: () =>
-                                    Scaffold.of(context).openDrawer(),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: size.maxWidth < 600 ? 16 : 32,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          children: [
+                            if (!expanded && !compact)
+                              Builder(
+                                builder: (context) => IconButton(
+                                  tooltip: 'فتح القائمة',
+                                  icon: const Icon(Icons.menu),
+                                  onPressed: () =>
+                                      Scaffold.of(context).openDrawer(),
+                                ),
+                              ),
+                            Expanded(
+                              child: Text(
+                                compact ? appName : '$appName  /  $title',
+                                style: const TextStyle(
+                                  color: DeptAccountingColors.muted,
+                                ),
                               ),
                             ),
-                          Expanded(
-                            child: Text(
-                              '$appName  /  $title',
-                              style: const TextStyle(
-                                color: DeptAccountingColors.muted,
+                            if (compact && onProfilePressed != null)
+                              IconButton(
+                                tooltip: 'الملف الشخصي',
+                                onPressed: onProfilePressed,
+                                icon: const Icon(Icons.person_outline),
                               ),
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
                     if (!scrollNotice) ?notice,
                     Expanded(
                       child: scrollNotice
@@ -146,6 +183,9 @@ class _ScrollingWorkspaceNotice extends InheritedWidget {
 class DeptAccountingPageBody extends StatelessWidget {
   const DeptAccountingPageBody({super.key, required this.child});
   final Widget child;
+  static Widget? noticeOf(BuildContext context) => context
+      .dependOnInheritedWidgetOfExactType<_ScrollingWorkspaceNotice>()
+      ?.notice;
   @override
   Widget build(BuildContext context) {
     final notice = context

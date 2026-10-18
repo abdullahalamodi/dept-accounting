@@ -74,6 +74,41 @@ class _InvoicesPageState extends State<InvoicesPage> {
             DeptAccountingPanel(
               padding: EdgeInsets.zero,
               child: DeptAccountingDataTable(
+                compactRowBuilder: (context, index) {
+                  final doc = documents.items[index];
+                  return Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: DeptAccountingRecordTile(
+                      title: doc.number,
+                      subtitle:
+                          '${doc.partyId == null ? 'بيع نقدي' : doc.partyName} · ${formatDocumentDateTime(doc.date)}',
+                      leading: widget.sale
+                          ? Icons.receipt_long_outlined
+                          : Icons.shopping_bag_outlined,
+                      onTap: () => context.go('$path/view/${doc.id}'),
+                      details: Wrap(
+                        spacing: 16,
+                        runSpacing: 8,
+                        alignment: WrapAlignment.spaceBetween,
+                        children: [
+                          DeptAccountingAmount(
+                            Numbers.format(doc.total),
+                            currency: currency,
+                            emphasized: true,
+                          ),
+                          DeptAccountingStatusTag(
+                            doc.due == 0
+                                ? 'مسددة'
+                                : 'متبقي ${Numbers.format(doc.due)} $currency',
+                            tone: doc.due == 0
+                                ? DeptAccountingTone.success
+                                : DeptAccountingTone.warning,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
                 columns: const [
                   DataColumn(label: Text('رقم الفاتورة')),
                   DataColumn(label: Text('التاريخ')),

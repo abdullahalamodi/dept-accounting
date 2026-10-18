@@ -98,7 +98,7 @@ class _CreditPanelState extends State<CreditPanel> {
                         : '${selected.number} · ${Numbers.format(selected.available)} $currency',
                     suffixIcon: const Icon(Icons.expand_more),
                     onTap: () async {
-                      final id = await showDialog<String>(
+                      final id = await showDeptAccountingAdaptiveDialog<String>(
                         context: context,
                         builder: (dialogContext) =>
                             PagedSelectionDialog<CreditSummary>(

@@ -89,15 +89,23 @@ class _DatabaseQueryState<T> extends State<DatabaseQuery<T>> {
         return widget.dialog ? const Dialog(child: state) : state;
       }
       if (widget.dialog) return widget.builder(context, value);
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: 4,
-            child: query.loading ? const LinearProgressIndicator() : null,
-          ),
-          widget.builder(context, value),
-        ],
+      return LayoutBuilder(
+        builder: (context, constraints) {
+          final content = widget.builder(context, value);
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: 4,
+                child: query.loading ? const LinearProgressIndicator() : null,
+              ),
+              if (constraints.hasBoundedHeight)
+                Expanded(child: content)
+              else
+                content,
+            ],
+          );
+        },
       );
     },
   );

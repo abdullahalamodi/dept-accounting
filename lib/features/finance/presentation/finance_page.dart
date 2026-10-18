@@ -25,6 +25,7 @@ class FinancePage extends StatefulWidget {
 }
 
 class _FinancePageState extends State<FinancePage> {
+  bool showOpening = false;
   late final vm = FinanceViewModel(widget.dependencies);
   final opening = TextEditingController();
   bool _openingInitialized = false;
@@ -51,6 +52,8 @@ class _FinancePageState extends State<FinancePage> {
         queryKey: page,
         builder: (context, data) {
           final docs = data.documents, accounts = data.accounts;
+          final compact =
+              MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact;
           final closed = d.store.setting('opening_closed') == 'true',
               selectedCode = openingAccount ?? accounts.first.code;
           final existing = data.opening
@@ -85,18 +88,52 @@ class _FinancePageState extends State<FinancePage> {
                 ],
               ),
               ErrorNotice(vm.error),
-              FieldGrid(
-                runSpacing: DeptAccountingSpace.xl,
-                children: [
-                  for (final a in accounts)
-                    DeptAccountingMetricCard(
-                      label: a.name,
-                      value: '${Numbers.format(a.balance)} $currency',
-                      caption: 'الرصيد المتاح',
+              if (compact)
+                DeptAccountingPanel(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 4,
+                  ),
+                  child: Column(
+                    children: [
+                      for (final account in accounts)
+                        DeptAccountingSummaryLine(
+                          label: account.name,
+                          value: Numbers.format(account.balance),
+                          currency: currency,
+                        ),
+                    ],
+                  ),
+                ),
+              if (!compact)
+                FieldGrid(
+                  runSpacing: DeptAccountingSpace.xl,
+                  children: [
+                    for (final a in accounts)
+                      DeptAccountingMetricCard(
+                        label: a.name,
+                        value: '${Numbers.format(a.balance)} $currency',
+                        caption: 'الرصيد المتاح',
+                      ),
+                  ],
+                ),
+              if (compact && manage)
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    DeptAccountingFilterChip(
+                      label: const Text('الحركات'),
+                      selected: !showOpening,
+                      onSelected: (_) => setState(() => showOpening = false),
                     ),
-                ],
-              ),
-              if (manage)
+                    DeptAccountingFilterChip(
+                      label: const Text('أرصدة البداية'),
+                      selected: showOpening,
+                      onSelected: (_) => setState(() => showOpening = true),
+                    ),
+                  ],
+                ),
+              if (manage && (!compact || showOpening))
                 DeptAccountingPanel(
                   title: 'إعداد الحسابات وأرصدة البداية',
                   action: DeptAccountingButton.table(
@@ -172,53 +209,77 @@ class _FinancePageState extends State<FinancePage> {
                     ],
                   ),
                 ),
-              if (manage)
+              if (manage && (!compact || showOpening))
                 OpeningReviewPanel(
                   vm: vm,
                   balances: data.opening,
                   editable: data.editable,
                   equity: data.openingEquity,
                 ),
-              DeptAccountingPanel(
-                title: 'الحركات المالية',
-                padding: EdgeInsets.zero,
-                child: DeptAccountingDataTable(
-                  columns: const [
-                    DataColumn(label: Text('المرجع')),
-                    DataColumn(label: Text('النوع')),
-                    DataColumn(label: Text('التاريخ')),
-                    DataColumn(label: Text('المبلغ')),
-                    DataColumn(label: Text('البيان')),
-                  ],
-                  rows: [
-                    for (final doc in docs.items)
-                      DataRow(
-                        cells: [
-                          DataCell(
-                            DeptAccountingButton.table(
-                              onPressed: () =>
-                                  context.go('/finance/view/${doc.id}'),
-                              label: doc.number,
-                            ),
+              if (!compact || !showOpening)
+                DeptAccountingPanel(
+                  title: 'الحركات المالية',
+                  padding: EdgeInsets.zero,
+                  child: DeptAccountingDataTable(
+                    compactRowBuilder: (context, index) {
+                      final doc = docs.items[index];
+                      return Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: DeptAccountingRecordTile(
+                          title: '${doc.label} · ${doc.number}',
+                          subtitle: formatDocumentDateTime(doc.date),
+                          leading: Icons.account_balance_wallet_outlined,
+                          onTap: () => context.go('/finance/view/${doc.id}'),
+                          details: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              if (doc.notes.isNotEmpty) Text(doc.notes),
+                              DeptAccountingAmount(
+                                Numbers.format(doc.total),
+                                currency: currency,
+                                emphasized: true,
+                              ),
+                            ],
                           ),
-                          DataCell(Text(doc.label)),
-                          DataCell(Text(formatDocumentDateTime(doc.date))),
-                          DataCell(
-                            DeptAccountingAmount(
-                              Numbers.format(doc.total),
-                              currency: currency,
+                        ),
+                      );
+                    },
+                    columns: const [
+                      DataColumn(label: Text('المرجع')),
+                      DataColumn(label: Text('النوع')),
+                      DataColumn(label: Text('التاريخ')),
+                      DataColumn(label: Text('المبلغ')),
+                      DataColumn(label: Text('البيان')),
+                    ],
+                    rows: [
+                      for (final doc in docs.items)
+                        DataRow(
+                          cells: [
+                            DataCell(
+                              DeptAccountingButton.table(
+                                onPressed: () =>
+                                    context.go('/finance/view/${doc.id}'),
+                                label: doc.number,
+                              ),
                             ),
-                          ),
-                          DataCell(Text(doc.notes)),
-                        ],
-                      ),
-                  ],
-                  totalRows: docs.total,
-                  page: docs.page,
-                  pageSize: 10,
-                  onPageChanged: (v) => setState(() => page = v),
+                            DataCell(Text(doc.label)),
+                            DataCell(Text(formatDocumentDateTime(doc.date))),
+                            DataCell(
+                              DeptAccountingAmount(
+                                Numbers.format(doc.total),
+                                currency: currency,
+                              ),
+                            ),
+                            DataCell(Text(doc.notes)),
+                          ],
+                        ),
+                    ],
+                    totalRows: docs.total,
+                    page: docs.page,
+                    pageSize: 10,
+                    onPageChanged: (v) => setState(() => page = v),
+                  ),
                 ),
-              ),
             ],
           );
         },

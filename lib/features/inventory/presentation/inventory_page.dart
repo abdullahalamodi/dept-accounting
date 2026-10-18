@@ -23,6 +23,7 @@ class InventoryPage extends StatefulWidget {
 }
 
 class _InventoryPageState extends State<InventoryPage> {
+  bool showAdjustment = false;
   late final vm = InventoryViewModel(widget.dependencies, widget.productId);
   final quantity = TextEditingController(),
       cost = TextEditingController(),
@@ -51,6 +52,8 @@ class _InventoryPageState extends State<InventoryPage> {
         queryKey: (p.id, page),
         builder: (context, data) {
           final stock = data.stock, moves = data.movements;
+          final compact =
+              MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact;
           return WorkPage(
             busy: vm.busy,
             title: 'مخزون ${p.name}',
@@ -63,129 +66,176 @@ class _InventoryPageState extends State<InventoryPage> {
                   onSavePdf: () => vm.export(),
                   onExcel: () => vm.export(pdf: false),
                 ),
-                FieldGrid(
-                  runSpacing: DeptAccountingSpace.xl,
-                  children: [
-                    DeptAccountingMetricCard(
-                      label: 'الكمية المتاحة',
-                      value: Numbers.format(stock.quantity, decimals: 3),
-                      caption: p.unit,
+                if (compact)
+                  DeptAccountingPanel(
+                    title: 'المخزون الحالي',
+                    child: Column(
+                      children: [
+                        DeptAccountingSummaryLine(
+                          label: 'المتوفر (${p.unit})',
+                          value: Numbers.format(stock.quantity, decimals: 3),
+                          currency: '',
+                          total: true,
+                        ),
+                        DeptAccountingSummaryLine(
+                          label: 'قيمة المخزون',
+                          value: Numbers.format(stock.value),
+                          currency: currency,
+                        ),
+                        DeptAccountingSummaryLine(
+                          label: 'متوسط التكلفة',
+                          value: Numbers.format(stock.unitCost, decimals: 6),
+                          currency: currency,
+                        ),
+                      ],
                     ),
-                    DeptAccountingMetricCard(
-                      label: 'قيمة المخزون',
-                      value: '${Numbers.format(stock.value)} $currency',
-                      caption: 'التكلفة الدفترية',
-                    ),
-                    DeptAccountingMetricCard(
-                      label: 'متوسط تكلفة الوحدة',
-                      value: Numbers.format(stock.unitCost, decimals: 6),
-                      caption: currency,
-                    ),
-                  ],
-                ),
-                DeptAccountingPanel(
-                  title: 'الجرد والتسوية',
-                  description: 'أدخل الكمية الفعلية المتبقية؛ الفرق يُسجّل بحركة وقيد مستقلين.',
-                  child: SectionStack.form(
+                  ),
+                if (!compact)
+                  FieldGrid(
+                    runSpacing: DeptAccountingSpace.xl,
                     children: [
-                      FieldGrid(
-                        children: [
-                          DeptAccountingField(
-                            label: 'الكمية الفعلية بعد الجرد / التالف',
-                            controller: quantity,
-                            numeric: true,
-                          ),
-                          DeptAccountingField(
-                            label: 'تكلفة الوحدات الزائدة (اختياري)',
-                            controller: cost,
-                            numeric: true,
-                          ),
-                          DeptAccountingField(
-                            label: 'سبب التسوية',
-                            controller: reason,
-                          ),
-                        ],
+                      DeptAccountingMetricCard(
+                        label: 'الكمية المتاحة',
+                        value: Numbers.format(stock.quantity, decimals: 3),
+                        caption: p.unit,
                       ),
-                      SwitchListTile(
-                        contentPadding: EdgeInsets.zero,
-                        title: const Text('تسوية تالف'),
-                        value: damaged,
-                        onChanged: (v) => setState(() => damaged = v),
+                      DeptAccountingMetricCard(
+                        label: 'قيمة المخزون',
+                        value: '${Numbers.format(stock.value)} $currency',
+                        caption: 'التكلفة الدفترية',
                       ),
-                      DeptAccountingButton(
-                        label: 'اعتماد التسوية',
-                        onPressed: () async {
-                          if (await showDeptAccountingConfirmation(
-                                context,
-                                title: 'اعتماد تسوية المخزون؟',
-                                message: 'سيُحدّث المخزون إلى الكمية الفعلية المدخلة ويُسجّل الفرق.',
-                                confirmLabel: 'اعتماد',
-                              ) &&
-                              mounted) {
-                            if (await vm.adjust(
-                                  quantity.text,
-                                  cost.text,
-                                  reason.text,
-                                  damaged,
-                                ) &&
-                                context.mounted) {
-                              showMessage(context, 'تم اعتماد التسوية');
-                            }
-                          }
-                        },
+                      DeptAccountingMetricCard(
+                        label: 'متوسط تكلفة الوحدة',
+                        value: Numbers.format(stock.unitCost, decimals: 6),
+                        caption: currency,
                       ),
                     ],
                   ),
-                ),
-                DeptAccountingPanel(
-                  title: 'حركة المخزون',
-                  child: DeptAccountingDataTable(
-                    columns: const [
-                      DataColumn(label: Text('المرجع')),
-                      DataColumn(label: Text('التاريخ')),
-                      DataColumn(label: Text('الكمية')),
-                      DataColumn(label: Text('القيمة')),
-                      DataColumn(label: Text('البيان')),
+                if (compact)
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      DeptAccountingFilterChip(
+                        label: const Text('حركة المخزون'),
+                        selected: !showAdjustment,
+                        onSelected: (_) =>
+                            setState(() => showAdjustment = false),
+                      ),
+                      DeptAccountingFilterChip(
+                        label: const Text('الجرد والتسوية'),
+                        selected: showAdjustment,
+                        onSelected: (_) =>
+                            setState(() => showAdjustment = true),
+                      ),
                     ],
-                    rows: [
-                      for (final m in moves.items)
-                        DataRow(
-                          cells: [
-                            DataCell(
-                              DeptAccountingButton.table(
-                                onPressed: () => context.go(
-                                  '/documents/${m['document_id']}',
-                                ),
-                                label: m['number'] as String,
-                              ),
+                  ),
+                if (!compact || showAdjustment)
+                  DeptAccountingPanel(
+                    title: 'الجرد والتسوية',
+                    description: 'أدخل الكمية الفعلية المتبقية؛ الفرق يُسجّل بحركة وقيد مستقلين.',
+                    child: SectionStack.form(
+                      children: [
+                        FieldGrid(
+                          children: [
+                            DeptAccountingField(
+                              label: 'الكمية الفعلية بعد الجرد / التالف',
+                              controller: quantity,
+                              numeric: true,
                             ),
-                            DataCell(
-                              Text((m['posted_at'] as String).substring(0, 10)),
+                            DeptAccountingField(
+                              label: 'تكلفة الوحدات الزائدة (اختياري)',
+                              controller: cost,
+                              numeric: true,
                             ),
-                            DataCell(
-                              Text(
-                                Numbers.format(
-                                  m['quantity'] as int,
-                                  decimals: 3,
-                                ),
-                              ),
+                            DeptAccountingField(
+                              label: 'سبب التسوية',
+                              controller: reason,
                             ),
-                            DataCell(
-                              DeptAccountingAmount(
-                                Numbers.format(m['value'] as int),
-                                currency: currency,
-                              ),
-                            ),
-                            DataCell(Text(m['note'] as String)),
                           ],
                         ),
-                    ],
-                    totalRows: moves.total,
-                    page: moves.page,
-                    pageSize: 10,
-                    onPageChanged: (v) => setState(() => page = v),
+                        SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('تسوية تالف'),
+                          value: damaged,
+                          onChanged: (v) => setState(() => damaged = v),
+                        ),
+                        DeptAccountingButton(
+                          label: 'اعتماد التسوية',
+                          onPressed: () async {
+                            if (await showDeptAccountingConfirmation(
+                                  context,
+                                  title: 'اعتماد تسوية المخزون؟',
+                                  message: 'سيُحدّث المخزون إلى الكمية الفعلية المدخلة ويُسجّل الفرق.',
+                                  confirmLabel: 'اعتماد',
+                                ) &&
+                                mounted) {
+                              if (await vm.adjust(
+                                    quantity.text,
+                                    cost.text,
+                                    reason.text,
+                                    damaged,
+                                  ) &&
+                                  context.mounted) {
+                                showMessage(context, 'تم اعتماد التسوية');
+                              }
+                            }
+                          },
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                if (!compact || !showAdjustment)
+                  DeptAccountingPanel(
+                    title: 'حركة المخزون',
+                    child: DeptAccountingDataTable(
+                      columns: const [
+                        DataColumn(label: Text('المرجع')),
+                        DataColumn(label: Text('التاريخ')),
+                        DataColumn(label: Text('الكمية')),
+                        DataColumn(label: Text('القيمة')),
+                        DataColumn(label: Text('البيان')),
+                      ],
+                      rows: [
+                        for (final m in moves.items)
+                          DataRow(
+                            cells: [
+                              DataCell(
+                                DeptAccountingButton.table(
+                                  onPressed: () => context.go(
+                                    '/documents/${m['document_id']}',
+                                  ),
+                                  label: m['number'] as String,
+                                ),
+                              ),
+                              DataCell(
+                                Text(
+                                  (m['posted_at'] as String).substring(0, 10),
+                                ),
+                              ),
+                              DataCell(
+                                Text(
+                                  Numbers.format(
+                                    m['quantity'] as int,
+                                    decimals: 3,
+                                  ),
+                                ),
+                              ),
+                              DataCell(
+                                DeptAccountingAmount(
+                                  Numbers.format(m['value'] as int),
+                                  currency: currency,
+                                ),
+                              ),
+                              DataCell(Text(m['note'] as String)),
+                            ],
+                          ),
+                      ],
+                      totalRows: moves.total,
+                      page: moves.page,
+                      pageSize: 10,
+                      onPageChanged: (v) => setState(() => page = v),
+                    ),
+                  ),
               ],
             ),
           );

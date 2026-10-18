@@ -16,7 +16,15 @@ class SectionStack extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       for (var i = 0; i < children.length; i++) ...[
-        if (i > 0) SizedBox(height: spacing),
+        if (i > 0)
+          SizedBox(
+            height:
+                MediaQuery.sizeOf(context).width <
+                        DeptAccountingLayout.compact &&
+                    spacing == DeptAccountingSpace.xl
+                ? DeptAccountingSpace.lg
+                : spacing,
+          ),
         children[i],
       ],
     ],
@@ -189,28 +197,85 @@ class WorkPage extends StatelessWidget {
   final VoidCallback onBack;
   final List<Widget> actions;
   @override
-  Widget build(BuildContext context) => ExcludeFocus(
-    excluding: busy,
-    child: AbsorbPointer(
-      absorbing: busy,
-      child: SectionStack(
-        children: [
-          DeptAccountingPageHeader(
-            title: title,
-            description:
-                '$appName · ${DateTime.now().toIso8601String().substring(0, 10)}',
-            actions: [
-              DeptAccountingButton(
-                label: 'العودة',
-                variant: DeptAccountingButtonVariant.secondary,
-                onPressed: onBack,
+  Widget build(BuildContext context) {
+    final compact =
+        MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact;
+    final contents = compact
+        ? ScaffoldMessenger(
+            child: Scaffold(
+              appBar: AppBar(
+                automaticallyImplyLeading: false,
+                leading: IconButton(
+                  tooltip: 'العودة',
+                  onPressed: busy ? null : onBack,
+                  icon: const Icon(Icons.arrow_back),
+                ),
+                title: Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-              ...actions,
-            ],
-          ),
-          child,
-        ],
+              body: DeptAccountingPageBody(child: child),
+              bottomNavigationBar:
+                  actions.isEmpty ||
+                      (MediaQuery.viewInsetsOf(context).bottom > 0 &&
+                          MediaQuery.sizeOf(context).height -
+                                  MediaQuery.viewInsetsOf(context).bottom <
+                              400)
+                  ? null
+                  : SafeArea(
+                      top: false,
+                      child: Container(
+                        decoration: const BoxDecoration(
+                          color: DeptAccountingColors.surface,
+                          border: Border(
+                            top: BorderSide(color: DeptAccountingColors.border),
+                          ),
+                        ),
+                        padding: const EdgeInsets.all(DeptAccountingSpace.lg),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            for (var i = 0; i < actions.length; i++) ...[
+                              if (i > 0) const SizedBox(height: 8),
+                              actions[i],
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+            ),
+          )
+        : DeptAccountingPageBody(
+            child: SectionStack(
+              children: [
+                DeptAccountingPageHeader(
+                  title: title,
+                  description:
+                      '$appName · ${DateTime.now().toIso8601String().substring(0, 10)}',
+                  actions: [
+                    DeptAccountingButton(
+                      label: 'العودة',
+                      variant: DeptAccountingButtonVariant.secondary,
+                      onPressed: onBack,
+                    ),
+                    ...actions,
+                  ],
+                ),
+                child,
+              ],
+            ),
+          );
+    return PopScope(
+      canPop: !compact,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && !busy) onBack();
+      },
+      child: ExcludeFocus(
+        excluding: busy,
+        child: AbsorbPointer(absorbing: busy, child: contents),
       ),
-    ),
-  );
+    );
+  }
 }

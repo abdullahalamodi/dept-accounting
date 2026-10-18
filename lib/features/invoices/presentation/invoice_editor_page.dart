@@ -11,6 +11,7 @@ import '../../../design_system/dept_accounting_design_system.dart';
 import 'invoice_view_model.dart';
 import 'invoice_items_table.dart';
 import 'invoice_summary_panel.dart';
+import 'mobile/mobile_invoice_editor.dart';
 
 class InvoiceEditorPage extends StatefulWidget {
   const InvoiceEditorPage({
@@ -49,7 +50,7 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
   }
 
   Future<void> picker() async {
-    await showDialog<void>(
+    await showDeptAccountingAdaptiveDialog<void>(
       context: context,
       builder: (context) => _ProductPicker(vm: vm),
     );
@@ -80,6 +81,28 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
               : vm.sale
               ? '/sales'
               : '/purchases';
+      if (MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact) {
+        return MobileInvoiceEditor(
+          vm: vm,
+          title: widget.pos
+              ? 'نقطة البيع'
+              : vm.quick
+              ? 'استلام سريع'
+              : vm.receiptId != null
+              ? 'تسوية الاستلام'
+              : vm.sale
+              ? 'فاتورة بيع جديدة'
+              : 'فاتورة شراء جديدة',
+          onPick: picker,
+          onConfirm: confirm,
+          onLeave: () async {
+            await vm.saveDraft();
+            if (context.mounted && vm.draftError == null) context.go(path);
+          },
+          barcode: barcode,
+          barcodeFocus: barcodeFocus,
+        );
+      }
       return WorkPage(
         busy: vm.busy,
         title: widget.pos
