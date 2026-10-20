@@ -71,7 +71,7 @@ class _DeptAccountingDataTableState extends State<DeptAccountingDataTable> {
         else
           LayoutBuilder(
             builder: (context, constraints) =>
-                constraints.maxWidth < DeptAccountingLayout.compact
+                MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact
                 ? ListView.separated(
                     shrinkWrap: true,
                     primary: false,
@@ -101,10 +101,35 @@ class _DeptAccountingDataTableState extends State<DeptAccountingDataTable> {
                               : widget.minWidth,
                         ),
                         child: DataTable(
-                          columnSpacing: widget.columnSpacing,
-                          horizontalMargin: widget.horizontalMargin,
+                          columnSpacing: widget.columnSpacing ?? 24,
+                          horizontalMargin: widget.horizontalMargin ?? 16,
+                          dataRowMinHeight: 52,
+                          headingRowHeight: 44,
                           columns: widget.columns,
-                          rows: widget.rows,
+                          rows: [
+                            for (final row in widget.rows)
+                              DataRow(
+                                key: row.key,
+                                selected: row.selected,
+                                onSelectChanged: row.onSelectChanged,
+                                onLongPress: row.onLongPress,
+                                color: row.color,
+                                mouseCursor: row.mouseCursor,
+                                cells: [
+                                  for (final cell in row.cells)
+                                    DataCell(
+                                      _DesktopCell(child: cell.child),
+                                      placeholder: cell.placeholder,
+                                      showEditIcon: cell.showEditIcon,
+                                      onTap: cell.onTap,
+                                      onDoubleTap: cell.onDoubleTap,
+                                      onLongPress: cell.onLongPress,
+                                      onTapDown: cell.onTapDown,
+                                      onTapCancel: cell.onTapCancel,
+                                    ),
+                                ],
+                              ),
+                          ],
                           showCheckboxColumn: false,
                         ),
                       ),
@@ -116,7 +141,18 @@ class _DeptAccountingDataTableState extends State<DeptAccountingDataTable> {
                 widget.totalRows > widget.pageSize)) ...[
           const Divider(),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            padding: EdgeInsets.symmetric(
+              horizontal:
+                  MediaQuery.sizeOf(context).width <
+                      DeptAccountingLayout.compact
+                  ? 24
+                  : 16,
+              vertical:
+                  MediaQuery.sizeOf(context).width <
+                      DeptAccountingLayout.compact
+                  ? 16
+                  : 12,
+            ),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final range = Text(
@@ -367,4 +403,29 @@ class _PageButton extends StatelessWidget {
       child: Text(label),
     ),
   );
+}
+
+class _DesktopCell extends StatelessWidget {
+  const _DesktopCell({required this.child});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) {
+    final content = ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 240),
+      child: DefaultTextStyle.merge(
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
+        child: child,
+      ),
+    );
+    return child is Text
+        ? Tooltip(
+            message:
+                (child as Text).data ??
+                (child as Text).textSpan?.toPlainText() ??
+                '',
+            child: content,
+          )
+        : content;
+  }
 }

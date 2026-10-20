@@ -49,7 +49,12 @@ class _InventoryListPageState extends State<InventoryListPage> {
               ),
             ],
           ),
-          DeptAccountingField(label: 'بحث عن منتج', onChanged: vm.filter),
+          DeptAccountingListToolbar(
+            search: DeptAccountingField(
+              label: 'بحث عن منتج',
+              onChanged: vm.filter,
+            ),
+          ),
           Align(
             alignment: AlignmentDirectional.centerStart,
             child: DeptAccountingFilterChip(

@@ -22,7 +22,14 @@ class _StartupGuideState extends State<StartupGuide> {
   );
 
   Future<void> open(StartupGuideStep step) async {
-    if (await vm.start() && mounted) context.go(step.path);
+    if (await vm.start() && mounted) {
+      context.go(
+        MediaQuery.sizeOf(context).width >= DeptAccountingLayout.compact &&
+                step.path == '/finance'
+            ? '/finance?section=opening'
+            : step.path,
+      );
+    }
   }
 
   @override
@@ -60,7 +67,74 @@ class _StartupGuideState extends State<StartupGuide> {
         );
       }
       final next = vm.next;
-      return DeptAccountingPanel(
+      final content = SectionStack.form(
+        children: [
+          if (next != null) ...[
+            Semantics(
+              value: '${vm.resolvedCount} من ${vm.steps.length}',
+              label: 'تقدم تجهيز المحل',
+              child: LinearProgressIndicator(
+                value: vm.resolvedCount / vm.steps.length,
+                backgroundColor: DeptAccountingColors.primarySoft,
+                color: DeptAccountingColors.primary,
+                borderRadius: BorderRadius.circular(
+                  DeptAccountingLayout.radius,
+                ),
+              ),
+            ),
+            Text(
+              'الخطوة التالية: ${next.title}',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            Text(next.message),
+            Wrap(
+              spacing: DeptAccountingSpace.sm,
+              runSpacing: DeptAccountingSpace.sm,
+              children: [
+                DeptAccountingButton(
+                  label: next.action,
+                  onPressed: () => open(next),
+                ),
+                if (next.reviewLabel != null)
+                  DeptAccountingButton(
+                    label: next.reviewLabel!,
+                    variant: DeptAccountingButtonVariant.secondary,
+                    onPressed: () => vm.review(next.task),
+                  ),
+                if (next.skipLabel != null)
+                  DeptAccountingButton(
+                    label: next.skipLabel!,
+                    variant: DeptAccountingButtonVariant.quiet,
+                    onPressed: () => vm.review(next.task, skip: true),
+                  ),
+              ],
+            ),
+          ],
+          ExpansionTile(
+            key:
+                MediaQuery.sizeOf(context).width >= DeptAccountingLayout.compact
+                ? const PageStorageKey('desktop-startup-all-steps')
+                : null,
+            tilePadding: EdgeInsets.zero,
+            title: Text(
+              next == null
+                  ? 'مراجعة خطوات البداية'
+                  : 'كل خطوات البداية بالترتيب',
+            ),
+            children: [
+              for (var i = 0; i < vm.steps.length; i++)
+                _StepRow(
+                  step: vm.steps[i],
+                  number: i + 1,
+                  current: vm.steps[i] == next,
+                  onOpen: () => open(vm.steps[i]),
+                  onRevisit: () => vm.revisit(vm.steps[i].task),
+                ),
+            ],
+          ),
+        ],
+      );
+      final panel = DeptAccountingPanel(
         title: next == null
             ? 'اكتملت مراجعة خطوات البداية'
             : 'جهّز محلك خطوة بخطوة',
@@ -73,67 +147,36 @@ class _StartupGuideState extends State<StartupGuide> {
               ? DeptAccountingTone.success
               : DeptAccountingTone.info,
         ),
-        child: SectionStack.form(
-          children: [
-            if (next != null) ...[
-              Semantics(
-                value: '${vm.resolvedCount} من ${vm.steps.length}',
-                label: 'تقدم تجهيز المحل',
-                child: LinearProgressIndicator(
-                  value: vm.resolvedCount / vm.steps.length,
-                  backgroundColor: DeptAccountingColors.primarySoft,
-                  color: DeptAccountingColors.primary,
-                  borderRadius: BorderRadius.circular(
-                    DeptAccountingLayout.radius,
-                  ),
+        child: content,
+      );
+      if (MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact) {
+        return panel;
+      }
+      return Material(
+        color: DeptAccountingColors.surface,
+        shape: RoundedRectangleBorder(
+          side: const BorderSide(color: DeptAccountingColors.border),
+          borderRadius: BorderRadius.circular(DeptAccountingLayout.panelRadius),
+        ),
+        child: ExpansionTile(
+          key: const PageStorageKey('desktop-startup-guide'),
+          shape: const Border(),
+          collapsedShape: const Border(),
+          leading: const Icon(
+            Icons.checklist_outlined,
+            color: DeptAccountingColors.primary,
+          ),
+          title: Text(
+            'تجهيز المحل · ${vm.resolvedCount} من ${vm.steps.length} خطوات',
+          ),
+          subtitle: next == null
+              ? null
+              : Text(
+                  'التالي: ${next.title}',
+                  style: DeptAccountingTypography.caption,
                 ),
-              ),
-              Text(
-                'الخطوة التالية: ${next.title}',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              Text(next.message),
-              Wrap(
-                spacing: DeptAccountingSpace.sm,
-                runSpacing: DeptAccountingSpace.sm,
-                children: [
-                  DeptAccountingButton(
-                    label: next.action,
-                    onPressed: () => open(next),
-                  ),
-                  if (next.reviewLabel != null)
-                    DeptAccountingButton(
-                      label: next.reviewLabel!,
-                      variant: DeptAccountingButtonVariant.secondary,
-                      onPressed: () => vm.review(next.task),
-                    ),
-                  if (next.skipLabel != null)
-                    DeptAccountingButton(
-                      label: next.skipLabel!,
-                      variant: DeptAccountingButtonVariant.quiet,
-                      onPressed: () => vm.review(next.task, skip: true),
-                    ),
-                ],
-              ),
-            ],
-            ExpansionTile(
-              tilePadding: EdgeInsets.zero,
-              title: Text(
-                next == null
-                    ? 'مراجعة خطوات البداية'
-                    : 'كل خطوات البداية بالترتيب',
-              ),
-              children: [
-                for (var i = 0; i < vm.steps.length; i++)
-                  _StepRow(
-                    step: vm.steps[i],
-                    number: i + 1,
-                    current: vm.steps[i] == next,
-                    onOpen: () => open(vm.steps[i]),
-                    onRevisit: () => vm.revisit(vm.steps[i].task),
-                  ),
-              ],
-            ),
+          children: [
+            Padding(padding: const EdgeInsets.all(16), child: content),
           ],
         ),
       );

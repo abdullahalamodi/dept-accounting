@@ -119,7 +119,7 @@ class DeptAccountingWorkspace extends StatelessWidget {
                           ),
                         ),
                         padding: EdgeInsets.symmetric(
-                          horizontal: size.maxWidth < 600 ? 16 : 32,
+                          horizontal: size.maxWidth < 600 ? 16 : 24,
                           vertical: 12,
                         ),
                         child: Row(
@@ -199,7 +199,7 @@ class DeptAccountingPageBody extends StatelessWidget {
             ?notice,
             Padding(
               padding: EdgeInsets.all(
-                size.maxWidth < DeptAccountingLayout.compact ? 16 : 32,
+                size.maxWidth < DeptAccountingLayout.compact ? 16 : 24,
               ),
               child: Align(
                 alignment: AlignmentDirectional.topCenter,
@@ -248,7 +248,10 @@ class _Sidebar extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: EdgeInsets.fromLTRB(24, 32, 24, 28),
+          padding:
+              MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact
+              ? const EdgeInsets.fromLTRB(24, 32, 24, 28)
+              : const EdgeInsets.fromLTRB(20, 20, 20, 20),
           child: Row(
             children: [
               DecoratedBox(
@@ -276,7 +279,11 @@ class _Sidebar extends StatelessWidget {
                       appName,
                       style: TextStyle(
                         fontFamily: 'NotoKufiArabic',
-                        fontSize: 25,
+                        fontSize:
+                            MediaQuery.sizeOf(context).width <
+                                DeptAccountingLayout.compact
+                            ? 25
+                            : 18,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

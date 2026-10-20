@@ -86,9 +86,7 @@ void main() {
       expect(product.alternateUnitId, isNotEmpty);
       expect(product.factor, 12000);
 
-      await tester.tap(
-        find.widgetWithText(DeptAccountingFilterChip, 'التصنيفات'),
-      );
+      await tester.tap(find.widgetWithText(TextButton, 'التصنيفات'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.widgetWithText(TextFormField, 'بحث بالاسم'),

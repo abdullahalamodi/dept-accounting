@@ -105,6 +105,38 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
       }
       return WorkPage(
         busy: vm.busy,
+        desktopFooter: DeptAccountingDesktopActionBar(
+          summary: Text(
+            'الإجمالي  ${Numbers.format(vm.total)} ${d.store.shop!.currencyLabel}',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          actions: [
+            DeptAccountingButton(
+              label: 'حفظ مسودة',
+              variant: DeptAccountingButtonVariant.secondary,
+              onPressed: vm.busy
+                  ? null
+                  : () async {
+                      await vm.saveDraft();
+                      if (context.mounted) {
+                        showMessage(
+                          context,
+                          vm.draftError ?? 'حُفظت المسودة على الجهاز',
+                        );
+                      }
+                    },
+            ),
+            DeptAccountingButton(
+              label: vm.quick
+                  ? 'اعتماد الاستلام'
+                  : vm.sale
+                  ? 'اعتماد فاتورة بيع'
+                  : 'اعتماد فاتورة شراء',
+              loading: vm.busy,
+              onPressed: confirm,
+            ),
+          ],
+        ),
         title: widget.pos
             ? 'نقطة البيع'
             : vm.quick
@@ -136,19 +168,6 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
         child: SectionStack(
           children: [
             ErrorNotice(vm.error),
-            if (vm.sale)
-              DeptAccountingPanel(
-                child: DeptAccountingField(
-                  label: 'إضافة بالباركود — امسح ثم Enter',
-                  controller: barcode,
-                  focusNode: barcodeFocus,
-                  autofocus: widget.pos,
-                  onSubmitted: (v) {
-                    if (vm.addBarcode(v)) barcode.clear();
-                    barcodeFocus.requestFocus();
-                  },
-                ),
-              ),
             if (vm.draftError != null) ErrorNotice(vm.draftError),
             DeptAccountingEditorLayout(
               minFormWidth: 688,
@@ -190,11 +209,34 @@ class _InvoiceEditorPageState extends State<InvoiceEditorPage> {
                             label: 'إضافة منتج',
                             onPressed: picker,
                           ),
-                    child: InvoiceItemsTable(vm: vm),
+                    child: SectionStack.form(
+                      children: [
+                        if (vm.sale)
+                          DeptAccountingDesktopContent(
+                            maxWidth: 440,
+                            child: DeptAccountingField(
+                              label: 'إضافة بالباركود — امسح ثم Enter',
+                              compact: true,
+                              controller: barcode,
+                              focusNode: barcodeFocus,
+                              autofocus: widget.pos,
+                              onSubmitted: (v) {
+                                if (vm.addBarcode(v)) barcode.clear();
+                                barcodeFocus.requestFocus();
+                              },
+                            ),
+                          ),
+                        InvoiceItemsTable(vm: vm),
+                      ],
+                    ),
                   ),
                 ],
               ),
-              summary: InvoiceSummaryPanel(vm: vm, onConfirm: confirm),
+              summary: InvoiceSummaryPanel(
+                vm: vm,
+                onConfirm: confirm,
+                showConfirm: false,
+              ),
             ),
           ],
         ),

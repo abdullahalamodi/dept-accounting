@@ -129,62 +129,74 @@ class _InventoryPageState extends State<InventoryPage> {
                       ),
                     ],
                   ),
-                if (!compact || showAdjustment)
-                  DeptAccountingPanel(
-                    title: 'الجرد والتسوية',
-                    description: 'أدخل الكمية الفعلية المتبقية؛ الفرق يُسجّل بحركة وقيد مستقلين.',
-                    child: SectionStack.form(
-                      children: [
-                        FieldGrid(
-                          children: [
-                            DeptAccountingField(
-                              label: 'الكمية الفعلية بعد الجرد / التالف',
-                              controller: quantity,
-                              numeric: true,
-                            ),
-                            DeptAccountingField(
-                              label: 'تكلفة الوحدات الزائدة (اختياري)',
-                              controller: cost,
-                              numeric: true,
-                            ),
-                            DeptAccountingField(
-                              label: 'سبب التسوية',
-                              controller: reason,
-                            ),
-                          ],
-                        ),
-                        SwitchListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('تسوية تالف'),
-                          value: damaged,
-                          onChanged: (v) => setState(() => damaged = v),
-                        ),
-                        DeptAccountingButton(
-                          label: 'اعتماد التسوية',
-                          onPressed: () async {
-                            if (await showDeptAccountingConfirmation(
-                                  context,
-                                  title: 'اعتماد تسوية المخزون؟',
-                                  message: 'سيُحدّث المخزون إلى الكمية الفعلية المدخلة ويُسجّل الفرق.',
-                                  confirmLabel: 'اعتماد',
-                                ) &&
-                                mounted) {
-                              if (await vm.adjust(
-                                    quantity.text,
-                                    cost.text,
-                                    reason.text,
-                                    damaged,
+                if (!compact)
+                  DeptAccountingSectionTabs<bool>(
+                    value: showAdjustment,
+                    items: const [
+                      (value: false, label: 'حركة المخزون'),
+                      (value: true, label: 'الجرد والتسوية'),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => showAdjustment = value),
+                  ),
+                if (showAdjustment)
+                  DeptAccountingDesktopContent(
+                    child: DeptAccountingPanel(
+                      title: 'الجرد والتسوية',
+                      description: 'أدخل الكمية الفعلية المتبقية؛ الفرق يُسجّل بحركة وقيد مستقلين.',
+                      child: SectionStack.form(
+                        children: [
+                          FieldGrid(
+                            children: [
+                              DeptAccountingField(
+                                label: 'الكمية الفعلية بعد الجرد / التالف',
+                                controller: quantity,
+                                numeric: true,
+                              ),
+                              DeptAccountingField(
+                                label: 'تكلفة الوحدات الزائدة (اختياري)',
+                                controller: cost,
+                                numeric: true,
+                              ),
+                              DeptAccountingField(
+                                label: 'سبب التسوية',
+                                controller: reason,
+                              ),
+                            ],
+                          ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: const Text('تسوية تالف'),
+                            value: damaged,
+                            onChanged: (v) => setState(() => damaged = v),
+                          ),
+                          DeptAccountingButton(
+                            label: 'اعتماد التسوية',
+                            onPressed: () async {
+                              if (await showDeptAccountingConfirmation(
+                                    context,
+                                    title: 'اعتماد تسوية المخزون؟',
+                                    message: 'سيُحدّث المخزون إلى الكمية الفعلية المدخلة ويُسجّل الفرق.',
+                                    confirmLabel: 'اعتماد',
                                   ) &&
-                                  context.mounted) {
-                                showMessage(context, 'تم اعتماد التسوية');
+                                  mounted) {
+                                if (await vm.adjust(
+                                      quantity.text,
+                                      cost.text,
+                                      reason.text,
+                                      damaged,
+                                    ) &&
+                                    context.mounted) {
+                                  showMessage(context, 'تم اعتماد التسوية');
+                                }
                               }
-                            }
-                          },
-                        ),
-                      ],
+                            },
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                if (!compact || !showAdjustment)
+                if (!showAdjustment)
                   DeptAccountingPanel(
                     title: 'حركة المخزون',
                     child: DeptAccountingDataTable(

@@ -73,25 +73,45 @@ class _CatalogReferencesPageState extends State<CatalogReferencesPage> {
               ),
               ErrorNotice(vm.error),
               DeptAccountingPanel(
-                child: FieldGrid(
-                  children: [
-                    DeptAccountingField(
-                      label: 'بحث بالاسم',
-                      onChanged: vm.filter,
-                    ),
-                    Align(
-                      alignment: AlignmentDirectional.centerStart,
-                      child: DeptAccountingFilterChip(
-                        label: const Text('إظهار الموقوفة'),
-                        selected: vm.showInactive,
-                        onSelected: (v) {
-                          vm.showInactive = v;
-                          vm.filter(vm.search);
-                        },
+                child:
+                    MediaQuery.sizeOf(context).width >=
+                        DeptAccountingLayout.compact
+                    ? DeptAccountingListToolbar(
+                        search: DeptAccountingField(
+                          label: 'بحث بالاسم',
+                          compact: true,
+                          onChanged: vm.filter,
+                        ),
+                        actions: [
+                          DeptAccountingFilterChip(
+                            label: const Text('إظهار الموقوفة'),
+                            selected: vm.showInactive,
+                            onSelected: (v) {
+                              vm.showInactive = v;
+                              vm.filter(vm.search);
+                            },
+                          ),
+                        ],
+                      )
+                    : FieldGrid(
+                        children: [
+                          DeptAccountingField(
+                            label: 'بحث بالاسم',
+                            onChanged: vm.filter,
+                          ),
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: DeptAccountingFilterChip(
+                              label: const Text('إظهار الموقوفة'),
+                              selected: vm.showInactive,
+                              onSelected: (v) {
+                                vm.showInactive = v;
+                                vm.filter(vm.search);
+                              },
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
               DeptAccountingPanel(
                 padding: EdgeInsets.zero,

@@ -44,123 +44,133 @@ class _ProfilePageState extends State<ProfilePage> {
     builder: (context, _) {
       final user = vm.store.user;
       if (user == null) return const SizedBox.shrink();
-      return SectionStack(
-        children: [
-          const DeptAccountingPageHeader(
-            title: 'الملف الشخصي',
-            description: 'بيانات حسابك، كلمة المرور، وإدارة جلستك',
-          ),
-          DeptAccountingPanel(
-            child: Row(
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: DeptAccountingColors.primarySoft,
-                  foregroundColor: DeptAccountingColors.primary,
-                  child: Text(
-                    user.displayName.characters.first,
-                    style: Theme.of(context).textTheme.titleLarge
-                        ?.copyWith(color: DeptAccountingColors.primary),
+      return DeptAccountingDesktopContent(
+        maxWidth: DeptAccountingLayout.simpleFormWidth,
+        child: SectionStack(
+          children: [
+            const DeptAccountingPageHeader(
+              title: 'الملف الشخصي',
+              description: 'بيانات حسابك، كلمة المرور، وإدارة جلستك',
+            ),
+            DeptAccountingPanel(
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: DeptAccountingColors.primarySoft,
+                    foregroundColor: DeptAccountingColors.primary,
+                    child: Text(
+                      user.displayName.characters.first,
+                      style: Theme.of(context).textTheme.titleLarge
+                          ?.copyWith(color: DeptAccountingColors.primary),
+                    ),
                   ),
-                ),
-                const SizedBox(width: DeptAccountingSpace.lg),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        user.displayName,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: DeptAccountingSpace.xs),
-                      Row(
-                        children: [
-                          DeptAccountingStatusTag(
-                            user.roleLabel,
-                            compact: true,
-                          ),
-                          const SizedBox(width: DeptAccountingSpace.sm),
-                          Flexible(
-                            child: DeptAccountingStatusTag(
-                              vm.store.shop!.name,
+                  const SizedBox(width: DeptAccountingSpace.lg),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.displayName,
+                          style: Theme.of(context).textTheme.titleLarge,
+                        ),
+                        const SizedBox(height: DeptAccountingSpace.xs),
+                        Row(
+                          children: [
+                            DeptAccountingStatusTag(
+                              user.roleLabel,
                               compact: true,
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            const SizedBox(width: DeptAccountingSpace.sm),
+                            Flexible(
+                              child: DeptAccountingStatusTag(
+                                vm.store.shop!.name,
+                                compact: true,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          DeptAccountingPanel(
-            title: 'اسم المستخدم وكلمة المرور',
-            child: Form(
-              key: usernameForm,
+            DeptAccountingPanel(
+              title: 'اسم المستخدم وكلمة المرور',
+              child: Form(
+                key: usernameForm,
+                child: SectionStack.form(
+                  children: [
+                    if (vm.error != null) ErrorNotice(vm.error),
+                    UsernameField(controller: username),
+                    Wrap(
+                      spacing: DeptAccountingSpace.md,
+                      runSpacing: DeptAccountingSpace.md,
+                      children: [
+                        DeptAccountingButton(
+                          label: 'حفظ اسم المستخدم',
+                          onPressed: vm.busy
+                              ? null
+                              : () async {
+                                  if (usernameForm.currentState!.validate() &&
+                                      await vm.saveUsername(username.text) &&
+                                      context.mounted) {
+                                    showMessage(
+                                      context,
+                                      'تم حفظ اسم المستخدم.',
+                                    );
+                                  }
+                                },
+                        ),
+                        DeptAccountingButton(
+                          label: 'تغيير كلمة المرور',
+                          variant: DeptAccountingButtonVariant.secondary,
+                          onPressed: vm.busy ? null : _changePassword,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            DeptAccountingPanel(
+              title: 'الجلسة الحالية',
               child: SectionStack.form(
                 children: [
-                  if (vm.error != null) ErrorNotice(vm.error),
-                  UsernameField(controller: username),
+                  const Text(
+                    'عند تسجيل الخروج ستبقى بيانات المحل محفوظة على هذا الجهاز.',
+                    style: TextStyle(color: DeptAccountingColors.muted),
+                  ),
                   Wrap(
                     spacing: DeptAccountingSpace.md,
                     runSpacing: DeptAccountingSpace.md,
                     children: [
+                      if (user.isOwner)
+                        DeptAccountingButton(
+                          label: 'إعدادات المحل',
+                          variant: DeptAccountingButtonVariant.secondary,
+                          onPressed: vm.busy
+                              ? null
+                              : () => context.go('/settings'),
+                        ),
                       DeptAccountingButton(
-                        label: 'حفظ اسم المستخدم',
-                        onPressed: vm.busy
-                            ? null
-                            : () async {
-                                if (usernameForm.currentState!.validate() &&
-                                    await vm.saveUsername(username.text) &&
-                                    context.mounted) {
-                                  showMessage(context, 'تم حفظ اسم المستخدم.');
-                                }
-                              },
-                      ),
-                      DeptAccountingButton(
-                        label: 'تغيير كلمة المرور',
-                        variant: DeptAccountingButtonVariant.secondary,
-                        onPressed: vm.busy ? null : _changePassword,
+                        label: 'تسجيل الخروج',
+                        icon: Icons.logout,
+                        variant:
+                            MediaQuery.sizeOf(context).width >=
+                                DeptAccountingLayout.compact
+                            ? DeptAccountingButtonVariant.secondary
+                            : DeptAccountingButtonVariant.danger,
+                        onPressed: vm.busy ? null : vm.logout,
                       ),
                     ],
                   ),
                 ],
               ),
             ),
-          ),
-          DeptAccountingPanel(
-            title: 'الجلسة الحالية',
-            child: SectionStack.form(
-              children: [
-                const Text(
-                  'عند تسجيل الخروج ستبقى بيانات المحل محفوظة على هذا الجهاز.',
-                  style: TextStyle(color: DeptAccountingColors.muted),
-                ),
-                Wrap(
-                  spacing: DeptAccountingSpace.md,
-                  runSpacing: DeptAccountingSpace.md,
-                  children: [
-                    if (user.isOwner)
-                      DeptAccountingButton(
-                        label: 'إعدادات المحل',
-                        variant: DeptAccountingButtonVariant.secondary,
-                        onPressed: vm.busy
-                            ? null
-                            : () => context.go('/settings'),
-                      ),
-                    DeptAccountingButton(
-                      label: 'تسجيل الخروج',
-                      icon: Icons.logout,
-                      variant: DeptAccountingButtonVariant.danger,
-                      onPressed: vm.busy ? null : vm.logout,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       );
     },
   );

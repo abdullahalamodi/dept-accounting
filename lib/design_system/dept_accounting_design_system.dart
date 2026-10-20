@@ -8,3 +8,4 @@ export 'widgets/dept_accounting_action_card.dart';
 export 'widgets/dept_accounting_export_toolbar.dart';
 export 'widgets/dept_accounting_line_chart.dart';
 export 'widgets/dept_accounting_mobile.dart';
+export 'widgets/dept_accounting_desktop.dart';

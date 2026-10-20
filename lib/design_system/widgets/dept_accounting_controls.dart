@@ -13,6 +13,7 @@ class DeptAccountingButton extends StatelessWidget {
     this.variant = DeptAccountingButtonVariant.primary,
     this.loading = false,
     this.compact = false,
+    this.desktopVariant,
   });
 
   const DeptAccountingButton.table({
@@ -21,13 +22,15 @@ class DeptAccountingButton extends StatelessWidget {
     this.onPressed,
     this.icon,
     this.loading = false,
-  }) : compact = true,
-       variant = DeptAccountingButtonVariant.primary;
+    this.variant = DeptAccountingButtonVariant.primary,
+    this.desktopVariant = DeptAccountingButtonVariant.secondary,
+  }) : compact = true;
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final DeptAccountingButtonVariant variant;
+  final DeptAccountingButtonVariant? desktopVariant;
   final bool loading;
   final bool compact;
 
@@ -53,9 +56,12 @@ class DeptAccountingButton extends StatelessWidget {
         Flexible(child: Text(label, textAlign: TextAlign.center)),
       ],
     );
-    return Semantics(
+    final button = Semantics(
       liveRegion: loading,
-      child: switch (variant) {
+      child: switch (MediaQuery.sizeOf(context).width >=
+              DeptAccountingLayout.compact
+          ? desktopVariant ?? variant
+          : variant) {
         DeptAccountingButtonVariant.primary => FilledButton(
           style: style,
           onPressed: action,
@@ -80,6 +86,7 @@ class DeptAccountingButton extends StatelessWidget {
         ),
       },
     );
+    return button;
   }
 }
 
@@ -272,7 +279,7 @@ class DeptAccountingPageHeader extends StatelessWidget {
           ),
         ],
       );
-      if (size.maxWidth < 700) {
+      if (MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -289,7 +296,15 @@ class DeptAccountingPageHeader extends StatelessWidget {
         children: [
           Expanded(child: text),
           const SizedBox(width: 24),
-          Wrap(spacing: 8, runSpacing: 8, children: actions),
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: size.maxWidth * .55),
+            child: Wrap(
+              alignment: WrapAlignment.end,
+              spacing: 8,
+              runSpacing: 8,
+              children: actions,
+            ),
+          ),
         ],
       );
     },
@@ -697,15 +712,21 @@ class DeptAccountingEditorLayout extends StatelessWidget {
     required this.form,
     required this.summary,
     this.minFormWidth = 576,
+    this.summaryWidth = DeptAccountingLayout.summaryWidth,
   });
   final Widget form;
   final Widget summary;
   final double minFormWidth;
+  final double summaryWidth;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, size) {
-      if (size.maxWidth < minFormWidth + 324) {
+      final width =
+          MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact
+          ? 300.0
+          : summaryWidth;
+      if (size.maxWidth < minFormWidth + width + 24) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [form, const SizedBox(height: 24), summary],
@@ -716,7 +737,7 @@ class DeptAccountingEditorLayout extends StatelessWidget {
         children: [
           Expanded(child: form),
           const SizedBox(width: 24),
-          SizedBox(width: 300, child: summary),
+          SizedBox(width: width, child: summary),
         ],
       );
     },

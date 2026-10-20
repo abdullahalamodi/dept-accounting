@@ -17,6 +17,7 @@ class ReportsPage extends StatefulWidget {
 }
 
 class _ReportsPageState extends State<ReportsPage> {
+  String desktopSection = 'period';
   String mobileSection = 'period';
   String? code;
   int page = 1;
@@ -42,6 +43,17 @@ class _ReportsPageState extends State<ReportsPage> {
               title: 'التقارير والمحاسبة',
               description: 'نتائج تراكمية من القيود المعتمدة · بعملة المحل',
             ),
+            if (!compact)
+              DeptAccountingSectionTabs<String>(
+                value: desktopSection,
+                items: const [
+                  (value: 'period', label: 'تقارير الفترة'),
+                  (value: 'summary', label: 'نتائج المحل'),
+                  (value: 'trial', label: 'ميزان المراجعة'),
+                  (value: 'ledger', label: 'دفتر الأستاذ'),
+                ],
+                onChanged: (value) => setState(() => desktopSection = value),
+              ),
             if (compact)
               Wrap(
                 spacing: 8,
@@ -62,12 +74,13 @@ class _ReportsPageState extends State<ReportsPage> {
                 ],
               ),
             Visibility(
-              visible: !compact || mobileSection == 'period',
+              visible: (compact ? mobileSection : desktopSection) == 'period',
               maintainState: true,
               child: PeriodReports(dependencies: d),
             ),
-            if (!compact || mobileSection == 'summary')
-              FieldGrid(
+            if ((compact ? mobileSection : desktopSection) == 'summary')
+              _ReportMetrics(
+                compact: compact,
                 runSpacing: DeptAccountingSpace.xl,
                 children: [
                   for (final (key, label) in [
@@ -84,7 +97,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     ),
                 ],
               ),
-            if (!compact || mobileSection == 'trial')
+            if ((compact ? mobileSection : desktopSection) == 'trial')
               DeptAccountingNotice(
                 title: debit == credit
                     ? 'ميزان المراجعة متوازن'
@@ -95,7 +108,7 @@ class _ReportsPageState extends State<ReportsPage> {
                     ? DeptAccountingTone.success
                     : DeptAccountingTone.danger,
               ),
-            if (!compact || mobileSection == 'trial')
+            if ((compact ? mobileSection : desktopSection) == 'trial')
               DeptAccountingPanel(
                 title: 'ميزان المراجعة',
                 child: DeptAccountingDataTable(
@@ -108,7 +121,11 @@ class _ReportsPageState extends State<ReportsPage> {
                       onTap: () => setState(() {
                         code = row['code'] as String;
                         page = 1;
-                        mobileSection = 'ledger';
+                        if (compact) {
+                          mobileSection = 'ledger';
+                        } else {
+                          desktopSection = 'ledger';
+                        }
                       }),
                       details: Column(
                         children: [
@@ -168,27 +185,30 @@ class _ReportsPageState extends State<ReportsPage> {
                   onPageChanged: (_) {},
                 ),
               ),
-            if (!compact || mobileSection == 'ledger')
+            if ((compact ? mobileSection : desktopSection) == 'ledger')
               DeptAccountingPanel(
                 title: 'دفتر الأستاذ',
                 child: SectionStack(
                   children: [
-                    ChoiceField(
-                      label: 'اختر الحساب',
-                      value: code ?? '',
-                      items: [
-                        (value: '', label: 'اختر حسابًا'),
-                        ...trial.map(
-                          (r) => (
-                            value: r['code'] as String,
-                            label: '${r['code']} · ${r['name']}',
+                    DeptAccountingDesktopContent(
+                      maxWidth: 400,
+                      child: ChoiceField(
+                        label: 'اختر الحساب',
+                        value: code ?? '',
+                        items: [
+                          (value: '', label: 'اختر حسابًا'),
+                          ...trial.map(
+                            (r) => (
+                              value: r['code'] as String,
+                              label: '${r['code']} · ${r['name']}',
+                            ),
                           ),
-                        ),
-                      ],
-                      onChanged: (v) => setState(() {
-                        code = v == '' ? null : v;
-                        page = 1;
-                      }),
+                        ],
+                        onChanged: (v) => setState(() {
+                          code = v == '' ? null : v;
+                          page = 1;
+                        }),
+                      ),
                     ),
                     DeptAccountingDataTable(
                       columns: const [
@@ -237,4 +257,19 @@ class _ReportsPageState extends State<ReportsPage> {
       },
     );
   }
+}
+
+class _ReportMetrics extends StatelessWidget {
+  const _ReportMetrics({
+    required this.compact,
+    required this.children,
+    required this.runSpacing,
+  });
+  final bool compact;
+  final List<Widget> children;
+  final double runSpacing;
+  @override
+  Widget build(BuildContext context) => compact
+      ? FieldGrid(runSpacing: runSpacing, children: children)
+      : DeptAccountingMetricGrid(children: children);
 }

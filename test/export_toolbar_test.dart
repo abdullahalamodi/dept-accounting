@@ -72,7 +72,9 @@ void main() {
         final border = InputDecorator.containerOf(
           tester.element(find.text('ورق B5').first),
         )!;
-        final printRect = tester.getRect(find.byType(FilledButton));
+        final printRect = tester.getRect(
+          find.widgetWithText(OutlinedButton, 'طباعة'),
+        );
         expect(
           border.localToGlobal(Offset.zero).dy,
           closeTo(printRect.top, .01),

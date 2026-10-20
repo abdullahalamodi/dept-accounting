@@ -14,8 +14,10 @@ class InvoiceDraftsPanel extends StatefulWidget {
     required this.kind,
     required this.title,
     required this.onOpen,
+    this.showEmpty = false,
   });
   final InvoiceRepository repository;
+  final bool showEmpty;
   final String kind, title;
   final ValueChanged<InvoiceDraft> onOpen;
   @override
@@ -49,9 +51,27 @@ class _InvoiceDraftsPanelState extends State<InvoiceDraftsPanel> {
         task: InvoiceTasks.drafts(widget.kind, page: vm.page),
         queryKey: (widget.kind, vm.page),
         builder: (context, results) {
-          if (results.total == 0) return const SizedBox.shrink();
+          if (results.total == 0) {
+            return widget.showEmpty
+                ? DeptAccountingPanel(
+                    title: widget.title,
+                    child: const DeptAccountingStateView(
+                      state: DeptAccountingViewState.empty,
+                      title: 'لا توجد مسودات',
+                      message:
+                          'ستظهر هنا الفواتير التي تحفظها للمتابعة لاحقًا.',
+                    ),
+                  )
+                : const SizedBox.shrink();
+          }
           return Padding(
-            padding: const EdgeInsets.only(top: DeptAccountingSpace.xl),
+            padding: EdgeInsets.only(
+              top:
+                  MediaQuery.sizeOf(context).width <
+                      DeptAccountingLayout.compact
+                  ? DeptAccountingSpace.xl
+                  : 0,
+            ),
             child: DeptAccountingPanel(
               title: widget.title,
               child: DeptAccountingDataTable(

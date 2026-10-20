@@ -25,7 +25,11 @@ class SectionStack extends StatelessWidget {
                 ? DeptAccountingSpace.lg
                 : spacing,
           ),
-        children[i],
+        if (MediaQuery.sizeOf(context).width >= DeptAccountingLayout.compact &&
+            children[i] is DeptAccountingButton)
+          Align(alignment: AlignmentDirectional.centerStart, child: children[i])
+        else
+          children[i],
       ],
     ],
   );
@@ -37,10 +41,12 @@ class FieldGrid extends StatelessWidget {
     required this.children,
     this.minWidth = 260,
     this.runSpacing = DeptAccountingSpace.formGap,
+    this.maxColumns = 3,
   });
   final List<Widget> children;
   final double minWidth;
   final double runSpacing;
+  final int maxColumns;
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, c) {
@@ -48,7 +54,7 @@ class FieldGrid extends StatelessWidget {
           ((c.maxWidth + DeptAccountingSpace.lg) /
                   (minWidth + DeptAccountingSpace.lg))
               .floor()
-              .clamp(1, children.length.clamp(1, 3));
+              .clamp(1, children.length.clamp(1, maxColumns));
       final width = (c.maxWidth - DeptAccountingSpace.lg * (count - 1)) / count;
       return Wrap(
         spacing: DeptAccountingSpace.lg,
@@ -190,7 +196,13 @@ class WorkPage extends StatelessWidget {
     required this.onBack,
     this.actions = const [],
     this.busy = false,
+    this.desktopMaxWidth = DeptAccountingLayout.maxContent,
+    this.desktopFooter,
+    this.pinDesktopActions = false,
   });
+  final double desktopMaxWidth;
+  final Widget? desktopFooter;
+  final bool pinDesktopActions;
   final bool busy;
   final String title;
   final Widget child;
@@ -200,6 +212,11 @@ class WorkPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final compact =
         MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact;
+    final footer =
+        desktopFooter ??
+        (pinDesktopActions && actions.isNotEmpty
+            ? DeptAccountingDesktopActionBar(actions: actions)
+            : null);
     final contents = compact
         ? ScaffoldMessenger(
             child: Scaffold(
@@ -247,25 +264,31 @@ class WorkPage extends StatelessWidget {
                     ),
             ),
           )
-        : DeptAccountingPageBody(
-            child: SectionStack(
-              children: [
-                DeptAccountingPageHeader(
-                  title: title,
-                  description:
-                      '$appName · ${DateTime.now().toIso8601String().substring(0, 10)}',
-                  actions: [
-                    DeptAccountingButton(
-                      label: 'العودة',
-                      variant: DeptAccountingButtonVariant.secondary,
-                      onPressed: onBack,
-                    ),
-                    ...actions,
-                  ],
-                ),
-                child,
-              ],
+        : DeptAccountingDesktopViewport(
+            body: DeptAccountingPageBody(
+              child: SectionStack(
+                children: [
+                  DeptAccountingPageHeader(
+                    title: title,
+                    description: appName,
+                    actions: [
+                      DeptAccountingButton(
+                        label: 'العودة',
+                        icon: Icons.arrow_back,
+                        variant: DeptAccountingButtonVariant.quiet,
+                        onPressed: busy ? null : onBack,
+                      ),
+                      if (footer == null) ...actions,
+                    ],
+                  ),
+                  DeptAccountingDesktopContent(
+                    maxWidth: desktopMaxWidth,
+                    child: child,
+                  ),
+                ],
+              ),
             ),
+            footer: footer,
           );
     return PopScope(
       canPop: !compact,

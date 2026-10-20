@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../app/dependencies.dart';
 import '../../../core/numbers.dart';
+import '../../../core/date_time.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/overview_repository.dart';
@@ -66,7 +67,25 @@ class _OverviewPageState extends State<OverviewPage> {
                 ),
             ],
           ),
-          if (manage) StartupGuide(dependencies: d),
+          if (compact && manage) StartupGuide(dependencies: d),
+          if (!compact)
+            DeptAccountingMetricGrid(
+              children: [
+                DeptAccountingMetricCard(
+                  label: 'مبيعات اليوم',
+                  value:
+                      '${Numbers.format(vm.activity.lastOrNull?.sales ?? 0)} ${d.store.shop!.currencyLabel}',
+                  caption: 'الفواتير المعتمدة اليوم',
+                ),
+                if (manage)
+                  DeptAccountingMetricCard(
+                    label: 'مجمل ربح اليوم',
+                    value:
+                        '${Numbers.format(vm.activity.lastOrNull?.profit ?? 0)} ${d.store.shop!.currencyLabel}',
+                    caption: 'قبل المصروفات التشغيلية',
+                  ),
+              ],
+            ),
           LayoutBuilder(
             builder: (context, size) {
               final wide =
@@ -146,6 +165,7 @@ class _OverviewPageState extends State<OverviewPage> {
               );
             },
           ),
+          if (!compact && manage) StartupGuide(dependencies: d),
         ],
       );
     },
@@ -493,7 +513,7 @@ class _RecentInvoices extends StatelessWidget {
                 DataCell(
                   Text(row.document.number, textDirection: TextDirection.ltr),
                 ),
-                DataCell(Text(row.document.date)),
+                DataCell(Text(formatDocumentDateTime(row.document.date))),
                 DataCell(Text(row.customer)),
                 DataCell(
                   Text(

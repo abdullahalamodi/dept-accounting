@@ -59,51 +59,53 @@ class _PeriodReportsState extends State<PeriodReports> {
             child: SectionStack(
               children: [
                 ErrorNotice(vm.error),
-                FieldGrid(
-                  children: [
-                    ChoiceField(
-                      label: 'التقرير',
-                      value: vm.kind,
-                      items: const [
-                        (value: 'profit', label: 'الأرباح والخسائر'),
-                        (value: 'sales', label: 'المبيعات'),
-                        (value: 'purchases', label: 'المشتريات'),
-                        (value: 'returns', label: 'المرتجعات'),
-                        (value: 'expenses', label: 'المصروفات'),
-                        (value: 'stock', label: 'المخزون وقيمته'),
-                        (value: 'parties', label: 'أرصدة العملاء والموردين'),
-                        (value: 'cash', label: 'حركة النقدية'),
-                        (value: 'trial', label: 'ميزان المراجعة'),
-                      ],
-                      onChanged: (v) {
-                        vm.kind = v!;
-                        vm.page = 1;
-                        vm.changed();
-                      },
-                    ),
-                    DeptAccountingButton(
-                      label:
-                          '${vm.from.toIso8601String().substring(0, 10)} — ${vm.through.toIso8601String().substring(0, 10)}',
-                      variant: DeptAccountingButtonVariant.secondary,
-                      onPressed: () async {
-                        final range = await showDateRangePicker(
-                          context: context,
-                          firstDate: DateTime(1900),
-                          lastDate: DateTime.now(),
-                          initialDateRange: DateTimeRange(
-                            start: vm.from,
-                            end: vm.through,
-                          ),
-                        );
-                        if (range != null) {
-                          vm.from = range.start;
-                          vm.through = range.end;
+                DeptAccountingDesktopContent(
+                  child: FieldGrid(
+                    children: [
+                      ChoiceField(
+                        label: 'التقرير',
+                        value: vm.kind,
+                        items: const [
+                          (value: 'profit', label: 'الأرباح والخسائر'),
+                          (value: 'sales', label: 'المبيعات'),
+                          (value: 'purchases', label: 'المشتريات'),
+                          (value: 'returns', label: 'المرتجعات'),
+                          (value: 'expenses', label: 'المصروفات'),
+                          (value: 'stock', label: 'المخزون وقيمته'),
+                          (value: 'parties', label: 'أرصدة العملاء والموردين'),
+                          (value: 'cash', label: 'حركة النقدية'),
+                          (value: 'trial', label: 'ميزان المراجعة'),
+                        ],
+                        onChanged: (v) {
+                          vm.kind = v!;
                           vm.page = 1;
                           vm.changed();
-                        }
-                      },
-                    ),
-                  ],
+                        },
+                      ),
+                      DeptAccountingButton(
+                        label:
+                            '${vm.from.toIso8601String().substring(0, 10)} — ${vm.through.toIso8601String().substring(0, 10)}',
+                        variant: DeptAccountingButtonVariant.secondary,
+                        onPressed: () async {
+                          final range = await showDateRangePicker(
+                            context: context,
+                            firstDate: DateTime(1900),
+                            lastDate: DateTime.now(),
+                            initialDateRange: DateTimeRange(
+                              start: vm.from,
+                              end: vm.through,
+                            ),
+                          );
+                          if (range != null) {
+                            vm.from = range.start;
+                            vm.through = range.end;
+                            vm.page = 1;
+                            vm.changed();
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
                 Text(report.subtitle),
                 DeptAccountingExportToolbar(

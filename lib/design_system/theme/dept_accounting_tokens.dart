@@ -36,9 +36,12 @@ abstract final class DeptAccountingLayout {
   static const expanded = 1100.0;
   static const sidebar = 244.0;
   static const maxContent = 1440.0;
+  static const formWidth = 880.0;
+  static const simpleFormWidth = 640.0;
+  static const summaryWidth = 320.0;
   static const minTarget = 48.0;
-  static const controlHeight = 48.0;
-  static const compactControlHeight = 36.0;
+  static const controlHeight = 44.0;
+  static const compactControlHeight = 34.0;
   static const compactControlPadding = EdgeInsets.symmetric(
     horizontal: 10,
     vertical: 6,

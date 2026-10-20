@@ -236,56 +236,59 @@ class _DocumentPageState extends State<DocumentPage> {
                       onPageChanged: (_) {},
                     ),
                   ),
-                DeptAccountingPanel(
-                  title: 'الإجمالي والدفع',
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: DeptAccountingSpace.xl,
-                    vertical: DeptAccountingSpace.md,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (doc.discount > 0)
-                        DeptAccountingSummaryLine(
-                          label: 'خصم الفاتورة',
-                          value: Numbers.format(doc.discount),
-                          currency: currency,
-                        ),
-                      if (doc.shipping > 0)
-                        DeptAccountingSummaryLine(
-                          label: 'الشحن المضاف للتكلفة',
-                          value: Numbers.format(doc.shipping),
-                          currency: currency,
-                        ),
-                      DeptAccountingSummaryLine(
-                        label: 'الإجمالي',
-                        value: Numbers.format(doc.total),
-                        currency: currency,
-                        total: true,
-                      ),
-                      for (final payment in doc.payments)
-                        DeptAccountingSummaryLine(
-                          label: d.finance
-                              .accountOptions()
-                              .firstWhere((a) => a.code == payment.account)
-                              .name,
-                          value: Numbers.format(payment.amount),
-                          currency: currency,
-                        ),
-                      if (['sale', 'purchase'].contains(doc.kind))
-                        DeptAccountingSummaryLine(
-                          label: 'المتبقي حاليًا',
-                          value: Numbers.format(data.due),
-                          currency: currency,
-                        ),
-                      if (doc.notes.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            vertical: DeptAccountingSpace.sm,
+                DeptAccountingDesktopContent(
+                  maxWidth: DeptAccountingLayout.simpleFormWidth,
+                  child: DeptAccountingPanel(
+                    title: 'الإجمالي والدفع',
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: DeptAccountingSpace.xl,
+                      vertical: DeptAccountingSpace.md,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (doc.discount > 0)
+                          DeptAccountingSummaryLine(
+                            label: 'خصم الفاتورة',
+                            value: Numbers.format(doc.discount),
+                            currency: currency,
                           ),
-                          child: Text(doc.notes),
+                        if (doc.shipping > 0)
+                          DeptAccountingSummaryLine(
+                            label: 'الشحن المضاف للتكلفة',
+                            value: Numbers.format(doc.shipping),
+                            currency: currency,
+                          ),
+                        DeptAccountingSummaryLine(
+                          label: 'الإجمالي',
+                          value: Numbers.format(doc.total),
+                          currency: currency,
+                          total: true,
                         ),
-                    ],
+                        for (final payment in doc.payments)
+                          DeptAccountingSummaryLine(
+                            label: d.finance
+                                .accountOptions()
+                                .firstWhere((a) => a.code == payment.account)
+                                .name,
+                            value: Numbers.format(payment.amount),
+                            currency: currency,
+                          ),
+                        if (['sale', 'purchase'].contains(doc.kind))
+                          DeptAccountingSummaryLine(
+                            label: 'المتبقي حاليًا',
+                            value: Numbers.format(data.due),
+                            currency: currency,
+                          ),
+                        if (doc.notes.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              vertical: DeptAccountingSpace.sm,
+                            ),
+                            child: Text(doc.notes),
+                          ),
+                      ],
+                    ),
                   ),
                 ),
               ],

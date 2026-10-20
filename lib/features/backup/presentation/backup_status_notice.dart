@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../design_system/dept_accounting_design_system.dart';
 import '../data/backup_service.dart';
@@ -57,6 +58,44 @@ class BackupStatusNotice extends StatelessWidget {
                         Text(
                           notice.message,
                           style: const TextStyle(fontSize: 12),
+                        ),
+                      ],
+                    ),
+                  )
+                : !notice.warning
+                ? Material(
+                    color: DeptAccountingColors.infoSoft,
+                    borderRadius: BorderRadius.circular(
+                      DeptAccountingLayout.radius,
+                    ),
+                    child: ExpansionTile(
+                      key: PageStorageKey('desktop-backup-${notice.title}'),
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      shape: const Border(),
+                      collapsedShape: const Border(),
+                      leading: const Icon(
+                        Icons.info_outline,
+                        size: 20,
+                        color: DeptAccountingColors.info,
+                      ),
+                      title: Text(
+                        notice.title,
+                        style: DeptAccountingTypography.caption.copyWith(
+                          color: DeptAccountingColors.info,
+                        ),
+                      ),
+                      children: [
+                        Text(notice.message),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: AlignmentDirectional.centerStart,
+                          child: DeptAccountingButton(
+                            label: 'إعداد النسخ الاحتياطي',
+                            variant: DeptAccountingButtonVariant.secondary,
+                            onPressed: () =>
+                                context.go('/settings?section=backups'),
+                          ),
                         ),
                       ],
                     ),

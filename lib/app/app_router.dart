@@ -152,7 +152,11 @@ GoRouter createRouter(AppDependencies d) => GoRouter(
         ],
         _featureRoute(
           path: '/finance',
-          builder: (context, state) => FinancePage(dependencies: d),
+          builder: (context, state) => FinancePage(
+            key: ValueKey(state.uri),
+            dependencies: d,
+            initialOpening: state.uri.queryParameters['section'] == 'opening',
+          ),
         ),
         _featureRoute(
           path: '/finance/new',

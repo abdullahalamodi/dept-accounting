@@ -56,6 +56,7 @@ class _OpeningStockPageState extends State<OpeningStockPage> {
       final total = vm.total;
       return WorkPage(
         busy: vm.busy,
+        desktopMaxWidth: DeptAccountingLayout.simpleFormWidth,
         title: 'المخزون الافتتاحي · ${product.name}',
         onBack: () => context.go('/catalog/${product.id}'),
         child: unavailable != null

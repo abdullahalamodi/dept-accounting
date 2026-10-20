@@ -45,6 +45,7 @@ class _ReturnPageState extends State<ReturnPage> {
           vm.accept(data);
           return WorkPage(
             busy: vm.busy,
+            pinDesktopActions: true,
             title: 'مرتجع ${original.number}',
             onBack: () => context.go(
               '/${original.isSale ? 'sales' : 'purchases'}/view/${original.id}',
@@ -77,65 +78,75 @@ class _ReturnPageState extends State<ReturnPage> {
                     children: [
                       DeptAccountingPanel(
                         title: 'البنود القابلة للإرجاع',
-                        child: SectionStack(
-                          children: [
-                            for (var i = 0; i < original.lines.length; i++)
-                              DeptAccountingPanel(
-                                child: SectionStack.form(
-                                  children: [
-                                    CheckboxListTile(
-                                      contentPadding: EdgeInsets.zero,
-                                      title: Text(original.lines[i].name),
-                                      value: vm.inputs[i].selected,
-                                      onChanged: (v) {
-                                        vm.inputs[i].selected = v!;
-                                        vm.changed();
-                                      },
-                                    ),
-                                    Text(
-                                      'المتبقي: ${original.lines[i].service ? '${Numbers.format(d.returns.lineValue(original, i) - vm.history.returned[i].value)} $currency' : '${Numbers.format(original.lines[i].quantity - vm.history.returned[i].quantity, decimals: 3)} ${original.lines[i].unit}'}',
-                                    ),
-                                    if (vm.inputs[i].selected) ...[
-                                      if (original.lines[i].service)
-                                        DeptAccountingField(
-                                          label: 'مبلغ رد الخدمة',
-                                          initialValue: vm.inputs[i].amount,
-                                          numeric: true,
-                                          onChanged: (v) {
-                                            vm.inputs[i].amount = v;
-                                            vm.changed();
-                                          },
-                                        )
-                                      else
-                                        DeptAccountingField(
-                                          label:
-                                              'الكمية المرتجعة (${original.lines[i].unit})',
-                                          initialValue: vm.inputs[i].quantity,
-                                          numeric: true,
-                                          onChanged: (v) {
-                                            vm.inputs[i].quantity = v;
-                                            vm.changed();
-                                          },
-                                        ),
-                                      if (original.isSale &&
-                                          !original.lines[i].service)
-                                        SwitchListTile(
-                                          contentPadding: EdgeInsets.zero,
-                                          title: const Text(
-                                            'تالف — يُستلم ويُتلف دون إتاحته للبيع',
+                        child:
+                            MediaQuery.sizeOf(context).width >=
+                                DeptAccountingLayout.compact
+                            ? _DesktopReturnItems(vm: vm, currency: currency)
+                            : SectionStack(
+                                children: [
+                                  for (
+                                    var i = 0;
+                                    i < original.lines.length;
+                                    i++
+                                  )
+                                    DeptAccountingPanel(
+                                      child: SectionStack.form(
+                                        children: [
+                                          CheckboxListTile(
+                                            contentPadding: EdgeInsets.zero,
+                                            title: Text(original.lines[i].name),
+                                            value: vm.inputs[i].selected,
+                                            onChanged: (v) {
+                                              vm.inputs[i].selected = v!;
+                                              vm.changed();
+                                            },
                                           ),
-                                          value: vm.inputs[i].damaged,
-                                          onChanged: (v) {
-                                            vm.inputs[i].damaged = v;
-                                            vm.changed();
-                                          },
-                                        ),
-                                    ],
-                                  ],
-                                ),
+                                          Text(
+                                            'المتبقي: ${original.lines[i].service ? '${Numbers.format(d.returns.lineValue(original, i) - vm.history.returned[i].value)} $currency' : '${Numbers.format(original.lines[i].quantity - vm.history.returned[i].quantity, decimals: 3)} ${original.lines[i].unit}'}',
+                                          ),
+                                          if (vm.inputs[i].selected) ...[
+                                            if (original.lines[i].service)
+                                              DeptAccountingField(
+                                                label: 'مبلغ رد الخدمة',
+                                                initialValue:
+                                                    vm.inputs[i].amount,
+                                                numeric: true,
+                                                onChanged: (v) {
+                                                  vm.inputs[i].amount = v;
+                                                  vm.changed();
+                                                },
+                                              )
+                                            else
+                                              DeptAccountingField(
+                                                label:
+                                                    'الكمية المرتجعة (${original.lines[i].unit})',
+                                                initialValue:
+                                                    vm.inputs[i].quantity,
+                                                numeric: true,
+                                                onChanged: (v) {
+                                                  vm.inputs[i].quantity = v;
+                                                  vm.changed();
+                                                },
+                                              ),
+                                            if (original.isSale &&
+                                                !original.lines[i].service)
+                                              SwitchListTile(
+                                                contentPadding: EdgeInsets.zero,
+                                                title: const Text(
+                                                  'تالف — يُستلم ويُتلف دون إتاحته للبيع',
+                                                ),
+                                                value: vm.inputs[i].damaged,
+                                                onChanged: (v) {
+                                                  vm.inputs[i].damaged = v;
+                                                  vm.changed();
+                                                },
+                                              ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                ],
                               ),
-                          ],
-                        ),
                       ),
                       DeptAccountingPanel(
                         title: 'سبب المرتجع والرد النقدي',
@@ -213,5 +224,103 @@ class _ReturnPageState extends State<ReturnPage> {
         },
       );
     },
+  );
+}
+
+class _DesktopReturnItems extends StatelessWidget {
+  const _DesktopReturnItems({required this.vm, required this.currency});
+  final ReturnViewModel vm;
+  final String currency;
+
+  @override
+  Widget build(BuildContext context) => DeptAccountingDataTable(
+    minWidth: 620,
+    showPagination: false,
+    totalRows: vm.original.lines.length,
+    page: 1,
+    pageSize: vm.original.lines.length.clamp(1, 1 << 30),
+    onPageChanged: (_) {},
+    columns: [
+      const DataColumn(label: Text('البند')),
+      const DataColumn(label: Text('المتبقي للإرجاع')),
+      const DataColumn(label: Text('الكمية / مبلغ الخدمة')),
+      if (vm.original.isSale) const DataColumn(label: Text('تالف')),
+    ],
+    rows: [
+      for (var i = 0; i < vm.original.lines.length; i++)
+        DataRow(
+          cells: [
+            DataCell(
+              SizedBox(
+                width: 220,
+                child: CheckboxListTile(
+                  controlAffinity: ListTileControlAffinity.leading,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(
+                    vm.original.lines[i].name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  value: vm.inputs[i].selected,
+                  onChanged: (value) {
+                    vm.inputs[i].selected = value!;
+                    vm.changed();
+                  },
+                ),
+              ),
+            ),
+            DataCell(
+              Text(
+                vm.original.lines[i].service
+                    ? '${Numbers.format(vm.d.returns.lineValue(vm.original, i) - vm.history.returned[i].value)} $currency'
+                    : '${Numbers.format(vm.original.lines[i].quantity - vm.history.returned[i].quantity, decimals: 3)} ${vm.original.lines[i].unit}',
+              ),
+            ),
+            DataCell(
+              SizedBox(
+                width: 150,
+                child: DeptAccountingField(
+                  key: ValueKey('return-value-$i'),
+                  label: vm.original.lines[i].service
+                      ? 'مبلغ رد الخدمة'
+                      : 'الكمية المرتجعة',
+                  compact: true,
+                  numeric: true,
+                  enabled: vm.inputs[i].selected,
+                  initialValue: vm.original.lines[i].service
+                      ? vm.inputs[i].amount
+                      : vm.inputs[i].quantity,
+                  onChanged: (value) {
+                    if (vm.original.lines[i].service) {
+                      vm.inputs[i].amount = value;
+                    } else {
+                      vm.inputs[i].quantity = value;
+                    }
+                    vm.changed();
+                  },
+                ),
+              ),
+            ),
+            if (vm.original.isSale)
+              DataCell(
+                vm.original.lines[i].service
+                    ? const Text('—')
+                    : Tooltip(
+                        message: 'يُستلم ويُتلف دون إتاحته للبيع',
+                        child: Checkbox(
+                          semanticLabel: 'تالف: ${vm.original.lines[i].name}',
+                          value: vm.inputs[i].damaged,
+                          onChanged: vm.inputs[i].selected
+                              ? (value) {
+                                  vm.inputs[i].damaged = value!;
+                                  vm.changed();
+                                }
+                              : null,
+                        ),
+                      ),
+              ),
+          ],
+        ),
+    ],
   );
 }

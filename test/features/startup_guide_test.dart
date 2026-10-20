@@ -35,6 +35,20 @@ AppDependencies newShop() {
   return d;
 }
 
+Future<void> openDesktopGuide(WidgetTester tester) async {
+  final tile = find.byKey(const PageStorageKey('desktop-startup-guide'));
+  if (tile.evaluate().isEmpty) return;
+  await tester.ensureVisible(tile);
+  if (find
+          .text('الخطوة التالية: راجع الصندوق وأرصدة البداية')
+          .evaluate()
+          .isEmpty &&
+      find.text('كل خطوات البداية بالترتيب').evaluate().isEmpty) {
+    await tester.tap(find.textContaining('تجهيز المحل ·'));
+    await tester.pumpAndSettle();
+  }
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   setUpAll(loadAppFonts);
@@ -156,6 +170,7 @@ void main() {
       final router = GoRouter.of(
         tester.element(find.byType(DeptAccountingWorkspace)),
       );
+      await openDesktopGuide(tester);
       expect(
         find.text('الخطوة التالية: راجع الصندوق وأرصدة البداية'),
         findsOneWidget,
@@ -167,14 +182,18 @@ void main() {
         ),
         findsNothing,
       );
+      await tester.ensureVisible(find.text('إعداد الحسابات'));
       await tester.tap(find.text('إعداد الحسابات'));
       await tester.pumpAndSettle();
       expect(router.routeInformationProvider.value.uri.path, '/finance');
       router.go('/');
       await tester.pumpAndSettle();
+      await openDesktopGuide(tester);
+      await tester.ensureVisible(find.text('تخطي الآن'));
       await tester.tap(find.text('تخطي الآن'));
       await tester.pumpAndSettle();
       expect(find.text('الخطوة التالية: جهّز التصنيفات'), findsOneWidget);
+      await tester.ensureVisible(find.text('مراجعة التصنيفات'));
       await tester.tap(find.text('مراجعة التصنيفات'));
       await tester.pumpAndSettle();
       expect(
@@ -183,10 +202,14 @@ void main() {
       );
       router.go('/');
       await tester.pumpAndSettle();
+      await openDesktopGuide(tester);
+      await tester.ensureVisible(find.text('التصنيفات مناسبة لنشاطي'));
       await tester.tap(find.text('التصنيفات مناسبة لنشاطي'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('الوحدات مناسبة لنشاطي'));
       await tester.tap(find.text('الوحدات مناسبة لنشاطي'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('إضافة منتج أو خدمة'));
       await tester.tap(find.text('إضافة منتج أو خدمة'));
       await tester.pumpAndSettle();
       expect(router.routeInformationProvider.value.uri.path, '/catalog/new');
@@ -194,6 +217,8 @@ void main() {
       d.startupGuide.review(StartupTask.stock, skip: true);
       router.go('/');
       await tester.pumpAndSettle();
+      await openDesktopGuide(tester);
+      await tester.ensureVisible(find.text('إضافة مورد'));
       await tester.tap(find.text('إضافة مورد'));
       await tester.pumpAndSettle();
       expect(
@@ -216,11 +241,15 @@ void main() {
       d.startupGuide.review(StartupTask.customers, skip: true);
       router.go('/');
       await tester.pumpAndSettle();
+      await openDesktopGuide(tester);
+      await tester.ensureVisible(find.text('إعداد النسخ الاحتياطية'));
       await tester.tap(find.text('إعداد النسخ الاحتياطية'));
       await tester.pumpAndSettle();
       expect(find.text('النسخ الاحتياطية والاستعادة'), findsOneWidget);
       router.go('/');
       await tester.pumpAndSettle();
+      await openDesktopGuide(tester);
+      await tester.ensureVisible(find.text('كل خطوات البداية بالترتيب'));
       await tester.tap(find.text('كل خطوات البداية بالترتيب'));
       await tester.pumpAndSettle();
       final cash = find
@@ -297,6 +326,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      if (width >= DeptAccountingLayout.compact) await openDesktopGuide(tester);
       await tester.tap(find.text('كل خطوات البداية بالترتيب'));
       await tester.pumpAndSettle();
       expect(

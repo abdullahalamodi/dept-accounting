@@ -40,6 +40,44 @@ class _CatalogPageState extends State<CatalogPage> {
     super.dispose();
   }
 
+  Widget categoryFilter({bool compact = false}) => CatalogReferenceField(
+    repository: widget.dependencies.catalogReferences,
+    kind: CatalogReferenceKind.category,
+    controller: category,
+    label: 'التصنيف',
+    optional: true,
+    emptyLabel: 'كل التصنيفات',
+    compact: compact,
+    onChanged: (value) {
+      vm.category = value;
+      vm.filter(vm.search);
+    },
+  );
+
+  Widget stockFilters({bool compact = false}) => Wrap(
+    spacing: compact ? 0 : 8,
+    runSpacing: compact ? 0 : 8,
+    children: [
+      DeptAccountingFilterChip(
+        label: const Text('مخزون منخفض'),
+        selected: vm.lowOnly,
+        onSelected: (v) {
+          vm.lowOnly = v;
+          vm.filter(vm.search);
+        },
+      ),
+      if (compact) const SizedBox(width: 8),
+      DeptAccountingFilterChip(
+        label: const Text('الخدمات'),
+        selected: vm.servicesOnly,
+        onSelected: (v) {
+          vm.servicesOnly = v;
+          vm.filter(vm.search);
+        },
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) => ListenableBuilder(
     listenable: Listenable.merge([vm, widget.dependencies.store]),
@@ -83,64 +121,43 @@ class _CatalogPageState extends State<CatalogPage> {
               CatalogNavigation(selected: '/catalog', canManage: manage),
               if (vm.error != null) ErrorNotice(vm.error),
               DeptAccountingPanel(
-                child: FieldGrid(
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: DeptAccountingField(
-                            label: 'بحث بالاسم أو الباركود',
-                            onChanged: vm.filter,
-                          ),
-                        ),
-                        if (compact)
-                          IconButton(
-                            tooltip: 'تصفية المنتجات',
-                            icon: Icon(
-                              filtersOpen ? Icons.filter_list_off : Icons.tune,
-                            ),
-                            onPressed: () =>
-                                setState(() => filtersOpen = !filtersOpen),
-                          ),
-                      ],
-                    ),
-                    if (!compact || filtersOpen)
-                      CatalogReferenceField(
-                        repository: widget.dependencies.catalogReferences,
-                        kind: CatalogReferenceKind.category,
-                        controller: category,
-                        label: 'التصنيف',
-                        optional: true,
-                        emptyLabel: 'كل التصنيفات',
-                        onChanged: (value) {
-                          vm.category = value;
-                          vm.filter(vm.search);
-                        },
-                      ),
-                    if (!compact || filtersOpen)
-                      Wrap(
+                padding: const EdgeInsets.all(16),
+                child: compact
+                    ? FieldGrid(
                         children: [
-                          DeptAccountingFilterChip(
-                            label: const Text('مخزون منخفض'),
-                            selected: vm.lowOnly,
-                            onSelected: (v) {
-                              vm.lowOnly = v;
-                              vm.filter(vm.search);
-                            },
+                          Row(
+                            children: [
+                              Expanded(
+                                child: DeptAccountingField(
+                                  label: 'بحث بالاسم أو الباركود',
+                                  onChanged: vm.filter,
+                                ),
+                              ),
+                              IconButton(
+                                tooltip: 'تصفية المنتجات',
+                                icon: Icon(
+                                  filtersOpen
+                                      ? Icons.filter_list_off
+                                      : Icons.tune,
+                                ),
+                                onPressed: () =>
+                                    setState(() => filtersOpen = !filtersOpen),
+                              ),
+                            ],
                           ),
-                          const SizedBox(width: 8),
-                          DeptAccountingFilterChip(
-                            label: const Text('الخدمات'),
-                            selected: vm.servicesOnly,
-                            onSelected: (v) {
-                              vm.servicesOnly = v;
-                              vm.filter(vm.search);
-                            },
-                          ),
+                          if (filtersOpen) categoryFilter(),
+                          if (filtersOpen) stockFilters(compact: true),
                         ],
+                      )
+                    : DeptAccountingListToolbar(
+                        search: DeptAccountingField(
+                          label: 'بحث بالاسم أو الباركود',
+                          compact: true,
+                          onChanged: vm.filter,
+                        ),
+                        filters: [categoryFilter(compact: true)],
+                        actions: [stockFilters()],
                       ),
-                  ],
-                ),
               ),
               DeptAccountingPanel(
                 padding: EdgeInsets.zero,
@@ -438,6 +455,7 @@ class _ProductPageState extends State<ProductPage> {
       listenable: Listenable.merge([vm, widget.dependencies.store]),
       builder: (context, _) => WorkPage(
         busy: vm.busy,
+        desktopMaxWidth: DeptAccountingLayout.formWidth,
         title: product == null ? 'منتج جديد' : product!.name,
         onBack: () {
           if (editing &&
@@ -466,69 +484,169 @@ class _ProductPageState extends State<ProductPage> {
         child: SectionStack(
           children: [
             ErrorNotice(vm.error),
-            if (canAddOpening)
+            if (canAddOpening &&
+                MediaQuery.sizeOf(context).width >=
+                    DeptAccountingLayout.compact)
+              const Row(
+                key: ValueKey('product-opening-help'),
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: DeptAccountingColors.muted,
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'لديك كمية موجودة؟ اختر «حفظ وإضافة مخزون افتتاحي» لتسجيلها بتكلفة الوحدة.',
+                      style: DeptAccountingTypography.label,
+                    ),
+                  ),
+                ],
+              ),
+            if (canAddOpening &&
+                MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact)
               const DeptAccountingNotice(
+                key: ValueKey('product-opening-help'),
                 title: 'لديك كمية موجودة من هذا المنتج؟',
                 message: 'اختر «حفظ وإضافة مخزون افتتاحي» لتسجيلها بتكلفة الوحدة. يمكنك حفظ المنتج فقط وإضافة الكمية لاحقًا، قبل أول حركة عليه.',
               ),
-            DeptAccountingPanel(
-              title: 'بيانات المنتج',
-              child: SectionStack.form(
-                children: [
-                  FieldGrid(
-                    children: [
-                      if (manage)
-                        ChoiceField(
-                          label: 'النوع',
-                          value: service,
-                          items: const [
-                            (value: false, label: 'منتج مخزني'),
-                            (value: true, label: 'خدمة'),
-                          ],
-                          onChanged: (v) => setState(() => service = v!),
-                        ),
-                      CatalogReferenceField(
-                        repository: widget.dependencies.catalogReferences,
-                        kind: CatalogReferenceKind.category,
-                        label: 'التصنيف',
-                        controller: fields['category']!,
-                        optional: true,
-                        enabled: manage,
-                      ),
-                    ],
-                  ),
-                  FieldGrid(
-                    children: [
-                      for (final (key, label, numeric) in [
-                        ('name', 'اسم المنتج', false),
-                        ('barcode', 'الباركود', false),
-
-                        if (manage) ('purchasePrice', 'تكلفة الوحدة', true),
-                        ('salePrice', 'سعر البيع', true),
-                        if (!service) ('minStock', 'حد تنبيه المخزون', true),
-                      ])
-                        DeptAccountingField(
-                          label: label,
-                          helper: key == 'salePrice' || key == 'purchasePrice'
-                              ? 'لكل وحدة أساسية'
-                              : null,
-                          controller: fields[key],
-                          numeric: numeric,
+            if (MediaQuery.sizeOf(context).width >=
+                DeptAccountingLayout.compact) ...[
+              DeptAccountingPanel(
+                title: 'بيانات المنتج',
+                child: SectionStack.form(
+                  children: [
+                    FieldGrid(
+                      maxColumns: 2,
+                      children: [
+                        if (manage)
+                          ChoiceField(
+                            label: 'النوع',
+                            value: service,
+                            items: const [
+                              (value: false, label: 'منتج مخزني'),
+                              (value: true, label: 'خدمة'),
+                            ],
+                            onChanged: (v) => setState(() => service = v!),
+                          ),
+                        CatalogReferenceField(
+                          repository: widget.dependencies.catalogReferences,
+                          kind: CatalogReferenceKind.category,
+                          label: 'التصنيف',
+                          controller: fields['category']!,
+                          optional: true,
                           enabled: manage,
                         ),
-                    ],
-                  ),
-                  if (manage) ...[
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('المنتج نشط'),
-                      value: active,
-                      onChanged: (v) => setState(() => active = v),
+                      ],
                     ),
+                    FieldGrid(
+                      maxColumns: 2,
+                      children: [
+                        DeptAccountingField(
+                          label: 'اسم المنتج',
+                          controller: fields['name'],
+                          enabled: manage,
+                        ),
+                        DeptAccountingField(
+                          label: 'الباركود',
+                          controller: fields['barcode'],
+                          enabled: manage,
+                        ),
+                      ],
+                    ),
+                    if (manage)
+                      DeptAccountingDesktopContent(
+                        maxWidth: 280,
+                        child: SwitchListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('المنتج نشط'),
+                          value: active,
+                          onChanged: (v) => setState(() => active = v),
+                        ),
+                      ),
                   ],
-                ],
+                ),
               ),
-            ),
+              DeptAccountingPanel(
+                title: 'الأسعار والمخزون',
+                child: FieldGrid(
+                  maxColumns: 2,
+                  children: [
+                    for (final (key, label) in [
+                      if (manage) ('purchasePrice', 'تكلفة الوحدة'),
+                      ('salePrice', 'سعر البيع'),
+                      if (!service) ('minStock', 'حد تنبيه المخزون'),
+                    ])
+                      DeptAccountingField(
+                        label: label,
+                        controller: fields[key],
+                        numeric: true,
+                        enabled: manage,
+                        helper: key == 'minStock' ? null : 'لكل وحدة أساسية',
+                      ),
+                  ],
+                ),
+              ),
+            ] else
+              DeptAccountingPanel(
+                title: 'بيانات المنتج',
+                child: SectionStack.form(
+                  children: [
+                    FieldGrid(
+                      children: [
+                        if (manage)
+                          ChoiceField(
+                            label: 'النوع',
+                            value: service,
+                            items: const [
+                              (value: false, label: 'منتج مخزني'),
+                              (value: true, label: 'خدمة'),
+                            ],
+                            onChanged: (v) => setState(() => service = v!),
+                          ),
+                        CatalogReferenceField(
+                          repository: widget.dependencies.catalogReferences,
+                          kind: CatalogReferenceKind.category,
+                          label: 'التصنيف',
+                          controller: fields['category']!,
+                          optional: true,
+                          enabled: manage,
+                        ),
+                      ],
+                    ),
+                    FieldGrid(
+                      children: [
+                        for (final (key, label, numeric) in [
+                          ('name', 'اسم المنتج', false),
+                          ('barcode', 'الباركود', false),
+
+                          if (manage) ('purchasePrice', 'تكلفة الوحدة', true),
+                          ('salePrice', 'سعر البيع', true),
+                          if (!service) ('minStock', 'حد تنبيه المخزون', true),
+                        ])
+                          DeptAccountingField(
+                            label: label,
+                            helper: key == 'salePrice' || key == 'purchasePrice'
+                                ? 'لكل وحدة أساسية'
+                                : null,
+                            controller: fields[key],
+                            numeric: numeric,
+                            enabled: manage,
+                          ),
+                      ],
+                    ),
+                    if (manage) ...[
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('المنتج نشط'),
+                        value: active,
+                        onChanged: (v) => setState(() => active = v),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ProductUnitsSection(
               repository: widget.dependencies.catalogReferences,
               unit: fields['unit']!,

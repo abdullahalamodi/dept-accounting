@@ -74,7 +74,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextFormField, 'الطرف'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'اختيار'));
+    await tester.tap(find.widgetWithText(DeptAccountingButton, 'اختيار'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('تلقائي — الأقدم أولًا'));
     await tester.pumpAndSettle();
@@ -200,6 +200,8 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'أرصدة البداية'));
       await tester.pumpAndSettle();
       final addAccount = find.text('إضافة حساب');
       expect(

@@ -70,9 +70,10 @@ class _DeptAccountingExportToolbarState
   ) => DeptAccountingButton(
     label: label,
     icon: icon,
-    variant:
-        action == _ExportAction.print ||
-            (widget.onPrint == null && action == _ExportAction.pdf)
+    variant: MediaQuery.sizeOf(context).width >= DeptAccountingLayout.compact
+        ? DeptAccountingButtonVariant.secondary
+        : action == _ExportAction.print ||
+              (widget.onPrint == null && action == _ExportAction.pdf)
         ? DeptAccountingButtonVariant.primary
         : DeptAccountingButtonVariant.secondary,
     loading: active == action,

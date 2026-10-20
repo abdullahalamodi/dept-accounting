@@ -56,9 +56,11 @@ class _PartiesPageState extends State<PartiesPage> {
                 ],
               ),
               DeptAccountingPanel(
-                child: DeptAccountingField(
-                  label: 'بحث بالاسم أو الهاتف',
-                  onChanged: vm.filter,
+                child: DeptAccountingListToolbar(
+                  search: DeptAccountingField(
+                    label: 'بحث بالاسم أو الهاتف',
+                    onChanged: vm.filter,
+                  ),
                 ),
               ),
               DeptAccountingPanel(
@@ -255,12 +257,15 @@ class _PartyPageState extends State<PartyPage> {
           final statements = data.rows;
           final compact =
               MediaQuery.sizeOf(context).width < DeptAccountingLayout.compact;
-          final editForm = !compact || party == null || editing;
+          final editForm = party == null || editing;
           return WorkPage(
             busy: vm.busy,
+            desktopMaxWidth: editForm
+                ? DeptAccountingLayout.formWidth
+                : DeptAccountingLayout.maxContent,
             title: party?.name ?? 'طرف جديد',
             onBack: () {
-              if (compact && editing) {
+              if (editing) {
                 setState(() => editing = false);
               } else {
                 context.go('/parties');
@@ -357,6 +362,15 @@ class _PartyPageState extends State<PartyPage> {
                       ],
                     ),
                   ),
+                if (!compact && !editForm && manage)
+                  DeptAccountingSectionTabs<bool>(
+                    value: showOpening,
+                    items: const [
+                      (value: false, label: 'كشف الحساب'),
+                      (value: true, label: 'الأرصدة والتسويات'),
+                    ],
+                    onChanged: (value) => setState(() => showOpening = value),
+                  ),
                 if (compact && !editForm && manage)
                   Wrap(
                     spacing: 8,
@@ -375,26 +389,29 @@ class _PartyPageState extends State<PartyPage> {
                   ),
                 if (party != null &&
                     (party!.customer || manage) &&
-                    (!compact || !editing)) ...[
-                  if (!compact || !showOpening)
+                    !editing) ...[
+                  if (!showOpening)
                     DeptAccountingPanel(
                       title: 'كشف الحساب',
                       description: 'الرصيد الموجب مستحق؛ الرصيد السالب دفعة مقدمة لصالح الطرف',
                       child: SectionStack(
                         children: [
-                          ChoiceField(
-                            label: 'الحساب',
-                            value: customerStatement,
-                            items: [
-                              if (party!.customer)
-                                (value: true, label: 'حساب العميل'),
-                              if (party!.supplier && manage)
-                                (value: false, label: 'حساب المورد'),
-                            ],
-                            onChanged: (v) => setState(() {
-                              customerStatement = v!;
-                              page = 1;
-                            }),
+                          DeptAccountingDesktopContent(
+                            maxWidth: 400,
+                            child: ChoiceField(
+                              label: 'الحساب',
+                              value: customerStatement,
+                              items: [
+                                if (party!.customer)
+                                  (value: true, label: 'حساب العميل'),
+                                if (party!.supplier && manage)
+                                  (value: false, label: 'حساب المورد'),
+                              ],
+                              onChanged: (v) => setState(() {
+                                customerStatement = v!;
+                                page = 1;
+                              }),
+                            ),
                           ),
                           DeptAccountingSummaryLine(
                             label: 'الرصيد الحالي',
@@ -452,79 +469,86 @@ class _PartyPageState extends State<PartyPage> {
                         ],
                       ),
                     ),
-                  if (!compact || !showOpening)
+                  if (!showOpening)
                     CreditPanel(
                       key: ValueKey('$id-$customerStatement'),
                       d: d,
                       partyId: id,
                       customer: customerStatement,
                     ),
-                  if (manage && (!compact || showOpening))
-                    DeptAccountingPanel(
-                      title: 'تسوية رصيد سابق لبدء البرنامج',
-                      description: 'فرق مستقل موثق دون إنشاء فاتورة وهمية. السالب يخفض المستحق أو يزيد الرصيد لصالح الطرف.',
-                      child: SectionStack.form(
-                        children: [
-                          FieldGrid(
-                            children: [
-                              DeptAccountingField(
-                                label: 'فرق الرصيد (موجب أو سالب)',
-                                controller: adjustment,
-                                numeric: true,
-                              ),
-                              DeptAccountingField(
-                                label: 'سبب التسوية',
-                                controller: adjustmentReason,
-                              ),
-                            ],
-                          ),
-                          DeptAccountingButton(
-                            label: 'اعتماد التسوية',
-                            variant: DeptAccountingButtonVariant.secondary,
-                            onPressed: () async {
-                              if (await vm.adjust(
-                                    id,
-                                    customerStatement,
-                                    adjustment.text,
-                                    adjustmentReason.text,
-                                  ) &&
-                                  context.mounted) {
-                                showMessage(context, 'تم اعتماد تسوية الرصيد');
-                              }
-                            },
-                          ),
-                        ],
+                  if (manage && showOpening)
+                    DeptAccountingDesktopContent(
+                      child: DeptAccountingPanel(
+                        title: 'تسوية رصيد سابق لبدء البرنامج',
+                        description: 'فرق مستقل موثق دون إنشاء فاتورة وهمية. السالب يخفض المستحق أو يزيد الرصيد لصالح الطرف.',
+                        child: SectionStack.form(
+                          children: [
+                            FieldGrid(
+                              children: [
+                                DeptAccountingField(
+                                  label: 'فرق الرصيد (موجب أو سالب)',
+                                  controller: adjustment,
+                                  numeric: true,
+                                ),
+                                DeptAccountingField(
+                                  label: 'سبب التسوية',
+                                  controller: adjustmentReason,
+                                ),
+                              ],
+                            ),
+                            DeptAccountingButton(
+                              label: 'اعتماد التسوية',
+                              variant: DeptAccountingButtonVariant.secondary,
+                              onPressed: () async {
+                                if (await vm.adjust(
+                                      id,
+                                      customerStatement,
+                                      adjustment.text,
+                                      adjustmentReason.text,
+                                    ) &&
+                                    context.mounted) {
+                                  showMessage(
+                                    context,
+                                    'تم اعتماد تسوية الرصيد',
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
-                  if (manage && (!compact || showOpening))
-                    DeptAccountingPanel(
-                      title: 'رصيد افتتاحي لهذا الحساب',
-                      description: 'مرة واحدة قبل أول حركة. السالب يعني رصيدًا لصالح الطرف.',
-                      child: SectionStack.form(
-                        children: [
-                          DeptAccountingField(
-                            label: 'الرصيد الافتتاحي',
-                            controller: opening,
-                            numeric: true,
-                          ),
-                          DeptAccountingButton(
-                            label: 'اعتماد الافتتاح',
-                            variant: DeptAccountingButtonVariant.secondary,
-                            onPressed: () async {
-                              if (await vm.opening(
-                                    id,
-                                    customerStatement,
-                                    opening.text,
-                                  ) &&
-                                  context.mounted) {
-                                showMessage(
-                                  context,
-                                  'تم اعتماد الرصيد الافتتاحي',
-                                );
-                              }
-                            },
-                          ),
-                        ],
+                  if (manage && showOpening)
+                    DeptAccountingDesktopContent(
+                      child: DeptAccountingPanel(
+                        title: 'رصيد افتتاحي لهذا الحساب',
+                        description: 'مرة واحدة قبل أول حركة. السالب يعني رصيدًا لصالح الطرف.',
+                        child: SectionStack.form(
+                          children: [
+                            DeptAccountingField(
+                              label: 'الرصيد الافتتاحي',
+                              controller: opening,
+                              numeric: true,
+                            ),
+                            DeptAccountingButton(
+                              label: 'اعتماد الافتتاح',
+                              variant: DeptAccountingButtonVariant.secondary,
+                              onPressed: () async {
+                                if (await vm.opening(
+                                      id,
+                                      customerStatement,
+                                      opening.text,
+                                    ) &&
+                                    context.mounted) {
+                                  showMessage(
+                                    context,
+                                    'تم اعتماد الرصيد الافتتاحي',
+                                  );
+                                }
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                 ],

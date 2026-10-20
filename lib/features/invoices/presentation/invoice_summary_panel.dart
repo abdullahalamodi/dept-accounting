@@ -182,10 +182,26 @@ class InvoiceSummaryPanel extends StatelessWidget {
                   ),
                 ),
               if (vm.paymentMode == InvoicePaymentMode.partial)
-                DeptAccountingButton(
-                  label: 'إضافة حساب للدفع',
-                  compact: true,
-                  onPressed: vm.addPayment,
+                Builder(
+                  builder: (context) {
+                    final action = DeptAccountingButton(
+                      label: 'إضافة حساب للدفع',
+                      variant:
+                          MediaQuery.sizeOf(context).width <
+                              DeptAccountingLayout.compact
+                          ? DeptAccountingButtonVariant.primary
+                          : DeptAccountingButtonVariant.secondary,
+                      compact: true,
+                      onPressed: vm.addPayment,
+                    );
+                    return MediaQuery.sizeOf(context).width <
+                            DeptAccountingLayout.compact
+                        ? action
+                        : Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: action,
+                          );
+                  },
                 ),
             ],
             DeptAccountingSummaryLine(

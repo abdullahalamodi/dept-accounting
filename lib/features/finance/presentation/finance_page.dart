@@ -18,14 +18,22 @@ import 'reconciliation_panel.dart';
 import 'cash_account_dialog.dart';
 
 class FinancePage extends StatefulWidget {
-  const FinancePage({super.key, required this.dependencies});
+  const FinancePage({
+    super.key,
+    required this.dependencies,
+    this.initialOpening = false,
+  });
   final AppDependencies dependencies;
+  final bool initialOpening;
   @override
   State<FinancePage> createState() => _FinancePageState();
 }
 
 class _FinancePageState extends State<FinancePage> {
   bool showOpening = false;
+  late String desktopSection = widget.initialOpening
+      ? 'opening'
+      : 'transactions';
   late final vm = FinanceViewModel(widget.dependencies);
   final opening = TextEditingController();
   bool _openingInitialized = false;
@@ -106,8 +114,7 @@ class _FinancePageState extends State<FinancePage> {
                   ),
                 ),
               if (!compact)
-                FieldGrid(
-                  runSpacing: DeptAccountingSpace.xl,
+                DeptAccountingMetricGrid(
                   children: [
                     for (final a in accounts)
                       DeptAccountingMetricCard(
@@ -116,6 +123,50 @@ class _FinancePageState extends State<FinancePage> {
                         caption: 'الرصيد المتاح',
                       ),
                   ],
+                ),
+              if (!compact && manage)
+                DeptAccountingSectionTabs<String>(
+                  value: desktopSection,
+                  items: const [
+                    (value: 'transactions', label: 'الحركات'),
+                    (value: 'accounts', label: 'الحسابات'),
+                    (value: 'opening', label: 'أرصدة البداية'),
+                  ],
+                  onChanged: (value) => setState(() => desktopSection = value),
+                ),
+              if (!compact && manage && desktopSection == 'accounts')
+                DeptAccountingDesktopContent(
+                  child: DeptAccountingPanel(
+                    title: 'الحسابات النقدية والبنكية',
+                    action: DeptAccountingButton.table(
+                      label: 'إضافة حساب',
+                      variant: DeptAccountingButtonVariant.secondary,
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) => CashAccountDialog(d: d),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        for (final account in accounts)
+                          ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Icon(
+                              Icons.account_balance_wallet_outlined,
+                            ),
+                            title: Text(account.name),
+                            subtitle: Text(
+                              account.code,
+                              style: DeptAccountingTypography.caption,
+                            ),
+                            trailing: DeptAccountingAmount(
+                              Numbers.format(account.balance),
+                              currency: currency,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
                 ),
               if (compact && manage)
                 Wrap(
@@ -133,90 +184,98 @@ class _FinancePageState extends State<FinancePage> {
                     ),
                   ],
                 ),
-              if (manage && (!compact || showOpening))
-                DeptAccountingPanel(
-                  title: 'إعداد الحسابات وأرصدة البداية',
-                  action: DeptAccountingButton.table(
-                    label: 'إضافة حساب',
-                    onPressed: () => showDialog<void>(
-                      context: context,
-                      builder: (_) => CashAccountDialog(d: d),
+              if (manage &&
+                  (compact ? showOpening : desktopSection == 'opening'))
+                DeptAccountingDesktopContent(
+                  child: DeptAccountingPanel(
+                    title: 'إعداد الحسابات وأرصدة البداية',
+                    action: DeptAccountingButton.table(
+                      label: 'إضافة حساب',
+                      onPressed: () => showDialog<void>(
+                        context: context,
+                        builder: (_) => CashAccountDialog(d: d),
+                      ),
+                    ),
+                    child: SectionStack.form(
+                      children: [
+                        if (closed)
+                          const DeptAccountingStatusTag(
+                            'تمت مراجعة وإقفال الافتتاح',
+                            tone: DeptAccountingTone.success,
+                          )
+                        else ...[
+                          const Text(
+                            'اختر الحساب لإضافة رصيد البداية أو تعديل المبلغ المسجل. الحساب ذو الرصيد الصفري لا يحتاج إلى إضافة.',
+                          ),
+                          FieldGrid(
+                            children: [
+                              ChoiceField(
+                                label: 'حساب الافتتاح',
+                                value: selectedCode,
+                                items: accounts
+                                    .map((a) => (value: a.code, label: a.name))
+                                    .toList(),
+                                onChanged: (v) => setState(() {
+                                  openingAccount = v;
+                                  final saved = data.opening
+                                      .where((a) => a.code == v)
+                                      .firstOrNull;
+                                  opening.text = saved == null
+                                      ? ''
+                                      : Numbers.input(saved.amount);
+                                  vm.changed();
+                                }),
+                              ),
+                              DeptAccountingField(
+                                label: 'الرصيد الافتتاحي ($currency)',
+                                controller: opening,
+                                numeric: true,
+                                enabled: editable,
+                              ),
+                              DeptAccountingButton(
+                                label: existing == null
+                                    ? 'إضافة رصيد البداية'
+                                    : 'حفظ تعديل رصيد البداية',
+                                variant: DeptAccountingButtonVariant.secondary,
+                                onPressed: !editable
+                                    ? null
+                                    : () async {
+                                        if (await vm.opening(
+                                              selectedCode,
+                                              opening.text,
+                                            ) &&
+                                            context.mounted) {
+                                          showMessage(
+                                            context,
+                                            'تم حفظ رصيد البداية',
+                                          );
+                                        }
+                                      },
+                              ),
+                            ],
+                          ),
+                          if (!editable)
+                            const Text(
+                              'بدأت حركة هذا الحساب؛ استخدم عملية مالية أو مطابقة موثقة لتصحيح الرصيد.',
+                            ),
+                        ],
+                      ],
                     ),
                   ),
-                  child: SectionStack.form(
-                    children: [
-                      if (closed)
-                        const DeptAccountingStatusTag(
-                          'تمت مراجعة وإقفال الافتتاح',
-                          tone: DeptAccountingTone.success,
-                        )
-                      else ...[
-                        const Text(
-                          'اختر الحساب لإضافة رصيد البداية أو تعديل المبلغ المسجل. الحساب ذو الرصيد الصفري لا يحتاج إلى إضافة.',
-                        ),
-                        FieldGrid(
-                          children: [
-                            ChoiceField(
-                              label: 'حساب الافتتاح',
-                              value: selectedCode,
-                              items: accounts
-                                  .map((a) => (value: a.code, label: a.name))
-                                  .toList(),
-                              onChanged: (v) => setState(() {
-                                openingAccount = v;
-                                final saved = data.opening
-                                    .where((a) => a.code == v)
-                                    .firstOrNull;
-                                opening.text = saved == null
-                                    ? ''
-                                    : Numbers.input(saved.amount);
-                                vm.changed();
-                              }),
-                            ),
-                            DeptAccountingField(
-                              label: 'الرصيد الافتتاحي ($currency)',
-                              controller: opening,
-                              numeric: true,
-                              enabled: editable,
-                            ),
-                            DeptAccountingButton(
-                              label: existing == null
-                                  ? 'إضافة رصيد البداية'
-                                  : 'حفظ تعديل رصيد البداية',
-                              variant: DeptAccountingButtonVariant.secondary,
-                              onPressed: !editable
-                                  ? null
-                                  : () async {
-                                      if (await vm.opening(
-                                            selectedCode,
-                                            opening.text,
-                                          ) &&
-                                          context.mounted) {
-                                        showMessage(
-                                          context,
-                                          'تم حفظ رصيد البداية',
-                                        );
-                                      }
-                                    },
-                            ),
-                          ],
-                        ),
-                        if (!editable)
-                          const Text(
-                            'بدأت حركة هذا الحساب؛ استخدم عملية مالية أو مطابقة موثقة لتصحيح الرصيد.',
-                          ),
-                      ],
-                    ],
+                ),
+              if (manage &&
+                  (compact ? showOpening : desktopSection == 'opening'))
+                DeptAccountingDesktopContent(
+                  child: OpeningReviewPanel(
+                    vm: vm,
+                    balances: data.opening,
+                    editable: data.editable,
+                    equity: data.openingEquity,
                   ),
                 ),
-              if (manage && (!compact || showOpening))
-                OpeningReviewPanel(
-                  vm: vm,
-                  balances: data.opening,
-                  editable: data.editable,
-                  equity: data.openingEquity,
-                ),
-              if (!compact || !showOpening)
+              if (compact
+                  ? !showOpening
+                  : !manage || desktopSection == 'transactions')
                 DeptAccountingPanel(
                   title: 'الحركات المالية',
                   padding: EdgeInsets.zero,
@@ -340,6 +399,7 @@ class _FinanceEditorPageState extends State<FinanceEditorPage> {
                   : vm.safePreview;
           return WorkPage(
             busy: vm.busy,
+            pinDesktopActions: true,
             title: 'عملية مالية جديدة',
             onBack: () => context.go('/finance'),
             actions: [

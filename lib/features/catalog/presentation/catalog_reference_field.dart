@@ -22,6 +22,7 @@ class CatalogReferenceField extends StatelessWidget {
     this.excludeId = '',
     this.emptyLabel,
     this.onChanged,
+    this.compact = false,
   });
   final CatalogReferencesRepository repository;
   final CatalogReferenceKind kind;
@@ -29,6 +30,7 @@ class CatalogReferenceField extends StatelessWidget {
   final String label, excludeId;
   final String? helper;
   final bool optional, enabled;
+  final bool compact;
   final String? emptyLabel;
   final ValueChanged<String>? onChanged;
 
@@ -40,6 +42,7 @@ class CatalogReferenceField extends StatelessWidget {
       return DeptAccountingField(
         key: ValueKey('$label-${entry?.id}-${entry?.name}-${entry?.active}'),
         label: label,
+        compact: compact,
         initialValue: entry?.name ?? emptyLabel ?? '',
         hint: 'اختر ${kind.label}',
         helper: entry != null && !entry.active

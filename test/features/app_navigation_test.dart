@@ -35,7 +35,10 @@ void main() {
       );
       router.go('/catalog/new');
       await tester.pumpAndSettle();
-      expect(find.text('لديك كمية موجودة من هذا المنتج؟'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('product-opening-help')),
+        findsOneWidget,
+      );
       for (final label in ['تكلفة الوحدة', 'سعر البيع', 'حد تنبيه المخزون']) {
         expect(
           tester
@@ -171,7 +174,7 @@ void main() {
       'كرتون',
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, 'اختيار'));
+    await tester.tap(find.widgetWithText(DeptAccountingButton, 'اختيار'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextFormField, 'عدد الوحدات الأساسية'),
@@ -304,7 +307,9 @@ void main() {
           'سجل العمليات',
           'المحل',
         ]) {
-          final tab = find.widgetWithText(DeptAccountingFilterChip, section);
+          final tab = width < DeptAccountingLayout.compact
+              ? find.widgetWithText(DeptAccountingFilterChip, section)
+              : find.widgetWithText(TextButton, section);
           await tester.ensureVisible(tab);
           await tester.tap(tab);
           await tester.pumpAndSettle();
