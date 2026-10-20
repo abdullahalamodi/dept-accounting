@@ -265,6 +265,10 @@ class _AppWorkspace extends StatelessWidget {
     if (d.store.user == null || d.store.shop == null) {
       return const SizedBox.shrink();
     }
+    final catalogList = [
+      '/catalog',
+      for (final kind in CatalogReferenceKind.values) '/catalog/${kind.table}',
+    ].contains(path);
     final items = <({String path, String label, IconData icon})>[
       (path: '/', label: 'الرئيسية', icon: Icons.grid_view_outlined),
       (path: '/sales', label: 'المبيعات', icon: Icons.receipt_long_outlined),
@@ -334,6 +338,10 @@ class _AppWorkspace extends StatelessWidget {
             path == '/',
         onPopInvokedWithResult: (didPop, _) {
           if (didPop) return;
+          if (catalogList && path != '/catalog') {
+            context.go('/catalog');
+            return;
+          }
           if (const [
             '/sales',
             '/catalog',
@@ -365,7 +373,7 @@ class _AppWorkspace extends StatelessWidget {
               ? 0
               : path == '/sales'
               ? 1
-              : path == '/catalog'
+              : catalogList
               ? 2
               : path == '/finance'
               ? 3
@@ -373,20 +381,22 @@ class _AppWorkspace extends StatelessWidget {
           onCompactSelected: (index) => context.go(
             const ['/', '/sales', '/catalog', '/finance', '/more'][index],
           ),
-          compactFocused: !const [
-            '/',
-            '/sales',
-            '/catalog',
-            '/finance',
-            '/more',
-            '/purchases',
-            '/receiving',
-            '/parties',
-            '/reports',
-            '/settings',
-            '/inventory',
-            '/profile',
-          ].contains(path),
+          compactFocused:
+              !catalogList &&
+              !const [
+                '/',
+                '/sales',
+                '/catalog',
+                '/finance',
+                '/more',
+                '/purchases',
+                '/receiving',
+                '/parties',
+                '/reports',
+                '/settings',
+                '/inventory',
+                '/profile',
+              ].contains(path),
           libraryMode: false,
           scrollBody: false,
           notice: d.store.user!.canManage

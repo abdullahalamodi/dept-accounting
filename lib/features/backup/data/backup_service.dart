@@ -12,6 +12,7 @@ import '../../auth/data/auth_models.dart';
 import 'folder_access.dart';
 import 'backup_codec.dart';
 import 'backup_files.dart';
+import 'backup_platform.dart';
 
 class BackupNotice {
   const BackupNotice({
@@ -59,6 +60,10 @@ class BackupService {
         message: error!,
         warning: true,
       );
+      return;
+    }
+    if (!supportsExternalBackup) {
+      status.value = null;
       return;
     }
     final last = store.setting('external_backup_at');

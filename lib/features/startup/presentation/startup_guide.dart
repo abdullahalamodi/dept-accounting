@@ -45,6 +45,9 @@ class _StartupGuideState extends State<StartupGuide> {
         );
       }
       if (!vm.available) return const SizedBox.shrink();
+      if (vm.steps.isNotEmpty && vm.next == null) {
+        return const SizedBox.shrink();
+      }
       if (!vm.visible) {
         return Align(
           alignment: AlignmentDirectional.centerStart,

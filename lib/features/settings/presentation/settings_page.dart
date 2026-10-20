@@ -11,6 +11,7 @@ import '../../../app/dependencies.dart';
 import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dept_accounting_design_system.dart';
 import '../../backup/data/backup_codec.dart';
+import '../../backup/data/backup_platform.dart';
 import '../../auth/data/auth_models.dart';
 import '../../backup/presentation/backup_status_notice.dart';
 import '../../backup/presentation/backup_file_selection.dart';
@@ -187,7 +188,9 @@ class _SettingsPageState extends State<SettingsPage> {
               if (section == _SettingsSection.backups)
                 DeptAccountingPanel(
                   title: 'النسخ الاحتياطية والاستعادة',
-                  description: 'احمِ بيانات محلك بنسخ مشفرة ونسخة خارجية آمنة.',
+                  description: supportsExternalBackup
+                      ? 'احمِ بيانات محلك بنسخ مشفرة ونسخة خارجية آمنة.'
+                      : 'احمِ بيانات محلك بنسخ احتياطية مشفرة.',
                   child: SectionStack(
                     children: [
                       BackupStatusNotice(backups: d.backups),
@@ -200,7 +203,8 @@ class _SettingsPageState extends State<SettingsPage> {
                               bottom: DeptAccountingSpace.lg,
                             ),
                             child: Text(
-                              'يحفظ التطبيق نسخة مشفرة تلقائيًا كل ساعة عند وجود تغييرات أثناء تشغيله، وعند فتحه إذا فات الموعد. تُحفظ النسخة في مجلد التطبيق أو المجلد الذي تختاره، وتُحفظ نسخة إضافية في المجلد الخارجي إذا كان متصلًا ومتاحًا.',
+                              'يحفظ التطبيق نسخة مشفرة تلقائيًا كل ساعة عند وجود تغييرات أثناء تشغيله، وعند فتحه إذا فات الموعد. تُحفظ النسخة في مجلد التطبيق أو المجلد الذي تختاره.'
+                              '${supportsExternalBackup ? ' وتُحفظ نسخة إضافية في المجلد الخارجي إذا كان متصلًا ومتاحًا.' : ''}',
                             ),
                           ),
                         ],
@@ -208,15 +212,17 @@ class _SettingsPageState extends State<SettingsPage> {
                       Text(
                         'آخر نسخة ناجحة: ${_backupTime(context, s.setting('backup_at'), 'لم تُنشأ بعد')}',
                       ),
-                      Text(
-                        'آخر نسخة خارجية: ${_backupTime(context, s.setting('external_backup_at'), 'لا توجد')}',
-                      ),
+                      if (supportsExternalBackup)
+                        Text(
+                          'آخر نسخة خارجية: ${_backupTime(context, s.setting('external_backup_at'), 'لا توجد')}',
+                        ),
                       Text(
                         'مجلد النسخ: ${s.setting('backup_directory') ?? d.backups.localDirectory}',
                       ),
-                      Text(
-                        'مجلد النسخة الخارجية: ${s.setting('external_backup_directory') ?? 'لم يُحدد بعد'}',
-                      ),
+                      if (supportsExternalBackup)
+                        Text(
+                          'مجلد النسخة الخارجية: ${s.setting('external_backup_directory') ?? 'لم يُحدد بعد'}',
+                        ),
                       Wrap(
                         spacing: 12,
                         runSpacing: 12,
@@ -234,19 +240,21 @@ class _SettingsPageState extends State<SettingsPage> {
                               }
                             }),
                           ),
-                          DeptAccountingButton(
-                            label: 'اختيار مجلد النسخة الخارجية',
-                            variant: DeptAccountingButtonVariant.secondary,
-                            onPressed: () => vm.run(() async {
-                              final path = await FilePicker.getDirectoryPath();
-                              if (path != null) {
-                                await d.backups.folders.remember(
-                                  'external_backup_directory',
-                                  path,
-                                );
-                              }
-                            }),
-                          ),
+                          if (supportsExternalBackup)
+                            DeptAccountingButton(
+                              label: 'اختيار مجلد النسخة الخارجية',
+                              variant: DeptAccountingButtonVariant.secondary,
+                              onPressed: () => vm.run(() async {
+                                final path =
+                                    await FilePicker.getDirectoryPath();
+                                if (path != null) {
+                                  await d.backups.folders.remember(
+                                    'external_backup_directory',
+                                    path,
+                                  );
+                                }
+                              }),
+                            ),
                           DeptAccountingButton(
                             label: 'إنشاء نسخة احتياطية الآن',
                             loading: vm.busy,

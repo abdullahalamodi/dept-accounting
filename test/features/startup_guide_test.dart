@@ -13,6 +13,7 @@ import 'package:dept_accounting/features/startup/presentation/startup_guide.dart
 import 'package:dept_accounting/features/startup/presentation/startup_guide_view_model.dart';
 import 'package:dept_accounting/main.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -40,6 +41,8 @@ void main() {
   test(
     'Guide tracks actual setup, persists skipped steps and respects roles',
     () async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
       final d = newShop();
       final vm = StartupGuideViewModel(
         d.startupGuide,
@@ -141,7 +144,7 @@ void main() {
   );
 
   testWidgets(
-    'Guide stays visible, opens setup screens and permits revisiting skipped steps',
+    'Guide opens setup screens, permits revisiting and hides after completion',
     (tester) async {
       tester.view.physicalSize = const Size(1440, 1500);
       tester.view.devicePixelRatio = 1;
@@ -233,10 +236,30 @@ void main() {
         find.text('الخطوة التالية: راجع الصندوق وأرصدة البداية'),
         findsOneWidget,
       );
+      d.startupGuide.review(StartupTask.cash);
+      await tester.pumpAndSettle();
+      expect(find.text('الخطوة التالية: احمِ بيانات محلك'), findsOneWidget);
+      d.startupGuide.review(StartupTask.backup, skip: true);
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(StartupGuide),
+          matching: find.byType(DeptAccountingPanel),
+        ),
+        findsNothing,
+      );
+      expect(find.text('دليل تجهيز المحل'), findsNothing);
+      router.go('/finance');
+      await tester.pumpAndSettle();
+      router.go('/');
+      await tester.pumpAndSettle();
+      expect(find.text('اكتملت مراجعة خطوات البداية'), findsNothing);
+      expect(find.text('دليل تجهيز المحل'), findsNothing);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
     },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
   );
 
   testWidgets('Guide fits desktop, phone and large text', (tester) async {

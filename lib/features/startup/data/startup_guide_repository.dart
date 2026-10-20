@@ -1,4 +1,5 @@
 import '../../../core/data/app_store.dart';
+import '../../backup/data/backup_platform.dart';
 
 enum StartupTask {
   cash,
@@ -184,7 +185,7 @@ class StartupGuideRepository {
         ),
         skipLabel: 'أبيع نقدًا فقط الآن',
       ),
-      if (store.user!.isOwner)
+      if (store.user!.isOwner && supportsExternalBackup)
         step(
           task: StartupTask.backup,
           title: 'احمِ بيانات محلك',

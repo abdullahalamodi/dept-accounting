@@ -99,6 +99,52 @@ Future<void> capture(WidgetTester tester, String name) async {
 void main() {
   setUpAll(loadAppFonts);
 
+  testWidgets('Mobile catalog tabs retain workspace navigation', (
+    tester,
+  ) async {
+    final d = seededShop();
+    final router = await mount(tester, d, const Size(390, 844));
+    router.go('/catalog');
+    await tester.pumpAndSettle();
+
+    for (final tab in [
+      (label: 'التصنيفات', path: '/catalog/categories'),
+      (label: 'الوحدات', path: '/catalog/units'),
+      (label: 'المنتجات', path: '/catalog'),
+    ]) {
+      await tester.tap(
+        find.widgetWithText(DeptAccountingFilterChip, tab.label),
+      );
+      await tester.pumpAndSettle();
+      expect(router.routeInformationProvider.value.uri.path, tab.path);
+      expect(find.byTooltip('الملف الشخصي').hitTestable(), findsOneWidget);
+      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        2,
+      );
+      expect(tester.takeException(), isNull);
+    }
+
+    await tester.tap(
+      find.widgetWithText(DeptAccountingFilterChip, 'التصنيفات'),
+    );
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/catalog');
+    await tester.tap(
+      find.descendant(
+        of: find.byType(NavigationBar),
+        matching: find.text('الرئيسية'),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(router.routeInformationProvider.value.uri.path, '/');
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pumpAndSettle();
+  });
+
   testWidgets(
     'Mobile sale edits, survives resizing and draft restore, and posts once',
     (tester) async {

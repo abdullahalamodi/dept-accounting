@@ -11,6 +11,7 @@ import '../../../core/ui/form_widgets.dart';
 import '../../../design_system/dept_accounting_design_system.dart';
 import 'document_view_model.dart';
 import 'document_cancellation_dialog.dart';
+import 'mobile/mobile_document_item_card.dart';
 
 class DocumentPage extends StatefulWidget {
   const DocumentPage({super.key, required this.dependencies, required this.id});
@@ -166,6 +167,18 @@ class _DocumentPageState extends State<DocumentPage> {
                   DeptAccountingPanel(
                     title: 'البنود المعتمدة',
                     child: DeptAccountingDataTable(
+                      compactRowBuilder: (context, index) =>
+                          MobileDocumentItemCard(
+                            line: doc.lines[index],
+                            currency: currency,
+                            total:
+                                [
+                                  'sale_return',
+                                  'purchase_return',
+                                ].contains(doc.kind)
+                                ? doc.extra['returns'][index]['value'] as int
+                                : doc.lines[index].total,
+                          ),
                       columns: const [
                         DataColumn(label: Text('المنتج')),
                         DataColumn(label: Text('الوحدة')),
