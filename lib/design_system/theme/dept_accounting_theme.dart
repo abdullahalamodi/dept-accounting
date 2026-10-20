@@ -55,9 +55,6 @@ abstract final class DeptAccountingTheme {
             Size(48, DeptAccountingLayout.controlHeight),
           ),
           textStyle: WidgetStatePropertyAll(DeptAccountingTypography.action),
-          padding: const WidgetStatePropertyAll(
-            EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          ),
           shape: const WidgetStatePropertyAll(rounded),
           backgroundColor: WidgetStateProperty.resolveWith((states) {
             if (states.contains(WidgetState.disabled)) {
@@ -89,7 +86,6 @@ abstract final class DeptAccountingTheme {
           textStyle: DeptAccountingTypography.action,
           shape: rounded,
           side: const BorderSide(color: DeptAccountingColors.controlBorder),
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         ),
       ),
       textButtonTheme: TextButtonThemeData(
@@ -99,7 +95,6 @@ abstract final class DeptAccountingTheme {
           minimumSize: const Size(48, DeptAccountingLayout.controlHeight),
           textStyle: DeptAccountingTypography.action,
           shape: rounded,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         ),
       ),
       iconButtonTheme: IconButtonThemeData(
@@ -117,10 +112,6 @@ abstract final class DeptAccountingTheme {
         ),
         filled: true,
         fillColor: DeptAccountingColors.surface,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: DeptAccountingTypography.controlVerticalPadding,
-        ),
         border: outline,
         enabledBorder: outline,
         focusedBorder: outline.copyWith(
